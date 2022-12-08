@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 ResistFire is ResistanceEnchantment
 
 constants:
@@ -16,19 +16,21 @@ constants:
 
 resources:
 
+   include resfire.lkod
+
    resistfire_name_rsc = "withstand fire"
    resistfire_icon_rsc = iresfire.bgf
    resistfire_desc_rsc = \
       "Infuses your body with cool magical energy which "
-      "reduces damage from fire attacks for several minutes.  "
-      "Requires mushrooms and red mushrooms."
-   
+      "reduces damage from fire attacks for several minutes."
    resistfire_already_enchanted = "You are already resisting fire."
    resistfire_success = "You bathe %s%s in magical protection from fire."
    resistfire_on = "Cool magical energy pulses through your body."
-   resistfire_off = "Your body warms noticeably as the withstand fire enchantment wears off."
-
-   resistfire_spell_intro = "Faren Lv. 2: Decreases the amount of damage you take from fire based attacks."
+   resistfire_off = \
+      "Your body warms noticeably as the withstand fire enchantment wears off."
+   resistfire_spell_intro = \
+      "Faren Lv. 2: Decreases the amount of damage you take from fire "
+      "based attacks."
 
 classvars:
 
@@ -48,7 +50,7 @@ classvars:
 
    viFlash = FLASH_GOOD_SELF
 
-   viResistanceType = -ATCK_SPELL_FIRE
+   viResistanceType = -SPL_TYPE_FIRE
    vrAlreadyEnchanted = resistfire_already_enchanted
    vrEnchantment_On = resistfire_on
    vrEnchantment_Off = resistfire_off
@@ -61,7 +63,6 @@ messages:
    ResetReagents()
    {
       plReagents = $;
-      plReagents = Cons([&Mushroom,3],plReagents);
       plReagents = Cons([&RedMushroom,1],plReagents);
 
       return;
@@ -69,23 +70,22 @@ messages:
 
    GetResistanceStrength(iSpellpower = 0)
    {
-      %% strength varies from 15 to 65
-      return iSpellPower/2 + 25;
+      /// strength varies from 5 to 25
+      return (iSpellPower+1)/5 + 5;
    }
 
    GetDuration(iSpellPower = 0)
    {
-      local iDuration;	   %%% 3 to 13 minutes
+      local iDuration;	   //// 3 to 13 minutes
       iDuration = 180 + iSpellPower * 6;
-      iDuration = iDuration * 1000;	  %% translate to milliseconds
-      return random(iDuration/2,iDuration);
+      iDuration = iDuration * 1000;	  /// translate to milliseconds
+      return iDuration;
    }
 
    GetPotionClass()
    {
-      RETURN &ResistFirePotion;
+      return &ResistFirePotion;
    }
 
 end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

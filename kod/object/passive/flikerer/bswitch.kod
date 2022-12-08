@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 BrazierSwitch is Flickerer
 
 constants:
@@ -18,27 +18,30 @@ constants:
    
 resources:
 
+   include bswitch.lkod
+
    brazierswitch_name_rsc = "brazier"
    brazierswitch_icon_rsc = brazier.bgf
    brazierswitch_desc_on = \
       "The flame burns bright, offering welcome light to the surroundings."
    brazierswitch_desc_off = "The cold metal brazier yields no light."
 
-   brazierswitch_not_in_range = "You are not close enough to the brazier to light it."
+   brazierswitch_not_in_range = \
+      "You are not close enough to the brazier to light it."
 
 classvars:
 
    vrName = brazierswitch_name_rsc
    vrIcon = brazierswitch_icon_rsc
 
-   viObject_flags = ACTIVATE_YES
+   viObject_flags = OF_ACTIVATABLE
 
 properties:
 
    viStart_frame = 2
    viEnd_frame = 7
 
-   % What intensity? from 0-255
+   // What intensity? from 0-255
    piLightIntensity = 100
 
 messages:
@@ -52,12 +55,12 @@ messages:
 
    SetAnimationSpeed()
    {
-      % Set our animations a bit randomly.
+      // Set our animations a bit randomly.
       piAnim_speed = (random(9,15) * 10);
       viStart_frame = random(2,3);
       viEnd_frame = random(5,6);
 
-      return;   
+      return;
    }
 
    ShowDesc()
@@ -75,17 +78,18 @@ messages:
    }
 
    TryActivate(who=$)
-   "Return False only if you want user.kod to send its own error message to user."
+   "Return FALSE only if you want user.kod to send its own "
+   "error message to user."
    {
-      if abs(send(who,@GetRow)-send(self,@GetRow)) > USE_RANGE
-         OR abs(send(who,@GetCol)-send(self,@GetCol)) > USE_RANGE
+      if abs(Send(who,@GetRow) - Send(self,@GetRow)) > USE_RANGE
+         OR abs(Send(who,@GetCol) - Send(self,@GetCol)) > USE_RANGE
       {
-         Send(who,@MsgSendUser,#message_rsc=brazierswitch_not_in_range);          
+         Send(who,@MsgSendUser,#message_rsc=brazierswitch_not_in_range);
 
          return TRUE;
-      }                                                                     
+      }
 
-      send(poOwner,@BrazierLit,#brazier_obj=self,#who=who);      
+      Send(poOwner,@BrazierLit,#what=self,#who=who,#bIsLit=pbIsLit);
 
       return TRUE;
    }
@@ -100,8 +104,8 @@ messages:
       pbIsLit = has_flame;
       if pbIsLit
       {
-         % randomize each time it comes on.
-         send(self,@SetAnimationSpeed);
+         // randomize each time it comes on.
+         Send(self,@SetAnimationSpeed);
       }
 
       Send(poOwner,@SomethingChanged,#what=self);
@@ -109,6 +113,5 @@ messages:
       return;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

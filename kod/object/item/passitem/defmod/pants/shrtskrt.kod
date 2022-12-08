@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 ShortSkirt is Pants
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include shrtskrt.lkod
 
    ShortSkirt_icon_rsc = Skirt.bgf
 
@@ -33,7 +35,7 @@ classvars:
    vrLegs_male = ShortSkirt_male_player_rsc
    vrLegs_female = ShortSkirt_female_player_rsc
 
-   vrPoss_article = item_this
+   vrPoss_article = object_article_cap_this_rsc
    vrCondition_exc = item_condition_exc 
    vrCondition_exc_mended = item_condition_exc_mended
    vrCondition_good = item_condition_good 
@@ -62,4 +64,4 @@ messages:
 
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

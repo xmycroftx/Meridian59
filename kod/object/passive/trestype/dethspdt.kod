@@ -1,35 +1,36 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 DeathSpiderTreasure is TreasureType
 
 constants:
-   
+
    include blakston.khd
-   
+
 classvars:
 
+   viTreasure_num = TID_BLACK_SPIDER
 
 properties:
-   
-   piTreasure_num = TID_BLACK_SPIDER
 
    piItem_att_chance = 2
    piDIff_seed = 4
 
 messages:
-   
-   constructed()
+
+   Constructed()
    {
-      plTreasure = [ [ &NeruditeArrow, 10 ],
-                     [ &NightVisionPotion, 9],
+      plTreasure = [ [ &NeruditeArrow, 9 ],
+                     [ &HealWand, 1 ],
+                     [ &Spideye, 3 ],
+                     [ &NightVisionPotion, 3],
                      [ &FireRing, 3],
                      [ &ColdRing, 3],
                      [ &ShockRing, 3],
@@ -49,7 +50,7 @@ messages:
                      [ &DetectInvisibilityPotion, 3],
                      [ &DetectGoodPotion, 3],
                      [ &DetectEvilPotion, 3],
-                     [ &CurePoisonPotion, 3],
+                     [ &CurePoisonPotion, 6],
                      [ &CureDiseasePotion, 3],
                      [ &BaitPotion, 3],
                      [ &HastePotion, 3],
@@ -63,4 +64,4 @@ messages:
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

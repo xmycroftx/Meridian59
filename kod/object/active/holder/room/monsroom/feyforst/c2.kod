@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 OutdoorsC2 is FeyForest
 
 constants:
@@ -16,9 +16,11 @@ constants:
 
 resources:
 
+   include c2.lkod
+
    room_name_OutdoorsC2 = "The Vale of Sorrows"
    room_OutdoorsC2 = c2.roo
-   OutdoorsC2_music = walk7.mid
+   OutdoorsC2_music = walk7.ogg
 
    c2_elhai_win = \
       "~IVictorious, the elhai invite all of those pure of heart to drink "
@@ -26,15 +28,15 @@ resources:
    c2_dirhai_win = \
       "~ITriumphant in their dark victory, the dirhai invite any of similiar "
       "scruples to meld with the node."
-   waterfall_sound_outdoorsc2 = wfall2.wav
+   waterfall_sound_outdoorsc2 = wfall2.ogg
 
 classvars:
 
    vrName = room_name_OutdoorsC2
 
-   % This is where this section of the faerie forest will 'aim' for on the
-   %  karmic scale.
-   viEquilibrium = 50              
+   // This is where this section of the faerie forest will 'aim' for on the
+   //  karmic scale.
+   viEquilibrium = 50
 
    viTeleport_row = 15
    viTeleport_col = 13
@@ -45,31 +47,39 @@ properties:
    prMusic = OutdoorsC2_music
    piRoom_num = RID_C2
    
-   piGen_time = 50000
+   piGen_time = 25000
    
    plFey_Forest = $
 
-   ptFeyNode = $      %% Faerie node appears for 30 seconds.
+   ptFeyNode = $      /// Faerie node appears for 30 seconds.
+
+   pbSnowGroundTexture = FALSE
 
 messages:
 
    Constructor()
    {
       plFey_Forest = [RID_A1, RID_B1, RID_B2, RID_C1, RID_C2, RID_C3,RID_D2, RID_D1];
-      plGenerators = [ [24, 17], [21, 39], [26, 22], [28, 39], [24, 18], [21, 40],
-                       [26, 23], [28, 40], [23, 17], [20, 39], [25, 22], [27, 39],
-                       [23, 16], [20, 38], [25, 21], [27, 38]
-                     ];
 
-      % Create the node now.
+      // Create the node now.
       Create(&FeyNode,#node_num=NODE_FAERIE,#karma=0,#iRoomNum=piRoom_num);
 
       propagate;
    }
 
+   SetMonsterGenPoints()
+   {
+      plGenerators = [ [24, 17], [21, 39], [26, 22], [28, 39], [24, 18], [21, 40],
+                       [26, 23], [28, 40], [23, 17], [20, 39], [25, 22], [27, 39],
+                       [23, 16], [20, 38], [25, 21], [27, 38]
+                     ];
+
+      return;
+   }
+
    Constructed()
    {
-      %  each sound is [wave_file, row, col, cutoff radius, maximum volume]
+      //  each sound is [wave_file, row, col, cutoff radius, maximum volume]
       plLooping_sounds = [[ waterfall_sound_outdoorsc2, 42, 28, 100, 100 ]];
 
       propagate;
@@ -81,14 +91,14 @@ messages:
 
       if karma > KVERY_GOOD AND karma < KVERY_EVIL
       {
-         % Node should be gone, if it isn't
+         // Node should be gone, if it isn't
          Send(self,@KillNode);
 
          return;
       }
-	
+
       karma = Send(self,@GetKarma);
-      for i in plFey_Forest
+      foreach i in plFey_Forest
       {
          oRoom = Send(SYS,@FindRoomByNum,#num=i);
 
@@ -105,10 +115,10 @@ messages:
          }
       }
 
-      % All rooms have the same karma, which is either 1 or 5.  Node appears.
+      // All rooms have the same karma, which is either 1 or 5.  Node appears.
       Send(self,@AppearNode);
 
-      return;						
+      return;
    }
 
    FeyNodeTimer()
@@ -126,7 +136,7 @@ messages:
       oNode = Send(self,@FindHolding,#class=&ManaNode);
       if oNode <> $
       {
-         % A node is already here.  Do nothing.
+         // A node is already here.  Do nothing.
          return;
       }
 
@@ -145,7 +155,7 @@ messages:
          Send(oNode,@NodeAppear,#where=self,#karma=2,#row=23,#col=30,
               #fine_row=0,#fine_col=0);
       }
-      
+
       if ptFeyNode = $
       {
          ptFeyNode = CreateTimer(self,@FeyNodeTimer,30000);
@@ -159,19 +169,20 @@ messages:
 
    KillNode()
    {
-      local i;
+      local i, each_obj;
 
-      % Don't kill the node until time has elapsed.
+      // Don't kill the node until time has elapsed.
       if ptFeyNode <> $
       {
          return;
-      }          
-				          
-      for i in plPassive
+      }
+
+      foreach i in plPassive
       {
-         if IsClass(First(i),&ManaNode)
+         each_obj = First(i);
+         if IsClass(each_obj,&ManaNode)
          {
-            Send(First(i),@NodeDisappear);
+            Send(each_obj,@NodeDisappear);
          }
       }
 
@@ -184,8 +195,8 @@ messages:
    SetRoomKarma(karma = $)
    {
       local karma1, karma2, karma3;
-   
-      % Change waterfall level.
+
+      // Change waterfall level.
       if (karma = KVERY_EVIL)
       {       
          Send(self,@SetSector,#sector=15,#animation=ANIMATE_FLOOR_LIFT,
@@ -202,7 +213,7 @@ messages:
               #height=464,#speed=0);
       }
       else
-      {       
+      {
          Send(self,@SetSector,#sector=15,#animation=ANIMATE_FLOOR_LIFT,
               #height=288,#speed=0);
          Send(self,@SetSector,#sector=16,#animation=ANIMATE_FLOOR_LIFT,
@@ -217,8 +228,8 @@ messages:
               #height=544,#speed=0);
       }
 
-      % Lower to a trickle when slightly evil.
-      if (karma > NEUTRAL)            
+      // Lower to a trickle when slightly evil.
+      if (karma > NEUTRAL)
       {       
          Send(self,@SetSector,#sector=5,#animation=ANIMATE_FLOOR_LIFT,
               #height=120,#speed = 0);
@@ -227,10 +238,10 @@ messages:
          Send(self,@SetSector,#sector=7,#animation=ANIMATE_FLOOR_LIFT,
               #height=120,#speed = 0);
          Send(self,@SetSector,#sector=8,#animation=ANIMATE_FLOOR_LIFT,
-              #height=128,#speed = 0);         
+              #height=128,#speed = 0);
       }
       else
-      {       
+      {
          Send(self,@SetSector,#sector=5,#animation=ANIMATE_FLOOR_LIFT,
               #height=288,#speed=0);
          Send(self,@SetSector,#sector=6,#animation=ANIMATE_FLOOR_LIFT,
@@ -238,7 +249,7 @@ messages:
          Send(self,@SetSector,#sector=7,#animation=ANIMATE_FLOOR_LIFT,
               #height=464,#speed=0);
          Send(self,@SetSector,#sector=8,#animation=ANIMATE_FLOOR_LIFT,
-              #height=364,#speed=0);         
+              #height=364,#speed=0);
       }
 
       propagate;
@@ -290,28 +301,27 @@ messages:
    {
       return plFey_Forest;
    }
-   
+
    Delete()
    {
       local oNode;
 
-      % Delete 'our' node.  It's our responsibility even if it's not in
-      %  the room at the time.
+      // Delete 'our' node.  It's our responsibility even if it's not in
+      //  the room at the time.
       oNode = Send(SYS,@FindNodeByNum,#num=NODE_FAERIE);
       if oNode <> $
       {
-         Send(oNode,@Delete);        
+         Send(oNode,@Delete);
       }
 
       if ptFeyNode <> $
       {
          DeleteTimer(ptFeyNode);
          ptFeyNode = $;
-      }      		             
+      }
 
       propagate;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

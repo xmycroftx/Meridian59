@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Silence is RoomEnchantment
 
 constants:
@@ -16,23 +16,25 @@ constants:
 
 resources:
 
+   include silence.lkod
+
    Silence_name_rsc = "silence"
    Silence_icon_rsc = isilence.bgf
    Silence_desc_rsc = \
-      "Muffles all speech preventing spell casting and communication as long as caster concentrates.  "
-      "Requires dark angel feathers and purple mushrooms."
-   
+      "Muffles all speech preventing spell casting and communication as long "
+      "as caster concentrates."
    Silence_unnecessary = "This area already is already silenced."
-
    Silence_on = "A curtain of silence falls across the room."
    Silence_off = "The curtain of silence is lifted."
    Silence_new_entrant = "This place is strangely quiet."
-
-   Silence_cant_block_jala_caster = "Your spell fails to silence the singing bard in the area."
-   Silence_cant_block_jala_victim = "Your words ring through the silence spell covering the room."
+   Silence_cant_block_jala_caster = \
+      "Your spell fails to silence the singing bard in the area."
+   Silence_cant_block_jala_victim = \
+      "Your words ring through the silence spell covering the room."
    Silence_blocked_jala_victim = "The silence spell muffles your song."
-
-   Silence_spell_intro = "Qor Level 3: Draws a curtain of Silence over the room, stirring the servants of Qor."
+   Silence_spell_intro = \
+      "Qor Level 3: Draws a curtain of Silence over the room, stirring the "
+      "servants of Qor."
 
 classvars:
 
@@ -41,21 +43,25 @@ classvars:
    vrDesc = Silence_desc_rsc
    vrSpell_intro = Silence_spell_intro
 
+   vrAlreadyEnchanted = Silence_unnecessary
+
    viSpell_num = SID_SILENCE
    viSchool = SS_QOR
    viMana = 10
    viSpell_level = 3
 
-   viManaDrain = 10      % Drain is amount used every viDrainTime milliseconds
-   viDrainTime = 1000    % Drain some mana every viDrainTime milliseconds
+   viManaDrain = 10000            // Mana drained per second (10^3)
    
    viChance_To_Increase = 10
+   viMeditate_ratio = 50
 
-   viOutlaw = TRUE
    viHarmful = TRUE
    viNoNewbieOffense = TRUE
-   
+
 properties:
+
+   pbAccessible = FALSE
+   pbEnabled = FALSE
 
 messages:
 
@@ -68,87 +74,45 @@ messages:
       return;
    }
 
-   GetNumSpellTargets()
-   {
-      return 0;
-   }
-
-   CanPayCosts(who = $, lTargets = $)
-   {
-      local oRoom;
-
-      oRoom = Send(who,@GetOwner);
-
-      if Send(oRoom,@IsEnchanted,#what=self)
-      {
-   	   Send(who,@MsgSendUser,#message_rsc=Silence_unnecessary);
-   	   
-	      return FALSE;
-      }
-
-      propagate;
-   }
-
-   CastSpell(who = $, iSpellPower = 0)
+   DoSpellEffects(who = $, iSpellPower = 0)
    "Initiation point for the spell."
    {
-      local oRoom, lJalaInfo, oJalaSpell, lJalaState;
+      local oRoom, lJalaInfo, oJalaCaster, oJalaSpell, lJalaState;
 
       oRoom = Send(who,@GetOwner);
 
-      % global effects of the enchantment
+      // global effects of the enchantment
       Send(oRoom,@SomeoneSaid,#type=SAY_MESSAGE,#string=Silence_on,#what=self);
       Send(oRoom,@RoomStartEnchantment,#what=self,#state=[who,iSpellPower],
-           #time=send(self,@GetDuration,#iSpellPower=iSpellPower),#iSpellPower=iSpellPower,#lastcall=FALSE);
+            #time=Send(self,@GetDuration,#iSpellPower=iSpellPower),
+            #iSpellPower=iSpellPower,#lastcall=FALSE);
       Send(who,@SetTranceFlag);
 
-      % See if there's a Jala song going on and try to kill it
-      % Format of lJalaInfo is: [timer, spell object, state]
-      lJalaInfo = send(oRoom,@GetJalaInfo);
+      // See if there's a Jala song going on and try to kill it
+      // Format of lJalaInfo is: [timer, spell object, state]
+      lJalaInfo = Send(oRoom,@GetJalaInfo);
 
       if lJalaInfo <> $
       {
-         % Format of lJalaState is: [volume, caster, spellpower]
+         // Format of lJalaState is: [volume, caster, spellpower]
          lJalaState = Nth(lJalaInfo,3);
+         oJalaCaster = Nth(lJalaInfo,2);
 
-         if random(iSpellPower/2,iSpellPower) > Nth(lJalaState,1)
+         if Random(iSpellPower/2,iSpellPower) > First(lJalaState)
          {
-            % We have blocked the Jala song.
-            send(Nth(lJalaState,2),@MsgSendUser,#message_rsc=Silence_blocked_jala_victim);
-            send(oRoom,@RemoveEnchantment,#what=Nth(lJalaInfo,2));
+            // We have blocked the Jala song.
+            Send(oJalaCaster,@MsgSendUser,#message_rsc=Silence_blocked_jala_victim);
+            Send(oRoom,@RemoveEnchantment,#what=oJalaCaster);
          }
          else
          {
-            % The Jala song continues on!
-            send(who,@MsgSendUser,#message_rsc=Silence_cant_block_jala_caster);
-            send(Nth(lJalaState,2),@MsgSendUser,#message_rsc=Silence_cant_block_jala_victim);
+            // The Jala song continues on!
+            Send(who,@MsgSendUser,#message_rsc=Silence_cant_block_jala_caster);
+            Send(oJalaCaster,@MsgSendUser,#message_rsc=Silence_cant_block_jala_victim);
          }
       }
 
-      propagate;
-   }
-
-   BreakTrance(who=$, event=$, state=$, location=$)
-   {
-      local oRoom;
-
-      if event = EVENT_ATTACK
-      {
-         return FALSE;
-      }
-
-      if location = $
-      {
-         oRoom = send(who,@GetOwner);
-      }
-      else
-      {
-         oRoom = location;
-      }
-      
-      Send(oRoom,@RemoveEnchantment,#what=self);
-
-      propagate;
+      return TRUE;
    }
 
    StartPeriodicEnchantment(where=$, state=$)
@@ -156,24 +120,12 @@ messages:
    "but silent, and done as often as necessary"
     {
       local oCaster;
-      
-      oCaster = first(state);
-   
-      % If caster runs out of mana or loses trance, spell ends.
-      if send(oCaster,@GetMana) < viManaDrain * 2
-      {
-         Send(where,@RoomStartEnchantment,#what=self,#time=send(self,@GetDuration,#iSpellPower=Nth(state,2)),
-              #state=state,#addicon=FALSE,#lastcall=TRUE);
 
-      }
-      else
-      {      
-         Send(where,@RoomStartEnchantment,#what=self,#time=send(self,@GetDuration,#iSpellPower=Nth(state,2)),
-              #state=state,#addicon=FALSE,#lastcall=FALSE);
-      }
-      
-      Send(oCaster,@LoseMana,#amount=viManaDrain);
-      
+      oCaster = First(state);
+
+      Send(where,@RoomStartEnchantment,#what=self,#time=viTickDuration,
+         #state=state,#addicon=FALSE,#lastcall=FALSE);
+
       return;
    }
 
@@ -181,8 +133,18 @@ messages:
    "Called on new occupants of the enchanted room."
    {
       Send(who,@MsgSendUser,#message_rsc=Silence_new_entrant);
-      
+
       return;
+   }
+
+   BreakTrance(event=$)
+   {
+      if event = EVENT_ATTACK
+      {
+         return FALSE;
+      }
+
+      propagate;
    }
 
    EndSpell(where = $, state = $)
@@ -193,21 +155,29 @@ messages:
       return;
    }
 
-   GetDuration(iSpellPower=0)
-   {
-      local iDuration;
-
-      % Better spellpower means longer time between drains.
-      iDuration = viDrainTime + ((viDrainTime * iSpellPower) / SPELLPOWER_MAXIMUM);
-
-      return iDuration;
-   }
-
    SpellBannedInArena()
    {
       return TRUE;
    }
 
-end
+   TranceEnding(who=$,location=$)
+   "Allow maintained spells to do something when their trance breaks."
+   {
+      local oRoom;
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      if location = $
+      {
+         oRoom = Send(who,@GetOwner);
+      }
+      else
+      {
+         oRoom = location;
+      }
+
+      Send(oRoom,@RemoveEnchantment,#what=self);
+
+      propagate;
+   }
+
+end
+////////////////////////////////////////////////////////////////////////////////

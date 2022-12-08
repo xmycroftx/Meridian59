@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Duke1 is Room
 
 constants:
@@ -19,11 +19,13 @@ constants:
 
 resources:
 
+   include duke1.lkod
+
    room_name_Duke1 = "The Courtyard of Blackstone Keep"
    room_Duke1 = duke1.roo
-   Duke1_music = area01.mid
+   Duke1_music = area01.ogg
 
-   fountain_soundDuke1 = fountain.wav
+   fountain_soundDuke1 = fountain.ogg
 
 classvars:
 
@@ -32,6 +34,8 @@ classvars:
    viTeleport_row = 33
    viTeleport_col = 27
    viTerrain_Type = TERRAIN_CASTLE | TERRAIN_FIELDS | TERRAIN_FOUNTAIN
+
+   viWeatherZone = WEATHER_ZONE_TOS
 
 properties:
 
@@ -45,6 +49,8 @@ properties:
 
    prMusic = Duke1_music
 
+   pbSnowGroundTexture = TRUE
+
 messages:
 
    Constructed()
@@ -57,7 +63,7 @@ messages:
    {
       plExits = $;
 
-  %% TO TOWN
+  /// TO TOWN
 
       plExits = Cons([ 43, 29, RID_TOS, 13, 18, ROTATE_NONE ],plExits);
       plExits = Cons([ 44, 29, RID_TOS, 13, 18, ROTATE_NONE ],plExits);
@@ -103,5 +109,48 @@ messages:
       propagate;
    }
 
+   StartSnow(bOnGround=TRUE)
+   {
+      // Check if we can have weather effects here.
+      if NOT pbWeatherEffects
+      {
+         return;
+      }
+
+      if bOnGround
+      {
+         if pbSnowGroundTexture
+         {
+            // Add snow to lighting sectors.
+            Send(self,@ChangeTexture,#id=1,#new_texture=61016,#flags=CTF_FLOOR);
+            Send(self,@ChangeTexture,#id=2,#new_texture=61016,#flags=CTF_FLOOR);
+         }
+      }
+
+      // Propagate to Room, do the rest there.
+      propagate;
+   }
+
+   EndSnow(override=FALSE)
+   "Use override if rooms have manually placed textures."
+   {
+      if Send(self,@CheckRoomFlag,#flag=ROOM_SNOWING)
+      {
+         Send(self,@SetRoomFlag,#flag=ROOM_SNOWING,#value=FALSE);
+         Send(self,@WeatherChanged);
+      }
+
+      if pbSnowGroundTexture
+         OR override
+      {
+         // Remove snow from lighting sectors.
+         Send(self,@RemoveTextureChange,#id=1);
+         Send(self,@RemoveTextureChange,#id=2);
+      }
+
+      // Propagate to Room, do the rest there.
+      propagate;
+   }
+
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

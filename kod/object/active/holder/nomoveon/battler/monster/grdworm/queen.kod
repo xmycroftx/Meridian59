@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 GroundWormQueen is GroundWorm
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include queen.lkod
 
    GroundWormQueen_name_rsc = "groundworm queen"
    GroundWormQueen_koc_name_rsc = "koslithic"
@@ -29,7 +31,7 @@ resources:
 
    GroundWormQueen_dead_icon_rsc = wormlX.bgf
    GroundWormQueen_dead_name_rsc = "slain groundworm queen"
-   GroundWormQueen_sound_aware = gwrm2awr.wav
+   GroundWormQueen_sound_aware = gwrm2awr.ogg
 
 classvars:
 
@@ -43,13 +45,17 @@ classvars:
 
    viTreasure_type = TID_WORM_QUEEN
    viSpeed = SPEED_SLOW
-   viAttack_spell = ATCK_SPELL_ACID
+   viSpell_type = SPL_TYPE_ACID
    viLevel = 130
    viDifficulty = 7
-   viKarma = -30
-   viDefault_behavior = AI_FIGHT_HYPERAGGRESSIVE | AI_FIGHT_SINGLEMINDED
+   viVisionDistance = 22
+   // Attack range of 192, or 3 row/col.
+   viMeleeRange = 192
+   viKarma = -50
+   viDefault_behavior = AI_FIGHT_AGGRESSIVE | AI_FIGHT_SINGLEMINDED
    viGender = GENDER_FEMALE
-
+   viCashmin = 250
+   viCashmax = 700
    viTrailLength = 4
    vbTrailLarge = TRUE
 
@@ -59,4 +65,4 @@ messages:
 
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Stew is Food
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include stew.lkod
 
    Stew_name_rsc = "bowl of stew"
    stew_icon_rsc = soupbowl.bgf
@@ -24,7 +26,7 @@ resources:
       "only assume that this is an acquired taste."
    stew_name_plural_rsc = "bowls of stew"
 
-   stew_eat_wav = drink.wav
+   stew_eat_wav = drink.ogg
    stew_use = "Yuck - this better be good for you!"
 
 classvars:
@@ -55,4 +57,4 @@ messages:
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

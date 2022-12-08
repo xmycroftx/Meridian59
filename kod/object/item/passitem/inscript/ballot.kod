@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 BallotItem is InscriptionItem
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include ballot.lkod
 
    ballot_name_rsc = "Royal Ballot"
    ballot_icon_rsc = scr02.bgf
@@ -45,6 +47,18 @@ messages:
       AddPacket(4, ballot_desc_rsc);
 	  return;
    }
+   
+   CanSwap()
+   {
+      // No more using these for swap mules
+      return FALSE;
+   }
+
+   DropOnDeath()
+   {
+      // No drop so that people can't load up on these and avoid real penalties
+      return FALSE;
+   }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

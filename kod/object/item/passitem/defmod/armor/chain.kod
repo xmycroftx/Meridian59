@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 ChainArmor is Armor
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include chain.lkod
 
    chainarmor_name_rsc = "chain armor"
    chainarmor_icon_rsc = chainamr.bgf
@@ -39,7 +41,7 @@ classvars:
    viWeight = 200
    viBulk = 250
 
-   viDefense_base = -50               
+   viDefense_base = -50
    viDamage_base = 2
 
 properties:
@@ -56,10 +58,9 @@ messages:
 
    GetResistanceModifiers()
    {
-      return [ [ATCK_WEAP_THRUST,5],
-               [ATCK_WEAP_PIERCE,25],
-               [ATCK_WEAP_BLUDGEON,15],
-               [ATCK_WEAP_SLASH,20]
+      return [ [ATK_TYPE_THRUST,5],
+               [ATK_TYPE_PIERCE,10],
+               [ATK_TYPE_SLASH,10]
              ];
    }
 
@@ -68,6 +69,5 @@ messages:
       return 2;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

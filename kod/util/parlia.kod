@@ -1,18 +1,18 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% This class is the base for the intrigue scenario. It serves to keep all the
-% basic knowledge of the intrigue in one central place. It also allows you to
-% turn the intrigue on and off mid-play through the pbIntrigue_Enable flag.
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
+// This class is the base for the intrigue scenario. It serves to keep all the
+// basic knowledge of the intrigue in one central place. It also allows you to
+// turn the intrigue on and off mid-play through the pbIntrigue_Enable flag.
+//
+////////////////////////////////////////////////////////////////////////////////
 Parliament is UtilityFunctions
 
 constants:
@@ -20,6 +20,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include parlia.lkod
 
    parliament_price_up = "~IYour association with %s gets you the best possible price."
    parliament_dam_up = "~ITechniques learned from %s help your attack do more damage."
@@ -39,13 +41,11 @@ resources:
    parliament_regen_down = "~IPerhaps if %s were more favored, you could recuperate faster."
    parliament_vigor_down = "~IPerhaps if %s were more favored, you use your vigor slower."
 
-   parliament_sell_to_murderer = "I normally don't sell to ~Iyour~n type, but since you are on business from %s I guess I have no choice."
-
    parliament_Duke_name = "Duke Akardius"
    parliament_Princess_name = "Princess Kateriina"
    parliament_Rebel_name = "Jonas D'Accor"
 
-   % Not used currently
+   // Not used currently
    parliament_nodukeprice_down = "~IPerhaps if you served %s, you would obtain better prices."
    parliament_nodukedam_down = "~IIf you served %s, you might get shown tricks to help you do more damage."
    parliament_noprinhit_down = "~IIf you followed Princess Kateriina, you might get shown tricks to help you hit more often."
@@ -72,7 +72,7 @@ resources:
    parliament_huge_number = "an incredibly large and unruly group."
 
    faction_power_shift = "~IYou sense a shift in the balance of power at the Royal Court."
-   faction_shift_wav = kaliorup.wav
+   faction_shift_wav = kaliorup.ogg
 
    parliament_scandalous_behavior = "There are rumors that someone on the Meridian Council is accepting favors from a faction in exchange for his vote. Oh, scandal!"
 
@@ -97,10 +97,10 @@ properties:
 
    pbIntrigue_enable 
    pbDeleting = FALSE
-   plFactions = $     %This is a list of [ FACTION,[WHO,WHO,WHO,...] ]
+   plFactions = $     //This is a list of [ FACTION,[WHO,WHO,WHO,...] ]
 
-   plLieges = $           %This is a list of [ MOB, MOB, .... ]
-   plFactionGames = $      % This is a list of the faction game objects.
+   plLieges = $           //This is a list of [ MOB, MOB, .... ]
+   plFactionGames = $      // This is a list of the faction game objects.
 
    piNeutralPower = 0
    piPrincessPower = 0
@@ -109,23 +109,21 @@ properties:
 
    piTotalPowerPoints = 0
 
-   pbHiddenSwitch = FALSE
+   // This number is the balance factor for the faction scenario.
+   // This determines the percent of total points used as the "balance" point.
+   // The balance point is where power and number of members equal "normal" benefits.
+   // If the members are under this balance, benefits will increase.  If the power
+   // is under this number, then befits will decrease.  This works in reverse if numbers
+   // are over the balance point.
+   // In general, this should reflect the percent each active faction should have.
+   // This number shouldn't be set too high, or you will get division by zero errors.
+   // 25// for four factions, 33// for three factions (also, if one of four is
+   // largely inactive)
+   // For the main three factions, this number is used raw.  For the unfactioned, their
+   // "balance" is what's left from the other factions, expressed as [100-[3*piBalanceFactor]].
+   piBalanceFactor = 25   // The percent factor for the faction balance scenario
 
-   % This number is the balance factor for the faction scenario.
-   % This determines the percent of total points used as the "balance" point.
-   % The balance point is where power and number of members equal "normal" benefits.
-   % If the members are under this balance, benefits will increase.  If the power
-   % is under this number, then befits will decrease.  This works in reverse if numbers
-   % are over the balance point.
-   % In general, this should reflect the percent each active faction should have.
-   % This number shouldn't be set too high, or you will get division by zero errors.
-   % 25% for four factions, 33% for three factions (also, if one of four is
-   % largely inactive)
-   % For the main three factions, this number is used raw.  For the unfactioned, their
-   % "balance" is what's left from the other factions, expressed as [100-[3*piBalanceFactor]].
-   piBalanceFactor = 25   % The percent factor for the faction balance scenario
-
-   % These numbers are figured every day, count the total number of people involved in factions
+   // These numbers are figured every day, count the total number of people involved in factions
    piNumberOfIntriguers = 0
    piNumberOfPrincess = 0
    piNumberOfDuke = 0
@@ -139,13 +137,14 @@ messages:
       return;
    }
 
-   NewDay()
+   NewGameDay()
    {
-      % Every game day, we re-figure our numbers.
-      send(self,@CalcIntrigueNumbers);
+      // Every game day, we re-figure our numbers.
+      Send(self,@CalcIntrigueNumbers);
+
       return;
    }
-      
+
    SendInfoMail(who=$)
    "Admin supported. Send a summary email of the faction scenario to the given user."
    {
@@ -173,7 +172,7 @@ messages:
       local oGame;
 
       pbDeleting=value;
-      for oGame in plFactionGames
+      foreach oGame in plFactionGames
       {
          Send(oGame,@SetDeleting,#value=value);
       }
@@ -185,10 +184,10 @@ messages:
    {
       local i;
       
-      % Delete the old faction lieges
+      // Delete the old faction lieges
       if plLieges<>$
       { 
-         for i in plLieges { Send(i,@Delete); }
+         foreach i in plLieges { Send(i,@Delete); }
       }
       
       plLieges=$;
@@ -200,13 +199,13 @@ messages:
    {
       local i;
       
-      % Delete old lieges
+      // Delete old lieges
       if plLieges <> $
       {
          Send(self,@DeleteLieges);
       }
       
-      i = FACTION_MAX;
+      i = FACTION_NORMAL_MAX;
       while i > FACTION_NEUTRAL
       {
          plLieges=Cons(Create(Send(self,@FactionLiegeClass,#num=i)),plLieges);
@@ -222,9 +221,9 @@ messages:
       local i,j;
       if (plFactions<>$)
       {
-         for i in plFactions
+         foreach i in plFactions
          {
-            for j in Nth(i,2)
+            foreach j in Nth(i,2)
             {
                Send(j,@ResignFaction);
             }
@@ -240,7 +239,7 @@ messages:
    {
       local i;
       
-      i = FACTION_MAX;
+      i = FACTION_NORMAL_MAX;
       while i >= FACTION_NEUTRAL
       {
          plFactions=Cons([i,$],plFactions);
@@ -254,9 +253,9 @@ messages:
    {
       local i,j;
       
-      for i in plFactions
+      foreach i in plFactions
       {
-         for j in Nth(i,2)
+         foreach j in Nth(i,2)
          {
             if j = who
             {
@@ -277,7 +276,7 @@ messages:
    {
       local oGame;
 
-      for oGame in plFactionGames
+      foreach oGame in plFactionGames
       {
          send(oGame,@Delete);
       }
@@ -309,7 +308,7 @@ messages:
 
       if plFactionGames <> $
       {
-         for oGame in plFactionGames
+         foreach oGame in plFactionGames
          {
             Send(oGame,@RecreateNPCs);
          }
@@ -329,11 +328,11 @@ messages:
       pbDeleting = TRUE;
       Send(self,@DeleteLieges);
 
-      % Delete our games.  Note, this restarts the games.
-      % Then, create and list our FactionGames.  Currently two: Tokens and Territory games.
+      // Delete our games.  Note, this restarts the games.
+      // Then, create and list our FactionGames.  Currently two: Tokens and Territory games.
       if plFactionGames <> $
       {
-         for oGame in plFactionGames
+         foreach oGame in plFactionGames
          {
             send(oGame,@Delete);
          }
@@ -365,12 +364,12 @@ messages:
       Send(Self,@RedoPower);
       pbDeleting=False;
 
-      For i in plLieges
+      foreach i in plLieges
       {
          Send(i,@GotoHomeRoom);
       }
 
-      % Finally, recalculate those intrigue numbers.
+      // Finally, recalculate those intrigue numbers.
       send(self,@CalcIntrigueNumbers);
 
       return;
@@ -401,7 +400,7 @@ messages:
       local i;
       
       pbIntrigue_enable = FALSE;     
-      for i in Send(SYS,@GetUsersLoggedOn)
+      foreach i in Send(SYS,@GetUsersLoggedOn)
       {
          Send(i,@PlayerIsIntriguing);
       }
@@ -422,7 +421,7 @@ messages:
       piTotalPowerPoints = 0;
       if plFactionGames <> $
       {
-         for oGame in plFactionGames
+         foreach oGame in plFactionGames
          {
             piTotalPowerPoints = piTotalPowerPoints + Send(oGame,@GetTotalPoints);
          }
@@ -439,11 +438,11 @@ messages:
       change = FALSE;
       fact = FACTION_NEUTRAL;
       
-      while fact<=FACTION_MAX
+      while fact <= FACTION_NORMAL_MAX
       {
          count = 0;
          power = 0;
-         for oGame in plFactionGames
+         foreach oGame in plFactionGames
          {
             count = count + send(oGame,@GetPoints,#faction=fact);
          }
@@ -459,11 +458,13 @@ messages:
          Send(self,@UpdateEffects); 
          if not pbDeleting
          {
-            for i in Send(SYS,@GetUsersLoggedOn)
+            foreach i in Send(SYS,@GetUsersLoggedOn)
             {
                if Send(i,@PlayerisIntriguing)
                {
                   Post(i,@MsgSendUser,#message_rsc=faction_power_shift);
+                  Post(i,@DrawOffense);
+                  Post(i,@DrawDefense);
                   post(i,@wavesenduser,#wave_rsc=faction_shift_wav);
                }
             }
@@ -471,7 +472,7 @@ messages:
             send(send(SYS,@GetTerritoryGame),@UpdateFlagsPartialGame);
          }
 
-         % Notify system of faction change, who will notify rooms, who will tell NPCs
+         // Notify system of faction change, who will notify rooms, who will tell NPCs
          Send(SYS,@FactionChanged,#new_faction=fact);
       }
       
@@ -482,10 +483,10 @@ messages:
    {
       local iBalance;
 
-      % How this works:  We take the power as a function of how many points the faction has
-      %                  compared to the balance.  Balance of points bn is described above,
-      %                  but boils down to (Total Points * Balance Factor)/100. Since you don't
-      %                  gain power past having twice the balance, 2b is max.  Decrement by halves.
+      // How this works:  We take the power as a function of how many points the faction has
+      //                  compared to the balance.  Balance of points bn is described above,
+      //                  but boils down to (Total Points * Balance Factor)/100. Since you don't
+      //                  gain power past having twice the balance, 2b is max.  Decrement by halves.
 
       if neutral
       {
@@ -545,7 +546,7 @@ messages:
       }
       else
       {
-         for pers in Send(SYS,@GetUsersLoggedOn)
+         foreach pers in Send(SYS,@GetUsersLoggedOn)
          {
             if NOT Send(pers,@PlayerIsIntriguing)
             {
@@ -680,7 +681,7 @@ messages:
          return;
       }
       
-      for i in plLieges
+      foreach i in plLieges
       {
          if i=what
          {
@@ -721,13 +722,13 @@ messages:
       }
       else
       {
-         rnd = Random(FACTION_NEUTRAL,FACTION_MAX);
+         rnd = Random(FACTION_NEUTRAL, FACTION_NORMAL_MAX);
       }
 
       iRumor = random(1,100);
 
-      % We want to return one rumor about the court....
-      % Let's say something about the strength of a faction.
+      // We want to return one rumor about the court....
+      // Let's say something about the strength of a faction.
       if iRumor < 60
       {
          power=Send(self,@GetPower,#faction=rnd);
@@ -736,7 +737,7 @@ messages:
             power=random(1,5);
          }
 
-         % Which random faction?
+         // Which random faction?
          if rnd = FACTION_NEUTRAL
          {
             faction_preface = neutral_faction_preface;
@@ -757,7 +758,7 @@ messages:
             faction_preface = rebel_faction_preface;
          }
          
-         % What's their rumored power?
+         // What's their rumored power?
          if power = FACTION_STRONGLY_IN
          {
             state_suffix = strongly_in_suffix;
@@ -789,7 +790,7 @@ messages:
          return;
       }
 
-      % Lets say something about the membership numbers of a faction.
+      // Lets say something about the membership numbers of a faction.
       if iRumor < 90
       {
          Send(self,@CourtNumberRumor,#mob=mob,#faction=rnd);
@@ -797,7 +798,7 @@ messages:
          return;
       }
 
-      % Add in one extra message just for foreshadowing.
+      // Add in one extra message just for foreshadowing.
       Post(Send(mob,@GetOwner),@SomeoneSaid,#what=mob,#type=SAY_RESOURCE,
            #string=parliament_scandalous_behavior);
 
@@ -835,14 +836,14 @@ messages:
       
       iFact = faction;
 
-      if iFact <= 0 OR iFact > FACTION_MAX
+      if iFact <= 0 OR iFact > FACTION_NORMAL_MAX
       {
          iFact = Send(mob,@GetFaction);
       }
 
       if iFact = FACTION_NEUTRAL
       {
-         iFact = random((FACTION_NEUTRAL+1),FACTION_MAX);
+         iFact = Random((FACTION_NEUTRAL + 1),FACTION_NORMAL_MAX);
       }
       
       if IsClass(mob,&Factions)
@@ -855,11 +856,11 @@ messages:
          rWho = send(self,@GetFactionLiegeName,#faction=iFact);
       }
 
-      % How this works:  We take the "number" as a function of how many members the faction has
-      %                  compared to the balance.  Balance of points bn is described above,
-      %                  but boils down to (Total intriguers * Balance Factor)/100. Since you hit
-      %                  bottom past having 3 times the balance, it is max.  Start with two parts
-      %                  of b/2, then increment by b.
+      // How this works:  We take the "number" as a function of how many members the faction has
+      //                  compared to the balance.  Balance of points bn is described above,
+      //                  but boils down to (Total intriguers * Balance Factor)/100. Since you hit
+      //                  bottom past having 3 times the balance, it is max.  Start with two parts
+      //                  of b/2, then increment by b.
 
       iNumber = send(self,@GetFactionNumber,#faction=iFact);
       iBalance = (piNumberofIntriguers * piBalanceFactor) / 100;
@@ -900,9 +901,9 @@ messages:
       return;
    }
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%	Calculation Part for Faction Powers
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
+//////	Calculation Part for Faction Powers
+////////////////////////////////////////////////////////////////////////////////
 
    CalcIntrigueNumbers()
    {
@@ -914,7 +915,7 @@ messages:
       piNumberOfRebel = 0;
       piNumberOfNeutral = 0;
 
-      for oPerson in Send(SYS,@GetUsers)
+      foreach oPerson in Send(SYS,@GetUsers)
       {
          if NOT send(oPerson,@IsUserInactive) AND Send(oPerson,@PlayerIsIntriguing)
          {
@@ -999,16 +1000,16 @@ messages:
    {
       local iPower, bNegPower, iMembers, iBalanceFactor, iBalance, iTotal;
 
-      % This function takes a base number and cranks it through a function of both
-      % number of power points accumulated and number of members.
-      % Equations explained below.  Note: pairs are of form (power, percent), so
-      % (b/2, 100) means when power is half of balance, percent is 100.
+      // This function takes a base number and cranks it through a function of both
+      // number of power points accumulated and number of members.
+      // Equations explained below.  Note: pairs are of form (power, percent), so
+      // (b/2, 100) means when power is half of balance, percent is 100.
 
       iTotal = 0;
       iPower = Send(self,@GetRawPower,#faction=faction);
       iMembers = Send(self,@GetFactionNumber,#faction=faction);
 
-      % Figure the balance factor depending on factioned status.
+      // Figure the balance factor depending on factioned status.
       if faction = FACTION_NEUTRAL
       {
          iBalanceFactor = 100 - (3 * piBalanceFactor);
@@ -1018,42 +1019,42 @@ messages:
          iBalanceFactor = piBalanceFactor;
       }
 
-      % Figure Power's contribution
+      // Figure Power's contribution
       iBalance = (piTotalPowerPoints * iBalanceFactor) / 100;
       if iPower <= iBalance
       {
-         % Less than balance, a line from (0,-10) to (b,100)
+         // Less than balance, a line from (0,-10) to (b,100)
          iPower = ((110 * iPower)/iBalance) - 10;
       }
       else
       {
-         % Greater than balance, a line from (b,100) to (2b,150)
+         // Greater than balance, a line from (b,100) to (2b,150)
          iPower = 100 + ((50 * (iPower - iBalance))/iBalance);
       }
       
-      % Bound between -10 and 150% contribution.
+      // Bound between -10 and 150// contribution.
       iPower = bound(iPower,-10,150);
 
-      % Figure Membership's contribution
+      // Figure Membership's contribution
       iBalance = (piNumberOfIntriguers * iBalanceFactor) / 100;
-      % If balance is less than 3, we have a tiny number of people.  No penalizing (and no divide by 0 errors!)     
+      // If balance is less than 3, we have a tiny number of people.  No penalizing (and no divide by 0 errors!)     
       if (iMembers <= iBalance) or (iBalance < 3)
       {
-         % Less than balance, contribute 100%
+         // Less than balance, contribute 100//
          iMembers = 100;
       }
       else
       {
-         % Greater than balance, a line from (b,100) to (3b,0)
+         // Greater than balance, a line from (b,100) to (3b,0)
          iMembers = ((-50 * iMembers)/iBalance) + 150;
       }
       
-      % Bound between 25 and 100% contribution
+      // Bound between 25 and 100// contribution
       iMembers = bound(iMembers,25,100);
 
-      % So figure the modifier, base times contribution from power and members.
-      % Special case: if your power contribution is negative, ignore membership contribution.
-      % IE, having lots of members doesn't dull your penalty.
+      // So figure the modifier, base times contribution from power and members.
+      // Special case: if your power contribution is negative, ignore membership contribution.
+      // IE, having lots of members doesn't dull your penalty.
       if iPower > 0
       {
          iTotal = (base * iPower * iMembers) / 10000;
@@ -1063,8 +1064,8 @@ messages:
          iTotal = (base * iPower) / 100;
       }
 
-      % If calculating for unfactioned, they only get 25% of the benefits, and are never
-      % supposed to receive negative benefits.
+      // If calculating for unfactioned, they only get 25// of the benefits, and are never
+      // supposed to receive negative benefits.
       if (faction=FACTION_NEUTRAL)
       {
          iTotal = iTotal / 4;
@@ -1074,18 +1075,18 @@ messages:
       return iTotal;
    }
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%	Effects Part for Faction Powers
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
+//////   Effects Part for Faction Powers
+////////////////////////////////////////////////////////////////////////////////
 
    GetFactionSpellPowerBonus(who=$,theSpell=$)
    {
       local iFaction, iBonus, iSchool;
 
-      % Rationale behind the numbers:
-      % This number is added right into spellpower.
-      % Non-intriguing mortals get a small bonus of 3.
-      % Maximum normal power is 10.
+      // Rationale behind the numbers:
+      // This number is added right into spellpower.
+      // Non-intriguing mortals get a small bonus of 3.
+      // Maximum normal power is 10.
 
       if who = $
       {
@@ -1115,10 +1116,10 @@ messages:
          debug("GetFactionSpellPowerBonus called with no theSpell.  This better be because of testing!");
       }
 
-      % Player is under 40
+      // Player is under 40
       if not Send(who,@PlayerIsIntriguing)
       {
-         % A small bonus.
+         // A small bonus.
          return 3;
       }			  
 
@@ -1145,10 +1146,10 @@ messages:
   {
       local iBonus, iFaction;
 
-      % Rationale behind the numbers:
-      % The "bonus" is the percent change in prices.  IE, if buying, you get the bonus
-      % subtracted from 100 to get the percent of the price you pay, and vice versa.
-      % Princess gets a 5% bonus.
+      // Rationale behind the numbers:
+      // The "bonus" is the percent change in prices.  IE, if buying, you get the bonus
+      // subtracted from 100 to get the percent of the price you pay, and vice versa.
+      // Princess gets a 5// bonus.
 
       if who = $
       {
@@ -1178,14 +1179,14 @@ messages:
       return (100 + iBonus);
    }
 
-  GetFactionHitrollBonus(who=$)
+  GetFactionHitrollBonus(who=$,stroke_obj=$)
   {
       local iBonus, iFaction;
 
-      % Rationale behind the numbers:
-      % This number is added right into chance to-hit.
-      % Non-intriguing mortals get a small bonus of 50.
-      % Maximum normal bonus is 125.
+      // Rationale behind the numbers:
+      // This number is added right into chance to-hit.
+      // Non-intriguing mortals get a small bonus of 50.
+      // Maximum normal bonus is 125.
 
       if who = $
       {
@@ -1201,15 +1202,17 @@ messages:
          return 0;
       }
 
-      % Player is under 40
+      // Player is under 40
       if NOT Send(who,@PlayerIsIntriguing)
       {
          return 50;
-      }			  
+      }
     
       iBonus = Send(self,@CalcFactionBonus,#base=100,#faction=iFaction);
 
-      if Random(0,100) = 0 AND iFaction <> FACTION_NEUTRAL
+      if stroke_obj <> $
+         AND iFaction <> FACTION_NEUTRAL
+         AND Random(0,100) = 0
       {
          if iBonus <= 0
          {
@@ -1229,10 +1232,10 @@ messages:
   {
       local iBonus, iFaction, iSchool;
 
-      % Rationale behind the numbers:
-      % This number is added right into initial learn chance.
-      % Non-intriguing mortals get a small bonus of 3.
-      % Maximum normal power is 10.
+      // Rationale behind the numbers:
+      // This number is added right into initial learn chance.
+      // Non-intriguing mortals get a small bonus of 3.
+      // Maximum normal power is 10.
 
       if who = $
       {
@@ -1265,7 +1268,7 @@ messages:
          debug("GetFactionLearnBonus called with no theskill.  This better be because of testing!");
       }
 
-      % Player is under 40
+      // Player is under 40
       if not Send(who,@PlayerIsIntriguing)
       {
          return 2;
@@ -1294,9 +1297,9 @@ messages:
    {
       local iFaction;
 
-      % Rationale behind the numbers:
-      % This number is added right into damage.
-      % Rebel gets a small bonus of 1 point of damage.
+      // Rationale behind the numbers:
+      // This number is added right into damage.
+      // Rebel gets a small bonus of 1 point of damage.
 
       if who = $
       {
@@ -1319,40 +1322,46 @@ messages:
       return 2;
    }
 
-   GetFactionRegenBonus(who=$, hpregen=TRUE)
+   GetFactionHealthRegenBonus(who=$,maxhealth=FALSE)
    {
       local iBonus, iFaction;
 
-      % Rationale behind the numbers:
-      % This number is subtracted from regeneration time (measured in miliseconds).
-      % Non-intriguing mortals get a small bonus of 200.
-      % Maximum normal power is 700.
+      // Rationale behind the numbers:
+      // This number is a percentage boost to regeneration.
+      // Non-intriguing mortals get a small bonus of 5%.
+      // Maximum normal power is 30%.
 
       if who = $
       {
-         debug("bad who!");
-         return FALSE;
+         Debug("Bad who in GetFactionHealthRegenBonus!");
+
+         return 0;
       }
 
-      iBonus = 0;
-
-      iFaction = send(who,@GetFaction);
-      if (iFaction = FACTION_DUKE)
-         OR ((iFaction = FACTION_PRINCESS) AND (hpregen))
-         OR ((iFaction = FACTION_REBEL) AND (NOT hpregen))
+      if NOT IsClass(who,&Player)
       {
          return 0;
       }
 
-      % Player is under 40
-      if not Send(who,@PlayerIsIntriguing)
-      {
-         return 200;
-      }
-    
-      iBonus = Send(self,@CalcFactionBonus,#base=700,#faction=iFaction);
+      iBonus = 0;
 
-      if Random(0,100) = 0 AND iFaction <> FACTION_NEUTRAL
+      iFaction = Send(who,@GetFaction);
+
+      // Only Jonas players get health bonus.
+      if (iFaction <> FACTION_REBEL)
+      {
+         return 0;
+      }
+
+      if NOT Send(who,@PlayerIsIntriguing)
+      {
+         return 5;
+      }
+
+      iBonus = Send(self,@CalcFactionBonus,#base=30,#faction=iFaction);
+
+      if NOT maxhealth
+         AND Random(0,500) = 0
       {
          if iBonus <= 0
          {
@@ -1365,18 +1374,75 @@ messages:
                  #parm1=Send(self,@GetFactionLiege,#faction=iFaction));
          }
       }
-      
+
       return iBonus;
    }
 
-   GetFactionDefenseBonus(who=$)
+   GetFactionManaRegenBonus(who=$,maxmana=FALSE)
    {
       local iBonus, iFaction;
 
-      % Rationale behind the numbers:
-      % This number is added right into defense.
-      % Non-intriguing mortals get a small bonus of 50.
-      % Maximum normal power is 200.
+      // Rationale behind the numbers:
+      // This number is a percentage boost to regeneration.
+      // Non-intriguing mortals get a small bonus of 5%.
+      // Maximum normal power is 30%.
+
+      if who = $
+      {
+         Debug("Bad who in GetFactionManaRegenBonus!");
+
+         return 0;
+      }
+
+      if NOT IsClass(who,&Player)
+      {
+         return 0;
+      }
+
+      iBonus = 0;
+
+      iFaction = Send(who,@GetFaction);
+
+      // Only Princess players get mana bonus.
+      if (iFaction <> FACTION_PRINCESS)
+      {
+         return 0;
+      }
+
+      // Player is under 40
+      if NOT Send(who,@PlayerIsIntriguing)
+      {
+         return 5;
+      }
+
+      iBonus = Send(self,@CalcFactionBonus,#base=30,#faction=iFaction);
+
+      if NOT maxmana
+         AND Random(0,500) = 0
+      {
+         if iBonus <= 0
+         {
+            Post(who,@MsgSendUser,#message_rsc=parliament_regen_down,
+                 #parm1=Send(self,@GetFactionLiege,#faction=iFaction));
+         }
+         else
+         {
+            Post(who,@MsgSendUser,#message_rsc=parliament_regen_up,
+                 #parm1=Send(self,@GetFactionLiege,#faction=iFaction));
+         }
+      }
+
+      return iBonus;
+   }
+
+   GetFactionDefenseBonus(who=$,stroke_obj=$)
+   {
+      local iBonus, iFaction;
+
+      // Rationale behind the numbers:
+      // This number is added right into defense.
+      // Non-intriguing mortals get a small bonus of 50.
+      // Maximum normal power is 200.
 
       if who = $
       {
@@ -1386,21 +1452,23 @@ messages:
 
       iBonus = 0;
 
-      iFaction = send(who,@GetFaction);
+      iFaction = Send(who,@GetFaction);
       if (iFaction = FACTION_DUKE) OR (iFaction = FACTION_REBEL)
       {
          return 0;
       }
 
-      % Player is under 40
-      if not Send(who,@PlayerIsIntriguing)
+      // Player is under 50
+      if NOT Send(who,@PlayerIsIntriguing)
       {
          return 50;
       }
 
       iBonus = Send(self,@CalcFactionBonus,#base=200,#faction=iFaction);
 
-      if Random(0,100) = 0 AND iFaction <> FACTION_NEUTRAL
+      if stroke_obj <> $
+         AND iFaction <> FACTION_NEUTRAL
+         AND Random(0,100) = 0
       {
          if iBonus <= 0
          {
@@ -1417,33 +1485,36 @@ messages:
       return iBonus;
    }
 
-   GetFactionVigorBonus(who=$)
+   ModifyVigorCost(who=$,amount=0)
    {
       local iBonus, iFaction;
 
-      % Rationale behind the numbers:
-      % This number is the percent that all vigor usage (exertion added) is reduced by.
-      % Non-intriguing mortals get a small bonus of 5.
-      % Maximum normal power is 30.
+      // Rationale behind the numbers:
+      // This number is the percent that all vigor usage (exertion added) is reduced by.
+      // Non-intriguing mortals get a small bonus of 5.
+      // Maximum normal power is 30.
 
       if who = $
       {
          debug("bad who!");
-         return FALSE;
+         return amount;
       }
 
-      iBonus = 0;
+      if NOT IsClass(who,&Player)
+      {
+         return amount;
+      }
 
       iFaction = send(who,@GetFaction);
       if (iFaction = FACTION_PRINCESS) OR (iFaction = FACTION_REBEL)
       {
-         return 0;
+         return amount;
       }
 
-      % Player is under 40
+      // Players under 40 HPs get a 5% reduction.
       if not Send(who,@PlayerIsIntriguing)
       {
-         return 5;
+         return amount * 95 / 100;
       }
 
       iBonus = Send(self,@CalcFactionBonus,#base=30,#faction=iFaction);
@@ -1462,46 +1533,8 @@ messages:
          }
       }
 
-      return iBonus;
+      return amount * (100 - iBonus) / 100;
    }
-
-   GetFactionSellToMurderer(who=$,seller=$)
-   {
-      local iFaction;
-
-      % Rationale (no numbers here!):
-      % This allows murderers to buy stuff from "lawful" merchants because of faction pressure.
-
-      if who = $
-      {
-         debug("bad who!");
-         return FALSE;
-      }
-
-      iFaction = send(who,@GetFaction);
-      if (iFaction <> FACTION_DUKE)
-      {
-         return FALSE;
-      }
-
-      if seller <> $
-      {
-         send(seller,@Say,#message_rsc=parliament_sell_to_murderer,
-              #parm1=Send(self,@GetFactionLiege,#faction=iFaction));
-      }
-      else
-      {
-         debug("GetFactionSellToMurderer called with no seller.  This better be because of testing!");
-      }
-
-      return TRUE;
-   }
-
-   BetaPotionsEnabled()
-   {
-      return pbHiddenSwitch;
-   }
-
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

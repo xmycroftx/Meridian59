@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 HolyTouch is TouchAttackSpell
 
 constants:
@@ -16,31 +16,27 @@ constants:
 
 resources:
 
+   include holytch.lkod
+
    HolyTouch_name_rsc = "holy touch"
    HolyTouch_icon_rsc = iholyt.bgf
    HolyTouch_desc_rsc = \
       "Pure energy from Shal'ille sears your target.  More effective on evil "
-      "and undead targets.   "
-      "Requires emeralds."
-
+      "and undead targets."
    HolyTouch_already_enchanted_rsc = \
       "Your hands are already bathed in Shal'ille's love."
    HolyTouch_On_rsc = "Your hands are bathed in Shal'ille's love."
    HolyTouch_Off_rsc = "Your hands are no longer bathed in Shal'ille's love."
-
    HolyTouch_player_was_hit = "%s%s scalds you with the pure force of Shal'ille!"
    HolyTouch_player_hit_something = \
       "%s%s%s shrinks away from the pure energy of Shal'ille."
-
    HolyTouch_player_killed_something = \
       "%s%s finally succumbs, finding peace through Shal'ille's purifying energy."
    HolyTouch_player_was_killed = \
       "The touch of %s%s separates body from soul and sends you to the underworld."
-
    holytouch_spell_intro = \
       "Shal'ille Lv. 2: Delivers the judgment of Shal'ille in your touch."
-
-   holytouch_sound = sholytch.wav
+   holytouch_sound = sholytch.ogg
 
 classvars:
 
@@ -64,18 +60,16 @@ classvars:
 
    viSchool = SS_SHALILLE
    viSpell_num = SID_HOLY_TOUCH
-   viSpellExertion = 3
+   viSpellExertion = 1
    viSpell_level = 2
-   viMana = 12
+   viMana = 4
 
-   viHit_Factor = 15
+   // It's alright if Holy Touch has high base damage. It gets no intrinsic
+   // proficiency damage, instead doing double base against undead.
+   viMin_Damage = 6
+   viMax_Damage = 10
 
-   viMin_Damage = 3
-   viMax_Damage = 6
-
-   viRange = 2
-
-   viSpellType = ATCK_SPELL_HOLY+ATCK_SPELL_ALL
+   viSpell_type = SPL_TYPE_HOLY+SPL_TYPE_ALL
    viStroke = STROKE_HOLY_TOUCH
 
    viDifficulty = 1
@@ -83,6 +77,8 @@ classvars:
    vbAutomatic = FALSE
 
    vrSucceed_wav = holytouch_sound
+
+   viEnchantmentLight = 10
 
 properties:
 
@@ -100,33 +96,33 @@ messages:
    }
 
    DamageFactors(damage=0, who=$, victim=$)
-   "Damage for attack spells is determined largely by expertise in the spell."
+   "Holy Touch gets no punch or mysticism proficiency damage. Instead, "
+   "it is intrinsically effective versus undead."
    {
       local iDamage, iKarma;
 
       iDamage = damage;
 
-      % Avoid the condition of checking damage on a nil victim (like when
-      %  just querying average damage).
+      // Avoid the condition of checking damage on a nil victim (like when
+      //  just querying average damage).
       if victim <> $
       {
          if Send(victim,@IsUndead)
          {
-            % Automatically do extra 100% damage to undead.
-            iDamage = 2*iDamage;
+            // Automatically do extra 100// damage to undead.
+            iDamage *= 2;
          }
          else
          {
-            % Reduce/increase damage by 50% depending on opponent's Karma.
-            % Use the detect option in case we're hitting an event monster.
+            // Reduce/increase damage by 50// depending on opponent's Karma.
+            // Use the detect option in case we're hitting an event monster.
             iKarma = Send(victim,@GetKarma,#detect=TRUE);
-            iDamage = iDamage + ((-iKarma)*iDamage/200);
+            iDamage += ((-iKarma)*iDamage/200);
          }
       }
 
       return iDamage;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

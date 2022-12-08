@@ -27,19 +27,19 @@
 
 #include "client.h"
 
-#define ANIMATE_INTERVAL 165       // ms between background animation updates
+#define ANIMATE_INTERVAL 33       // ms between background animation updates (~30fps)
 #define FLICKER_LEVEL (LIGHT_LEVELS/2)
 #define FLASH_LEVEL (LIGHT_LEVELS/2)
 #define TIME_FLASH 1000
 
 static int  animation_timer = 0;   // id of animation timer, or 0 if none
-static DWORD timeLastFrame;
+static float timeLastFrame;
 
 #define TIME_FULL_OBJECT_PHASE 1800
 static int phaseStates[] = {
-   OF_DRAW_PLAIN,OF_TRANSLUCENT75,OF_TRANSLUCENT50,OF_TRANSLUCENT25,OF_INVISIBLE,
-   OF_INVISIBLE,OF_INVISIBLE,
-   OF_TRANSLUCENT25,OF_TRANSLUCENT50,OF_TRANSLUCENT75,OF_DRAW_PLAIN};
+   DRAWFX_DRAW_PLAIN,DRAWFX_TRANSLUCENT75,DRAWFX_TRANSLUCENT50,DRAWFX_TRANSLUCENT25,DRAWFX_INVISIBLE,
+   DRAWFX_INVISIBLE,DRAWFX_INVISIBLE,
+   DRAWFX_TRANSLUCENT25,DRAWFX_TRANSLUCENT50,DRAWFX_TRANSLUCENT75,DRAWFX_DRAW_PLAIN};
 static int numPhases = sizeof(phaseStates) / sizeof(int);
 
 extern room_type current_room;
@@ -87,8 +87,9 @@ DWORD GetFrameTime(void)
 void AnimationTimerProc(HWND hwnd, UINT timer)
 {
    Bool need_redraw = False;
-   static DWORD last_animate_time = 0;
-   DWORD dt, now;
+   static double last_animate_time = 0;
+   double now;
+   float dt;
 
    PingTimerProc(hwnd, 0, 0, 0);
 
@@ -97,18 +98,18 @@ void AnimationTimerProc(HWND hwnd, UINT timer)
 
    if (last_animate_time == 0)
    {
-	   last_animate_time = timeGetTime();
-	   return;
+      last_animate_time = GetMilliCountDouble();
+      return;
    }
 
    config.quickstart = FALSE;
-   now = timeGetTime();
-   dt = now - last_animate_time;
+   now = GetMilliCountDouble();
+   dt = (float)(now - last_animate_time);
    last_animate_time = now;
    timeLastFrame = dt;
 
    /* Send event to modules */
-   ModuleEvent(EVENT_ANIMATE, dt);
+   ModuleEvent(EVENT_ANIMATE, (int)dt);
 
    /* Send event to non-module child windows */
    if (config.animate)
@@ -132,7 +133,7 @@ void AnimationTimerProc(HWND hwnd, UINT timer)
 
       need_redraw |= AnimateEffects(dt);
       if (need_redraw)
-	 RedrawAll();
+    RedrawAll();
    }
 
    if (GetGameDataValid())
@@ -162,8 +163,8 @@ Bool AnimateObjects(int dt)
       
       if (r->obj.animate->animation == ANIMATE_NONE && old_animate != ANIMATE_NONE && r->moving)
       {
-	 RoomObjectSetAnimation(r, True);
-	 r->motion.move_animating = True;
+    RoomObjectSetAnimation(r, True);
+    r->motion.move_animating = True;
       }
    }
    return need_redraw;
@@ -179,18 +180,18 @@ Bool AnimateObject(object_node *obj, int dt)
    Bool need_redraw = False;
    list_type over_list;
 
-   if (OF_FLICKERING == (OF_BOUNCING & obj->flags))
+   if (OF_FLICKERING == (OF_FLICKERING & obj->flags))
    {
       obj->lightAdjust = rand() % FLICKER_LEVEL;
       need_redraw = TRUE;
    }
 
-   if (OF_FLASHING == (OF_BOUNCING & obj->flags))
+   if (OF_FLASHING == (OF_FLASHING & obj->flags))
    {
       DWORD angleFlash;
       obj->bounceTime += min(dt,50);
       if (obj->bounceTime > TIME_FLASH)
-	 obj->bounceTime -= TIME_FLASH;
+         obj->bounceTime -= TIME_FLASH;
       angleFlash = NUMDEGREES * obj->bounceTime / TIME_FLASH;
       obj->lightAdjust = FIXED_TO_INT(fpMul(FLASH_LEVEL, SIN(angleFlash)));
       need_redraw = TRUE;
@@ -201,7 +202,7 @@ Bool AnimateObject(object_node *obj, int dt)
       object_bitmap_type obj_bmap;
       obj_bmap = FindObjectBitmap(obj->icon_res);
       if (obj_bmap != NULL)
-	 need_redraw |= AnimateSingle(obj->animate, BitmapsNumGroups(obj_bmap->bmaps), dt);
+    need_redraw |= AnimateSingle(obj->animate, BitmapsNumGroups(obj_bmap->bmaps), dt);
    }
    
    if (OF_PHASING == (OF_PHASING & obj->flags))
@@ -209,9 +210,9 @@ Bool AnimateObject(object_node *obj, int dt)
       int anglePhase;
       obj->phaseTime += min(dt,40);
       if (obj->phaseTime > TIME_FULL_OBJECT_PHASE)
-	 obj->phaseTime -= TIME_FULL_OBJECT_PHASE;
+         obj->phaseTime -= TIME_FULL_OBJECT_PHASE;
       anglePhase = numPhases * obj->phaseTime / TIME_FULL_OBJECT_PHASE;
-      obj->flags = (~OF_EFFECT_MASK & obj->flags) | phaseStates[anglePhase];
+      obj->drawingtype = phaseStates[anglePhase];
       need_redraw = TRUE;
    }
    // Animate object's overlays
@@ -220,13 +221,13 @@ Bool AnimateObject(object_node *obj, int dt)
       object_bitmap_type obj_bmap;
       Overlay *overlay = (Overlay *) (over_list->data);
       if (overlay->animate.animation == ANIMATE_NONE)
-	 continue;
+    continue;
 
       obj_bmap = FindObjectBitmap(overlay->icon_res);
       if (obj_bmap != NULL)
       {
-	 need_redraw |= AnimateSingle(&overlay->animate, BitmapsNumGroups(obj_bmap->bmaps), dt);
-      }	   
+    need_redraw |= AnimateSingle(&overlay->animate, BitmapsNumGroups(obj_bmap->bmaps), dt);
+      }      
    }
    return need_redraw;
 }
@@ -247,13 +248,13 @@ Bool AnimateProjectiles(int dt)
       p = (Projectile *) (l->data);
 
       if (p->animate.animation == ANIMATE_NONE)
-	 continue;
+    continue;
 
       obj = FindObjectBitmap(p->icon_res);
       if (obj != NULL)
       {
-	 retval = AnimateSingle(&p->animate, BitmapsNumGroups(obj->bmaps), dt);
-	 need_redraw = need_redraw || retval;
+    retval = AnimateSingle(&p->animate, BitmapsNumGroups(obj->bmaps), dt);
+    need_redraw = need_redraw || retval;
       }
    }
    return need_redraw;
@@ -275,13 +276,13 @@ Bool AnimateBackgroundOverlays(int dt)
       overlay = (Overlay *) (l->data);
 
       if (overlay->animate.animation == ANIMATE_NONE)
-	 continue;
+    continue;
 
       obj_bmap = FindObjectBitmap(overlay->icon_res);
       if (obj_bmap != NULL)
       {
-	 retval = AnimateSingle(&overlay->animate, BitmapsNumGroups(obj_bmap->bmaps), dt);
-	 need_redraw = need_redraw || retval;
+    retval = AnimateSingle(&overlay->animate, BitmapsNumGroups(obj_bmap->bmaps), dt);
+    need_redraw = need_redraw || retval;
       }
    }
    return need_redraw;
@@ -301,14 +302,14 @@ Bool AnimatePlayerOverlays(int dt)
       PlayerOverlay *poverlay = &player.poverlays[i];
 
       if (poverlay->obj == NULL || poverlay->hotspot == 0)
-	 continue;
+    continue;
       
       retval = AnimateObject(poverlay->obj, dt);
       need_redraw = need_redraw || retval;
 
       // If animation is over, group becomes -1 => we should remove overlay
       if (poverlay->obj->animate->group == (WORD) -1)
-	 poverlay->hotspot = 0;
+    poverlay->hotspot = 0;
    }
    return need_redraw;
 }
@@ -332,15 +333,15 @@ Bool AnimateSingle(Animate *a, int num_groups, int dt)
       // See if it's time to change bitmap
       a->tick = a->tick - dt;
       if (a->tick > 0)
-	 break;
+    break;
       
       // Look for special case of cycling through ALL bitmaps
       if (a->group_low == a->group_high)
-	 if (num_groups == 0)
-	    a->group++;
-	 else a->group = (a->group + 1) % num_groups;
+    if (num_groups == 0)
+       a->group++;
+    else a->group = (a->group + 1) % num_groups;
       else a->group = a->group_low + 
-	 (a->group - a->group_low + 1) % (a->group_high - a->group_low + 1);
+    (a->group - a->group_low + 1) % (a->group_high - a->group_low + 1);
       
       // Reset object timer
       a->tick = a->period;
@@ -351,12 +352,12 @@ Bool AnimateSingle(Animate *a, int num_groups, int dt)
       // See if it's time to change bitmap
       a->tick = a->tick - dt;
       if (a->tick > 0)
-	 break;
+    break;
 
       if (a->group == a->group_high)
       {
-	 a->animation = ANIMATE_NONE;
-	 a->group     = a->group_final;
+    a->animation = ANIMATE_NONE;
+    a->group     = a->group_final;
       }
       else a->group++;
 
@@ -370,11 +371,15 @@ Bool AnimateSingle(Animate *a, int num_groups, int dt)
       break;
    }
 
-   if (a->group < 0 || (num_groups > 0 && a->group >= num_groups))
+   // group can be MAXWORD to signal end of animation for player overlays.
+   if (a->group != MAXWORD
+      && num_groups > 0
+      && a->group >= num_groups)
    {
       debug(("Animation produced out of bounds bitmap group %d\n", a->group));
-      // Don't fix it up; player overlays rely on group going negative to signal end
-      //      a->group = 0;
+
+      // End animation if groups are invalid.
+      a->group = MAXWORD;
    }
 
    return need_redraw;

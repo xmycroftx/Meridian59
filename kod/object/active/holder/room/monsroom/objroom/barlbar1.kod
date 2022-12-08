@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+///////////////////////////////////////////////////////////////////////////////
 BarlBar1 is ObjectRoom
 
 constants:
@@ -16,10 +16,12 @@ constants:
 
 resources:
 
+   include barlbar1.lkod
+
    room_barlbar1 = barlbar1.roo
    room_name_barlbar1 = "The Bhrama & Falcon"
 
-   barlbar1_music = bar2.mid
+   barlbar1_music = bar2.ogg
 
    bar_leave_w1 = "~kMeidei yells at you, \"Thou dost not have my permission to use those stairs!\""
    bar_leave_w2 = "~kMeidei tells you, \"Pray thee, good fellow, do not ascend those stairs.\""
@@ -45,8 +47,10 @@ properties:
    piBaseLight = LIGHT_NICE
    piOutside_factor = OUTDOORS_SOME
 
-
    prMusic = barlbar1_music
+
+   // Every 5 min.
+   piGen_object_time = 300000
 
 messages:
 
@@ -54,7 +58,7 @@ messages:
    {
       plObject_gen = $;
 
-      % some mugs
+      // some mugs
 
       plObject_gen = Cons([ &WineGoblet, GEN_ONE, 1, 14, 10,  5, 0 ],plObject_gen);
       plObject_gen = Cons([ &WineGoblet, GEN_ONE, 1, 10, 8, 32, 54 ],plObject_gen);
@@ -89,7 +93,7 @@ messages:
    {
       plExits = $;
 
-      %% TO TOWN
+      /// TO TOWN
       plExits = Cons([ 22, 11, RID_BAR_NORTH, 29, 60, ROTATE_NONE ],plExits);
 
       propagate;
@@ -165,4 +169,4 @@ messages:
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

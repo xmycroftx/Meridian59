@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 BattleBow is Bow
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include battlbow.lkod
 
    BattleBow_name_rsc = "battle bow"
    BattleBow_desc_rsc = \
@@ -28,22 +30,21 @@ classvars:
    vrDesc = BattleBow_desc_rsc
 
    viWeaponDamage = 2
-   viRange = 17
+   viRange = 17 * FINENESS
    viHit_roll_modifier = 0
-   
+
    viValue_average = 3000
    viBulk = 80
    viWeight = 70
 
    viSpell_modifier = -30
 
-   % What's the basic color of the wood?
+   // What's the basic color of the wood?
    viBaseXLAT = XLAT_TO_SKIN4
 
 properties:
 
 messages:
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

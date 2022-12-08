@@ -200,8 +200,6 @@ void AddBuiltInDLlist()
    
    char *t1,*t2,*t3,*t4;
 
-   static const char *WHITESPACE = " \t\r\n";
-   
    sprintf(filename,"%s%s",ConfigStr(PATH_PACKAGE_FILE),PACKAGE_FILE);
    
    if ((packagefile = fopen(filename,"rt")) == NULL)
@@ -216,7 +214,7 @@ void AddBuiltInDLlist()
    {
       lineno++;
 
-      t1 = strtok(line,WHITESPACE);
+      t1 = strtok(line," \t\n");
 
       if (t1 == NULL)	/* ignore blank lines */
 	 continue;
@@ -224,19 +222,19 @@ void AddBuiltInDLlist()
       if (*t1 == '#')   /* ignore commentns */
 	 continue;
 
-      t2 = strtok(NULL,WHITESPACE);
+      t2 = strtok(NULL," \t\n");
       if (t2 == NULL || sscanf(t2,"%i",&time) != 1)
       {
 	 eprintf("AddBuiltInDLlist (%i) can't read time\n",lineno);
 	 continue;
       }
-      t3 = strtok(NULL,WHITESPACE);
+      t3 = strtok(NULL," \t\n");
       if (t3 == NULL || sscanf(t3,"%i",&type) != 1)
       {
 	 eprintf("AddBuiltInDLlist (%i) can't read type\n",lineno);
 	 continue;
       }
-      t4 = strtok(NULL,WHITESPACE);
+      t4 = strtok(NULL," \t\n");
       if (t4 == NULL || sscanf(t4,"%i",&size) != 1)
       {
 	 size = 1024; // default file size
@@ -251,9 +249,3 @@ void AddBuiltInDLlist()
 
    fclose(packagefile);
 }
-
-
-
-
-
-

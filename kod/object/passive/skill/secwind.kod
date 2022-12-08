@@ -1,34 +1,33 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 SecondWind is Skill
 
 constants:
 
    include blakston.khd
-   include protocol.khd
+   include protocol.khd   
 
 resources:
 
+   include secwind.lkod
+
    SecondWind_name_rsc = "second wind"
    SecondWind_icon_rsc = isecwind.bgf
-   SecondWind_desc_rsc = "Second wind will give a mighty adventurer the vigor to do strenuous activity "
-                         "even when exhausted.  When near exhaustion, this skill will give a boost to "
-                         "vigor.  It is useless to rest or eat food to regain stamina for a while after "
-                         "gaining a second wind."
+   SecondWind_desc_rsc = \
+      "Second wind will give a mighty adventurer the vigor to do strenuous "
+      "activity even when exhausted, greatly boosting his ability to recover "
+      "vigor and health in times of need."
 
-   SecondWind_skill_intro = "Weaponcraft Lv. 4: The ability to press on even when exhausted."
-
-   SecondWind_success = "You catch your second wind!"
-   SecondWind_finished = "You feel more relaxed as your second wind dissipates."
-   SecondWind_sound = wscndwnd.wav
+   SecondWind_skill_intro = \
+      "Weaponcraft Lv. 4: The ability to press on even when exhausted."
 
 classvars:
 
@@ -42,10 +41,10 @@ classvars:
    viDefinite = ARTICLE_NONE
 
    viSkill_num = SKID_SECOND_WIND
-   viSchool = SKS_FENCING
+   viSchool = SKS_WEAPONCRAFT
    viSkill_Level = 4
-   viChance_to_Increase = 50
-   viThreshold = 25
+   viChance_to_Increase = 100
+   viMeditate_ratio = 50
 
    viSkillExertion = 0
    vbCheck_exertion = FALSE
@@ -64,149 +63,5 @@ messages:
       return Send(who,@GetStamina);
    }
 
-   GetDuration(who=$)
-   "Duration is anywhere from 5 to 10 minutes before Second Wind can be triggered again"
-   {
-      local iStamina, iWaitTime;
-
-      iStamina = Send(self,@GetRequisiteStat,#who=who);
-      iWaitTime = ((100-iStamina) * Send(self,@GetAbility,#who=who)/100) + iStamina;
-      iWaitTime = (600 - (iWaitTime*3)) * 1000;
-
-      return iWaitTime;
-   }
-
-   TrySkill(who=$)
-   "Do the skill only if player meets the requirements."
-   {
-      % If player has second wind, has fallen below the vigor 
-      % threshold, and is not already enchanted
-      if Send(self,@GetAbility,#who=who) > 0
-         AND Send(who,@GetVigor) < viThreshold
-         AND NOT Send(who,@IsEnchanted,#byClass=&SecondWind)
-      {
-         % Apply the effects of second wind
-         Send(self,@AddEnchantmentEffects,#who=who);
-
-         % Start the enchantment timer and adds enchantment icon
-         Send(who,@StartEnchantment,#what=self,
-           #time=send(self,@GetDuration,#who=who));
-
-         % Send message
-         Send(who,@MsgSendUser,#message_rsc=SecondWind_success);
-   
-         % Send sound
-         Send(who,@WaveSendUser,#wave_rsc=SecondWind_sound);
-      }
-
-      return;
-   }
-
-   AddEnchantmentEffects(who=$)
-   "Adjusts vigor threshold and amount. Mimics a personal enchantment."
-   { 
-      local iVigor;
-      
-      % Lock the player's vigor rest threshold while enchanted
-      Send(who,@SetVigorRestThreshold,#amount=10);
-
-      % Calculate new vigor = 40 + Stamina/2 + skill %
-      iVigor = 40 + Send(self,@GetRequisiteStat,#who=who)/2 + Send(self,@GetAbility,#who=who);
-      iVigor = -iVigor; % Reverse sign so we're taking away exertion
-      
-      % Update player vigor
-      Send(who,@AddExertion,#amount=10000*iVigor);
-
-      propagate;
-   }
-
-   EndEnchantment(who=$, report=TRUE)
-   {
-      if report
-      {
-         Send(who,@MsgSendUser,#message_rsc=SecondWind_finished);
-      }
-
-      Post(self,@EndEnchantmentEffects,#who=who);
-
-      return;
-   }
-   
-   EndEnchantmentEffects(who=$)
-   "Resets vigor rest threshold once the enchantment ends."
-   {
-      local iAmount;
-
-      % Resets the player's vigor rest threshold based on second wind %
-      iAmount = 80 + ((Send(self,@GetAbility,#who=who) + 1) / 5);
-   
-      Send(who,@SetVigorRestThreshold,#amount=iAmount);
-
-      return;
-   }
-
-   SkillFailed(who=$)
-   "Overrides base class behavior to avoid spammy message if we fail."
-   {
-      return;
-   }
-
-   GetInitialChance(who=$)
-   "This is the initial chance to advance."
-   {
-      % No easy-cheezing it.  No advancement if you have an "easy" way to trigger
-      %  the skill.  This includes tokens, cursed rings, or (token) deaths.
-      if Send(who,@PossessesA,#class=&Token)
-         OR Send(who,@PossessesA,#class=&RingOfLethargy)
-         OR Send(send(who,@GetOwner),@GetRoomNum) = RID_UNDERWORLD
-      {
-         % No initial chance to succeed; that is, you will always fail to advance.
-         return 0;
-      }
-
-      propagate;
-   }
-
-   ShowEnchantmentIcon(type=$)
-   {
-      return viShow_enchantment_icon & 0x02;
-   }
-
-   IsPersonalEnchantment()
-   "Included to support mimicing of personal enchantment spells."
-   {
-      return TRUE;
-   }
-
-   SetSpellPlayerFlag(who=$)
-   "Included to support mimicing of personal enchantment spells."
-   {
-      return;
-   }
-
-   AffectsMaxMana()
-   "Included to support mimicing of personal enchantment spells."
-   {
-      return FALSE;
-   }
-
-   IsPeriodic()
-   "Included to support mimicing of personal enchantment spells."
-   {
-      return FALSE;
-   }
-
-   RestartEnchantmentEffect(who=$, state=$)
-   "Included to support mimicing of personal enchantment spells."
-   {
-      return;
-   }
-
-   IsHarmful()
-   "Included to support mimicing of personal enchantment spells."
-   {
-      return FALSE;
-   }
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

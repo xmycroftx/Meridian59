@@ -8,365 +8,226 @@
 /*
  * roomdata.c
  *
-
- This module maintains a linked list of loaded .roo files which are
- loaded by the Blakod (using the C function LoadRoom() in ccode.c).
- Currently the memory is not kept track of by memory.c because we use
- a common load function for the .roo file with the client.
+ This module maintains an array of pointers to room_node (all the room data)
+ and also an array of pointers to room_rsc_node (used for fast room ID lookup
+ by resource id). The arrays have a hardcoded size of 400, and each element
+ is a linked list of pointers indexed by room_id % 400 for room_nodes, and
+ resource_id % 400 for room_rsc_nodes. This allows a much smaller size to be
+ set for the array, but can still handle an unforseen case where more than
+ 400 rooms get created. The hardcoded size (INIT_ROOMTABLE_SIZE in roomdata.h)
+ should be increased if the 'normal' number of rooms on the server is ever over
+ 400 (currently ~270). .roo files loaded by the C function LoadRoom(), called
+ from blakod.
 
  */
 
 #include "blakserv.h"
 
-roomdata_node *roomdata;
-blak_int num_roomdata;
+// Next available room ID.
+int           idcounter = 0;
+// Array of pointers for room data storage.
+room_node     **rooms;
 
-/* local function prototypes */
-Bool LoadRoomFile(char *fname,room_type *file_info);
-
-#define signum(a) ((a)<0 ? -1 : ((a) > 0 ? 1 : 0))
-
-enum
+void InitRooms()
 {
-   MASK_NORTH = 1,
-   MASK_NORTH_EAST = 1 << 1,
-   MASK_EAST = 1 << 2,
-   MASK_SOUTH_EAST = 1 << 3,
-   MASK_SOUTH = 1 << 4,
-   MASK_SOUTH_WEST = 1 << 5,
-   MASK_WEST = 1 << 6,
-   MASK_NORTH_WEST = 1 << 7,
-};
-
-void InitRoomData()
-{
-   roomdata = NULL;
-   num_roomdata = 0;
+   rooms = (room_node **)AllocateMemoryCalloc(MALLOC_ID_ROOM,
+      INIT_ROOMTABLE_SIZE, sizeof(room_node*));
+   idcounter = 0;
 }
 
-void ResetRoomData()
+void ExitRooms()
 {
-   roomdata_node *room,*temp;
+   ResetRooms();
+   FreeMemory(MALLOC_ID_ROOM, rooms, INIT_ROOMTABLE_SIZE * sizeof(room_node*));
+}
 
-   room = roomdata;
-   while (room != NULL)
+void ResetRooms()
+{
+   room_node *room, *temp;
+
+   for (int i = 0; i < INIT_ROOMTABLE_SIZE; ++i)
    {
-      temp = room->next;
-      BSPRoomFreeServer(&(room->file_info));
-      FreeMemory(MALLOC_ID_ROOM,room,sizeof(roomdata_node));
-      room = temp;
+      if (rooms)
+      {
+         // Free memory from rooms.
+         room = rooms[i % INIT_ROOMTABLE_SIZE];
+         while (room)
+         {
+            temp = room->next;
+            BSPFreeRoom(&room->data);
+            FreeMemorySIMD(MALLOC_ID_ROOM, room, sizeof(room_node));
+            room = temp;
+         }
+         rooms[i % INIT_ROOMTABLE_SIZE] = NULL;
+      }
    }
-   roomdata = NULL;
-   num_roomdata = 0;
+
+   idcounter = 0;
 }
 
-blak_int LoadRoomData(int resource_id)
+int LoadRoom(int resource_id)
 {
    val_type ret_val;
-   resource_node *r;
-   roomdata_node *room;
-   room_type file_info;
+   resource_node* r;
+   char s[MAX_PATH + FILENAME_MAX];
+
+   /****************************************************************/
 
    r = GetResourceByID(resource_id);
-   if (r == NULL)
+   if (!r)
    {
       bprintf("LoadRoomData can't find resource %i\n",resource_id);
       return NIL;
    }
 
-   if (!LoadRoomFile(r->resource_val,&file_info))
+   ret_val.v.tag = TAG_ROOM_DATA;
+
+   /****************************************************************/
+
+   // Load ROO
+   room_node* newnode = (room_node*)AllocateMemorySIMD(MALLOC_ID_ROOM, sizeof(room_node));
+
+   // combine path for roo and filename
+   sprintf(s, "%s%s", ConfigStr(PATH_ROOMS), r->resource_val[0]);
+
+   // try load it
+   if (!BSPLoadRoom(s, &newnode->data))
    {
-      bprintf("LoadRoomData couldn't open %s!!!\n",r->resource_val);
+      FreeMemorySIMD(MALLOC_ID_ROOM, newnode, sizeof(room_node));
+      bprintf("LoadRoomData couldn't open %s!!!\n",r->resource_val[0]);
       return NIL;
    }
 
-   room = (roomdata_node *)AllocateMemory(MALLOC_ID_ROOM,sizeof(roomdata_node));
-   room->roomdata_id = num_roomdata++;
-   room->file_info = file_info;
+   // Add this room_node to the rooms table.
+   newnode->data.roomdata_id = idcounter++;
+   newnode->data.resource_id = resource_id;
+   newnode->next = rooms[newnode->data.roomdata_id % INIT_ROOMTABLE_SIZE];
+   rooms[newnode->data.roomdata_id % INIT_ROOMTABLE_SIZE] = newnode;
 
-   room->next = roomdata;
-   roomdata = room;
-
-/*
-   dprintf("LoadRoomData read room %i [%i,%i]\n",
-	   room->roomdata_id,room->file_info.rows,room->file_info.cols);
-*/
-
-   ret_val.v.tag = TAG_ROOM_DATA;
-   ret_val.v.data = room->roomdata_id;
+   ret_val.v.data = newnode->data.roomdata_id;
    return ret_val.int_val;
 }
-      
-roomdata_node * GetRoomDataByID(int id)
-{
-   roomdata_node *room;
 
-   room = roomdata;
-   while (room != NULL)
+void UnloadRoom(room_node *r)
+{
+   room_node *room, *temp;
+   int room_hash;
+   if (!r)
    {
-      if (room->roomdata_id == id)
-	 return room;
+      bprintf("UnloadRoomData called with NULL room!");
+
+      return;
+   }
+
+   if (!rooms)
+   {
+      bprintf("UnloadRoomData couldn't get room table!");
+
+      return;
+   }
+
+   room_hash = r->data.roomdata_id % INIT_ROOMTABLE_SIZE;
+
+   // Get rooms occupying this position in rooms table.
+   room = rooms[room_hash];
+
+   if (!room)
+   {
+      bprintf("UnloadRoomData got NULL data for room %i at room table entry %i!",
+         r->data.roomdata_id, room_hash);
+
+      return;
+   }
+
+   // If the room we want to free is first, set rooms at this position
+   // to the next room in this list.
+   if (room->data.roomdata_id == r->data.roomdata_id)
+   {
+      rooms[room_hash] = room->next;
+      BSPFreeRoom(&room->data);
+      FreeMemorySIMD(MALLOC_ID_ROOM, room, sizeof(room_node));
+      room = NULL;
+
+      return;
+   }
+
+   // Otherwise check the next room in list.
+   while (room->next)
+   {
+      if (room->next->data.roomdata_id == r->data.roomdata_id)
+      {
+         // Matched, set temp to the room to be freed.
+         temp = room->next;
+         // Set current room's next pointer to the next pointer
+         // of the room we're freeing.
+         room->next = room->next->next;
+         BSPFreeRoom(&temp->data);
+         FreeMemorySIMD(MALLOC_ID_ROOM, temp, sizeof(room_node));
+
+         return;
+      }
       room = room->next;
    }
+
+   // If we get to this point, we didn't find the room we wanted to unload.
+   bprintf("Room %i not freed in UnloadRoomData!", r->data.roomdata_id);
+
+   return;
+}
+
+room_node * GetRoomDataByID(int id)
+{
+   room_node *room;
+
+   if (!rooms)
+      return NULL;
+
+   room = rooms[id % INIT_ROOMTABLE_SIZE];
+   while (room)
+   {
+      if (room->data.roomdata_id == id)
+         return room;
+      room = room->next;
+   }
+
    return NULL;
 }
 
-Bool CanMoveInRoom(roomdata_node *r,int from_row,int from_col,int to_row,int to_col)
+// Prints the rooms in rooms table to admin log.
+void PrintRoomTable()
 {
-   int dir_row,dir_col;
-   Bool allow,debug;
-   Bool bad_to;
+   room_node *room;
 
-   // Must support to_row/to_col which is outside the bounds of the grid.
-   // Therefore, must not actually access the grid in those cases.
-
-   debug = ConfigBool(DEBUG_CANMOVEINROOM);
-   
-   if (!r)
+   if (!rooms)
    {
-      if (debug)
-	 dprintf("-- invalid room, false\n");
-      return False;
+      aprintf("No rooms table loaded.\n");
+
+      return;
    }
 
-   /* if not headed into room, don't access grid variables */
-
-   bad_to = False;
-   if (to_row < 0 || to_row >= r->file_info.rows)
+   for (int i = 0; i < INIT_ROOMTABLE_SIZE; i++)
    {
-      if (debug)
-	 dprintf("-- not going into room row, false\n");
-      bad_to = True;
-   }
-   if (to_col < 0 || to_col >= r->file_info.cols)
-   {
-      if (debug)
-	 dprintf("-- not going into room col, false\n");
-      bad_to = True;
-   }
-
-   /* if it's inside a wall or an unwalkable floor, it's no good */
-   
-   if (debug)
-      dprintf("room %i, from row %i, col %i to row %i, col %i\n",
-	      r,from_row,from_col,to_row,to_col);
-   if (!bad_to &&
-       (r->file_info.flags[to_row][to_col] & ROOM_FLAG_WALKABLE) == 0)
-   {
-      if (debug)
-	 dprintf("-- flag grid said no floor, false\n");
-      return False;
-   }
-   
-   /* if not currently in room, must be fine */
-   if (from_row < 0 || from_row >= r->file_info.rows)
-   {
-      if (debug)
-	 dprintf("-- not in current room row, true\n");
-      return True;
-   }
-   if (from_col < 0 || from_col >= r->file_info.cols)
-   {
-      if (debug)
-	 dprintf("-- not in current room col, true\n");
-      return True;
-   }
-
-   /*
-   dprintf("r%i c%i has data %02X",from_row,from_col,(r->file_info.grid[from_row][from_col]));
-   */
-
-   if (abs(to_row-from_row) > 1 || abs(to_col-from_col) > 1)
-   {
-      if (debug)
-	 dprintf("-- allowing teleport\n");
-
-      return True; /* teleport */
-   }
-
-   dir_row = signum(to_row-from_row);
-   dir_col = signum(to_col-from_col);
-
-   if (dir_row == 0 && dir_col == 0)
-   {
-      if (debug)
-	 dprintf("-- not moving, true\n");
-
-      return True; /* no move */
-   }
-
-   /* one of these cases WILL be true */
-
-   switch (dir_row)
-   {
-   case -1 :
-      switch (dir_col)
+      room = rooms[i];
+      while (room)
       {
-      case -1 : allow = r->file_info.grid[from_row][from_col] & MASK_NORTH_WEST; break;
-      case 0 : allow = r->file_info.grid[from_row][from_col] & MASK_NORTH; break;
-      case 1 : allow = r->file_info.grid[from_row][from_col] & MASK_NORTH_EAST; break;
-      default : eprintf("CanMoveInRoom got invalid direction %i, %i\n",dir_row,dir_col);
+         aprintf("Room at position %i, roomdata %i, resource %s\n",
+            i, room->data.roomdata_id, GetResourceStrByLanguageID(room->data.resource_id,0));
+         room = room->next;
       }
-      break;
-   case 0 :
-      switch (dir_col)
-      {
-      case -1 : allow = r->file_info.grid[from_row][from_col] & MASK_WEST; break;
-      case 1 : allow = r->file_info.grid[from_row][from_col] & MASK_EAST; break;
-      default : eprintf("CanMoveInRoom got invalid direction %i, %i\n",dir_row,dir_col);
-      }
-      break;
-   case 1 :
-      switch (dir_col)
-      {
-      case -1 : allow = r->file_info.grid[from_row][from_col] & MASK_SOUTH_WEST; break;
-      case 0 : allow = r->file_info.grid[from_row][from_col] & MASK_SOUTH; break;
-      case 1 : allow = r->file_info.grid[from_row][from_col] & MASK_SOUTH_EAST; break;
-      default : eprintf("CanMoveInRoom got invalid direction %i, %i\n",dir_row,dir_col);
-      }
-      break;
-   default : eprintf("CanMoveInRoom got invalid direction %i, %i\n",dir_row,dir_col);
    }
-   /* allow is a bit, not necessarily 1 or 0, so need to make sure to make 1 or 0 here */
-   if (debug)
-      dprintf("-- using move grid, %s\n",allow ? "true" : "false");
-   return (allow != 0);
 }
 
-Bool CanMoveInRoomFine(roomdata_node *r,int from_row,int from_col,int to_row,int to_col)
+void ForEachRoom(void(*callback_func)(room_node *r))
 {
-   int dir_row,dir_col;
-   Bool allow,debug;
-   Bool bad_to;
+   room_node *node;
 
-   // Must support to_row/to_col which is outside the bounds of the grid.
-   // Therefore, must not actually access the grid in those cases.
-
-   debug = ConfigBool(DEBUG_CANMOVEINROOM);
-   
-   if (!r)
+   for (int i = 0; i < INIT_ROOMTABLE_SIZE; i++)
    {
-      if (debug)
-	 dprintf("-- invalid room, false\n");
-      return False;
-   }
-
-   /* if not headed into room, don't access grid variables */
-
-   bad_to = False;
-   if (to_row < 0 || to_row >= r->file_info.rows)
-   {
-      if (debug)
-	 dprintf("-- not going into room row, false\n");
-      bad_to = True;
-   }
-   if (to_col < 0 || to_col >= r->file_info.cols)
-   {
-      if (debug)
-	 dprintf("-- not going into room col, false\n");
-      bad_to = True;
-   }
-
-   /* if it's inside a wall or an unwalkable floor, it's no good */
-   
-   if (debug)
-      dprintf("room %i, from row %i, col %i to row %i, col %i\n",
-	      r,from_row,from_col,to_row,to_col);
-   if (!bad_to &&
-       (r->file_info.flags[to_row][to_col] & ROOM_FLAG_WALKABLE) == 0)
-   {
-      if (debug)
-	 dprintf("-- flag grid said no floor, false\n");
-      return False;
-   }
-   
-   /* if not currently in room, must be fine */
-   if (from_row < 0 || from_row >= r->file_info.rows)
-   {
-      if (debug)
-	 dprintf("-- not in current room row, true\n");
-      return True;
-   }
-   if (from_col < 0 || from_col >= r->file_info.cols)
-   {
-      if (debug)
-	 dprintf("-- not in current room col, true\n");
-      return True;
-   }
-
-   /*
-   dprintf("r%i c%i has data %02X",from_row,from_col,(r->file_info.grid[from_row][from_col]));
-   */
-
-   if (abs(to_row-from_row) > 1 || abs(to_col-from_col) > 1)
-   {
-      if (debug)
-	 dprintf("-- allowing teleport\n");
-
-      return True; /* teleport */
-   }
-
-   dir_row = signum(to_row-from_row);
-   dir_col = signum(to_col-from_col);
-
-   if (dir_row == 0 && dir_col == 0)
-   {
-      if (debug)
-	 dprintf("-- not moving, true\n");
-
-      return True; /* no move */
-   }
-
-   if (r->file_info.monster_grid == NULL)
-   {
-	   bprintf("CanMoveInRoomFine has no monster grid for %i\n",
-			   r->roomdata_id);
-	   return True;
-   }
-   /* one of these cases WILL be true */
-
-   switch (dir_row)
-   {
-   case -1 :
-      switch (dir_col)
+      node = rooms[i];
+      while (node)
       {
-      case -1 : allow = r->file_info.monster_grid[from_row][from_col] & MASK_NORTH_WEST; break;
-      case 0 : allow = r->file_info.monster_grid[from_row][from_col] & MASK_NORTH; break;
-      case 1 : allow = r->file_info.monster_grid[from_row][from_col] & MASK_NORTH_EAST; break;
-      default : eprintf("CanMoveInRoomFine got invalid direction %i, %i\n",dir_row,dir_col);
+         callback_func(node);
+         node = node->next;
       }
-      break;
-   case 0 :
-      switch (dir_col)
-      {
-      case -1 : allow = r->file_info.monster_grid[from_row][from_col] & MASK_WEST; break;
-      case 1 : allow = r->file_info.monster_grid[from_row][from_col] & MASK_EAST; break;
-      default : eprintf("CanMoveInRoomFine got invalid direction %i, %i\n",dir_row,dir_col);
-      }
-      break;
-   case 1 :
-      switch (dir_col)
-      {
-      case -1 : allow = r->file_info.monster_grid[from_row][from_col] & MASK_SOUTH_WEST; break;
-      case 0 : allow = r->file_info.monster_grid[from_row][from_col] & MASK_SOUTH; break;
-      case 1 : allow = r->file_info.monster_grid[from_row][from_col] & MASK_SOUTH_EAST; break;
-      default : eprintf("CanMoveInRoomFine got invalid direction %i, %i\n",dir_row,dir_col);
-      }
-      break;
-   default : eprintf("CanMoveInRoomFine got invalid direction %i, %i\n",dir_row,dir_col);
    }
-   /* allow is a bit, not necessarily 1 or 0, so need to make sure to make 1 or 0 here */
-   if (debug)
-      dprintf("-- using move grid, %s\n",allow ? "true" : "false");
-   return (allow != 0);
 }
-
-Bool LoadRoomFile(char *fname,room_type *file_info)
-{
-   char s[MAX_PATH+FILENAME_MAX];
-
-   sprintf(s,"%s%s",ConfigStr(PATH_ROOMS),fname);
-
-   return BSPRooFileLoadServer(s,file_info);
-}
-

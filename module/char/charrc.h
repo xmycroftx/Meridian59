@@ -1,10 +1,3 @@
-// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-// All rights reserved.
-//
-// This software is distributed under a license that is described in
-// the LICENSE file that accompanies it.
-//
-// Meridian is a registered trademark.
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
 // Used by char.rc
@@ -15,6 +8,15 @@
 #define IDS_CHARNAMEUSED                4
 #define IDS_STATPOINTSLEFT              5
 #define IDS_SPELLPOINTSLEFT             6
+#define IDS_GENERICERROR                7
+#define IDS_NOTFIRSTTIME                8
+#define IDS_NAMETOOLONG                 9
+#define IDS_NAMEBADCHARS                10
+#define IDS_NOMOBNAME                   11
+#define IDS_NONPCNAME                   12
+#define IDS_NOGUILDNAME                 13
+#define IDS_NOBADWORDS                  14
+#define IDS_NOCONFUSINGNAME             15
 #define IDS_CHAR_NAME                   16
 #define IDS_CHARSPELLS                  17
 #define IDS_CHARSKILLS                  18
@@ -22,6 +24,9 @@
 #define IDS_CHARSTATS                   20
 #define IDS_DIALOGTITLE                 21
 #define IDS_NEWCHARACTER                22
+#define IDS_RETIREDNAME                 23
+#define IDS_DESCTOOLONG                 24
+#define IDS_INVALIDGENDER               25
 #define IDD_MAKECHAR                    102
 #define IDD_CHARNAME                    103
 #define IDD_CHARPICK                    129
@@ -32,6 +37,17 @@
 #define IDI_SWORDS                      143
 #define IDD_CHARAPPEARANCE              143
 #define IDD_CHARSTATS                   144
+#define IDS_FAVORITES                   255
+#define IDS_SHALILLE                    256
+#define IDS_QOR                         257
+#define IDS_KRAANAN                     258
+#define IDS_FAREN                       259
+#define IDS_RIIJA                       260
+#define IDS_JALA                        261
+#define IDS_DMSCHOOL                    262
+#define IDS_WEAPONCRAFT                 263
+#define IDS_DMSKILL                     264
+#define IDS_ROGUE                       265
 #define IDC_DESCRIPTION                 1000
 #define IDC_FACE                        1001
 #define IDC_PLACEHOLDER                 1002
@@ -65,6 +81,7 @@
 #define IDC_CHAR_GRAPH5                 1025
 #define IDC_MOUTH2                      1026
 #define IDC_CHAR_GRAPH6                 1026
+#define IDC_FAVORITES                   1027
 #define IDC_POINTSLEFT                  1028
 #define IDC_SPELLIST1                   1029
 #define IDC_SPELLIST2                   1030
@@ -92,7 +109,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        105
+#define _APS_NEXT_RESOURCE_VALUE        266
 #define _APS_NEXT_COMMAND_VALUE         40001
 #define _APS_NEXT_CONTROL_VALUE         1045
 #define _APS_NEXT_SYMED_VALUE           101

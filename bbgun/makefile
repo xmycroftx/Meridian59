@@ -3,9 +3,19 @@
 TOPDIR=..
 !include $(TOPDIR)\common.mak
 
-SOURCEDIR = $(BBGUNDIR)
+# ----------------------------------------------------------------------
+# Additional compiler flags (see common.mak)
+# /TP           Compile as C++ code
+# /arch:SSE2    Use SSE2 instructions (VS2013+ default to SSE2)
+CFLAGS = $(CFLAGS) /arch:SSE2 /TP
 
-LIBS = oldnames.lib user32.lib gdi32.lib comdlg32.lib
+# ----------------------------------------------------------------------
+# Additional linker flags (see common.mak)
+# /SUBSYSTEM:WINDOWS",5.01" UI Windows XP (5.01)
+LINKFLAGS = $(LINKFLAGS) /SUBSYSTEM:WINDOWS",5.01"
+
+SOURCEDIR = $(BBGUNDIR)
+LIBS = user32.lib gdi32.lib comdlg32.lib
 
 all: makedirs $(OUTDIR)\bbgun.exe
 
@@ -20,7 +30,8 @@ OBJS = \
 
 
 $(OUTDIR)\bbgun.exe: $(OBJS) $(OUTDIR)\bbgun.res
-	$(LINK) $** $(LIBS) -OUT:$@ $(LINKFLAGS) $(LINKWINDOWSFLAGS)
+	$(LINK) $** $(LIBS) -OUT:$@ $(LINKFLAGS)
+	$(CP) $(OUTDIR)\bbgun.exe $(TOPDIR)\resource\graphics\
 
 $(OUTDIR)\bbgun.res : $(SOURCEDIR)\bbgun.rc
         $(RC) /fo $@ /i$(SOURCEDIR) $**

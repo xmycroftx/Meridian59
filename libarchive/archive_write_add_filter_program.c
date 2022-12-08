@@ -68,7 +68,6 @@ struct archive_write_program_data {
 
 	char		*child_buf;
 	size_t		 child_buf_len, child_buf_avail;
-	char		*program_name;
 };
 
 struct private_data {
@@ -92,7 +91,7 @@ archive_write_add_filter_program(struct archive *_a, const char *cmd)
 {
 	struct archive_write_filter *f = __archive_write_allocate_filter(_a);
 	struct private_data *data;
-	static const char prefix[] = "Program: ";
+	static const char *prefix = "Program: ";
 
 	archive_check_magic(_a, ARCHIVE_WRITE_MAGIC,
 	    ARCHIVE_STATE_NEW, "archive_write_add_filter_program");
@@ -106,7 +105,7 @@ archive_write_add_filter_program(struct archive *_a, const char *cmd)
 	if (data->cmd == NULL)
 		goto memerr;
 
-	data->pdata = __archive_write_program_allocate(cmd);
+	data->pdata = __archive_write_program_allocate();
 	if (data->pdata == NULL)
 		goto memerr;
 
@@ -175,7 +174,7 @@ archive_compressor_program_free(struct archive_write_filter *f)
  * Allocate resources for executing an external program.
  */
 struct archive_write_program_data *
-__archive_write_program_allocate(const char *program)
+__archive_write_program_allocate(void)
 {
 	struct archive_write_program_data *data;
 
@@ -184,7 +183,6 @@ __archive_write_program_allocate(const char *program)
 		return (data);
 	data->child_stdin = -1;
 	data->child_stdout = -1;
-	data->program_name = strdup(program);
 	return (data);
 }
 
@@ -200,7 +198,6 @@ __archive_write_program_free(struct archive_write_program_data *data)
 		if (data->child)
 			CloseHandle(data->child);
 #endif
-		free(data->program_name);
 		free(data->child_buf);
 		free(data);
 	}
@@ -234,7 +231,7 @@ __archive_write_program_open(struct archive_write_filter *f,
 		    &data->child_stdout);
 	if (child == -1) {
 		archive_set_error(f->archive, EINVAL,
-		    "Can't launch external program: %s", cmd);
+		    "Can't initialise filter");
 		return (ARCHIVE_FATAL);
 	}
 #if defined(_WIN32) && !defined(__CYGWIN__)
@@ -245,7 +242,7 @@ __archive_write_program_open(struct archive_write_filter *f,
 		close(data->child_stdout);
 		data->child_stdout = -1;
 		archive_set_error(f->archive, EINVAL,
-		    "Can't launch external program: %s", cmd);
+		    "Can't initialise filter");
 		return (ARCHIVE_FATAL);
 	}
 #else
@@ -337,7 +334,7 @@ __archive_write_program_write(struct archive_write_filter *f,
 		ret = child_write(f, data, buf, length);
 		if (ret == -1 || ret == 0) {
 			archive_set_error(f->archive, EIO,
-			    "Can't write to program: %s", data->program_name);
+			    "Can't write to filter");
 			return (ARCHIVE_FATAL);
 		}
 		length -= ret;
@@ -376,7 +373,7 @@ __archive_write_program_close(struct archive_write_filter *f,
 
 		if (bytes_read == -1) {
 			archive_set_error(f->archive, errno,
-			    "Error reading from program: %s", data->program_name);
+			    "Read from filter failed unexpectedly.");
 			ret = ARCHIVE_FATAL;
 			goto cleanup;
 		}
@@ -406,7 +403,7 @@ cleanup:
 
 	if (status != 0) {
 		archive_set_error(f->archive, EIO,
-		    "Error closing program: %s", data->program_name);
+		    "Filter exited with failure.");
 		ret = ARCHIVE_FATAL;
 	}
 	r1 = __archive_write_close_filter(f->next_filter);

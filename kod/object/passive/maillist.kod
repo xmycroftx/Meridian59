@@ -1,19 +1,19 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 MailingList is PassiveObject
 
-% This is an object that holds a list of people that should receive a mail.
-% For mail, populate the list of people and send the object to the client.
-% This will treat the object like a character object and call 'ReceiveMail'
-% It's a temporary thing, deleting itself after use.
+// This is an object that holds a list of people that should receive a mail.
+// For mail, populate the list of people and send the object to the client.
+// This will treat the object like a character object and call 'ReceiveMail'
+// It's a temporary thing, deleting itself after use.
 
 constants:
 
@@ -21,15 +21,17 @@ constants:
 
 resources:
 
+   include maillist.lkod
+
    MailingList_name_rsc = "mailing list"
    MailingList_icon_rsc = light.bgf
    MailingList_desc_rsc = "A mailing list."
 
 classvars:
 
-   vrName = MovingSector_name_rsc
-   vrIcon = MovingSector_icon_rsc
-   vrDesc = MovingSector_desc_rsc
+   vrName = MailingList_name_rsc
+   vrIcon = MailingList_icon_rsc
+   vrDesc = MailingList_desc_rsc
 
 properties:
 
@@ -60,7 +62,7 @@ messages:
             thePerson = [thePerson];
          }
 
-         for aPerson in thePerson
+         foreach aPerson in thePerson
          {
             plPeople = Cons(aPerson,plPeople);
          }
@@ -75,9 +77,9 @@ messages:
    {
       local lPeopleInfo;
       
-      for lPeopleInfo in plPeople
+      foreach lPeopleInfo in plPeople
       {
-         % First element is the guild object.
+         // First element is the guild object.
          Send(lPeopleInfo,@ReceiveMail,#from=from,#dest_list=dest_list,
               #perm_string=perm_string);
       }
@@ -87,6 +89,5 @@ messages:
       return;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

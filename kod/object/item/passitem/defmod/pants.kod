@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Pants is DefenseModifier
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include pants.lkod
 
    pants_name_rsc = "pants"   
    pants_desc_rsc = \
@@ -113,20 +115,21 @@ messages:
       return;
    }
 
-   ReqUseSomething(what = $)
+   DefendingHit(who = $,what = $)
    {
-      if send(what,@getitemusetype) & ITEM_USE_LEGS
+      return;
+   }
+   
+   DoPlayerArt()
+   {
+      local oRobes;
+
+      oRobes = Send(poOwner,@FindUsing,#class=&RobeBase);
+      if oRobes <> $
       {
-         if Send(poOwner,@TryUnuseItem,#what=self)
-         {
-            propagate;
-         }
-         else
-         {
-            return FALSE;
-         }
+         Post(oRobes,@SetLegs);
       }
-      
+
       propagate;
    }
       
@@ -142,6 +145,6 @@ messages:
 
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 
 

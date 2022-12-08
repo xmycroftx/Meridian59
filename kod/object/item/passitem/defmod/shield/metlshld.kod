@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 MetalShield is Shield
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include metlshld.lkod
 
    metalshield_name_rsc = "small round shield"
    metalshield_icon_rsc = metlshld.bgf
@@ -34,7 +36,7 @@ classvars:
    viHits_init_min = 250
    viHits_init_max = 300
 
-   viValue_average = 160
+   viValue_average = 200
    viWeight = 100
    viBulk = 125
 
@@ -44,7 +46,7 @@ classvars:
    viGround_group = 3
    viInventory_group = 1
 
-   viDefense_base = 5
+   viDefense_base = 7
    viDamage_base = 1
 
 properties:
@@ -53,10 +55,14 @@ messages:
 
    GetResistanceModifiers()
    {
-      return [ [ATCK_WEAP_SLASH,10]
+      return [ [ATK_TYPE_SLASH,10]
              ];
    }
 
+   GetHeatDamage()
+   {
+      return 1;
+   }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

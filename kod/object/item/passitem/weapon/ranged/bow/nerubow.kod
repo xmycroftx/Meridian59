@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 NeruditeBow is Bow
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include nerubow.lkod
 
    NeruditeBow_name_rsc = "nerudite bow"
    NeruditeBow_desc_rsc = \
@@ -25,48 +27,50 @@ resources:
 
 classvars:
 
-   % This is more of a joke item than anything.  It's pretty crappy, but it's worth
-   %  a bit of money.  An occasional reward from Moxal.
+   // This is more of a joke item than anything.  It's pretty crappy, but it's worth
+   //  a bit of money.  An occasional reward from Moxal.
 
    vrName = NeruditeBow_name_rsc
    vrDesc = NeruditeBow_desc_rsc
 
    vrWeaponBroke = NeruditeBow_shatters
 
-   viWeaponDamage = 2
-   viRange = 20
+   viWeaponDamage = 3
+   viRange = 20 * FINENESS
    viHit_roll_modifier = 0
-   
+
    viValue_average = 3500
    viBulk = 100
    viWeight = 100
 
-   % This is about 50% normal durability.
+   // This is about 50// normal durability.
    viHits_init_min = 100
    viHits_init_max = 150
 
-   viSpell_modifier = 0
+   viSpell_modifier = -30
 
-   % What's the basic color of the bow?
+   // What's the basic color of the bow?
    viBaseXLAT = XLAT_TO_GREEN
 
 properties:
+
+   piAttack_Type = ATK_TYPE_NERUDITE + ATK_TYPE_PIERCE
 
 messages:
 
    DoShatter()
    {
-      send(self,@WeaponBroke);
+      Send(self,@WeaponBroke);
 
       propagate;
    }
 
    ShatterToShards()
    {
-      if poOwner <> $ AND isClass(poOwner,&User)
+      if poOwner <> $ AND IsClass(poOwner,&User)
       {
-         if send(poOwner,@AssessDamage,#what=self,#damage=random(10,25),
-                 #report=FALSE,#atype=ATCK_WEAP_NERUDITE) = $
+         if Send(poOwner,@AssessDamage,#what=self,#damage=Random(10,25),
+                  #report=FALSE,#atype=ATK_TYPE_NERUDITE) = $
          {
             Send(Send(poOwner,@GetOwner),@SomethingKilled,#what=self,#victim=poOwner);
             Send(poOwner,@Killed,#what=self);
@@ -78,11 +82,10 @@ messages:
 
    WeaponBroke()
    {
-      send(self,@ShatterToShards);
+      Send(self,@ShatterToShards);
 
       propagate;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 CorpsePortal is Portal
 
 constants:
@@ -18,6 +18,8 @@ constants:
 
 resources:
 
+   include corpport.lkod
+
    corpseportal_name_rsc = "rip in space"
    corpseportal_icon_rsc = teleport.bgf
    corpseportal_desc_rsc = \
@@ -27,9 +29,7 @@ resources:
 classvars:
 
    vrName = corpseportal_name_rsc
-
-   viObject_flags = MOVEON_TELEPORTER | DRAWFX_TRANSLUCENT_75
-
+   viMoveOn_type = MOVEON_TELEPORTER
    viAnimationSpeed = 400
 
 properties:
@@ -39,12 +39,13 @@ properties:
 
    ptExpire = $
    poCorpse = $
+   piDrawFx = DRAWFX_TRANSLUCENT_75
 
 messages:
 
    Constructor(Corpse = $, SpellPower = 20)
    {
-      local duration;
+      local iDuration;
 
       if Corpse = $
       {
@@ -55,10 +56,10 @@ messages:
          poCorpse = Corpse;
       }
 
-      duration = (10 + (SpellPower / 2)) * 1000;
-      
-      ptExpire = CreateTimer(self,@Expire,duration);
-  
+      iDuration = (10 + (SpellPower / 2)) * 1000;
+
+      ptExpire = CreateTimer(self,@Expire,iDuration);
+
       propagate;
    }
 
@@ -84,10 +85,10 @@ messages:
 
    TeleportSomething(what = $)
    {
-      if (send(what,@GetName) = send(poCorpse,@GetCorpseName))
+      if (Send(what,@GetName) = Send(poCorpse,@GetCorpseName))
       {
-         send(poOwner,@ZapToCorpse,#who=what);
-         send(self,@Delete);
+         Send(poOwner,@ZapToCorpse,#who=what);
+         Send(self,@Delete);
       }
 
       return;
@@ -95,7 +96,7 @@ messages:
 
    ReqNewOwner(what = $)
    {
-      if what <> send(SYS,@FindRoomByNum,#num=RID_UNDERWORLD)
+      if what <> Send(SYS,@FindRoomByNum,#num=RID_UNDERWORLD)
       {
          return FALSE;
       }
@@ -103,6 +104,5 @@ messages:
       propagate;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

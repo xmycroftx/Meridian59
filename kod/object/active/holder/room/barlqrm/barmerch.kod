@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+/////////////////////////////////////////////////////////////////////////////////
 BarMerchant is BarloqueRoom
 
 constants:
@@ -17,10 +17,12 @@ constants:
 
 resources:
 
+   include barmerch.lkod
+
    room_barmerch = barmerch.roo
    room_name_barmerch = "The Sparkling Stone Shop"
 
-   barmerch_music = smithy.mid
+   barmerch_music = smithy.ogg
 
 classvars:
 
@@ -50,7 +52,7 @@ messages:
    {
       plExits = $;
 
-  %% TO TOWN
+  /// TO TOWN
       plExits = Cons([ 12, 3, RID_BAR_SOUTH, 37, 13, ROTATE_NONE ],plExits);
       plExits = Cons([ 12, 4, RID_BAR_SOUTH, 37, 13, ROTATE_NONE ],plExits);
       plExits = Cons([ 13, 3, RID_BAR_SOUTH, 37, 13, ROTATE_NONE ],plExits);
@@ -76,4 +78,4 @@ messages:
 
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

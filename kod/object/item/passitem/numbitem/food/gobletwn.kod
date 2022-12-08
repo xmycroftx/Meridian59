@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 wineGoblet is Food
 
 constants:
@@ -16,13 +16,15 @@ constants:
 
 resources:
 
+   include gobletwn.lkod
+
    wineGoblet_name_rsc = "goblet of wine"
    wineGoblet_icon_rsc = Goblet.bgf
    wineGoblet_desc_rsc = \
       "A fine and exquisite drink.  Only the commoners would find this distasteful."
    wineGoblet_name_plural_rsc = "goblets of wine"
 
-   wineGoblet_eat_wav = drink.wav
+   wineGoblet_eat_wav = drink.ogg
    wineGoblet_use_rich = "A full and flavorful drink, obviously from a very good year."
    wineGoblet_use_poor = "Ugh!  What is this swill?"
 
@@ -73,4 +75,4 @@ messages:
       return TRUE;
    }
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

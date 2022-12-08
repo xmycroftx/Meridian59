@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 NecromancerTome is PassiveObject
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include nectome.lkod
 
    NecromancerTome_name_rsc = "ancient tome"
    NecromancerTome_icon_rsc = nectome.bgf
@@ -24,6 +26,8 @@ resources:
       " "
 
 classvars:
+
+   viMoveOn_type = MOVEON_NO
 
    vrIcon = NecromancerTome_icon_rsc
 
@@ -39,9 +43,14 @@ messages:
    Constructor(Name=$,Text=$)
    {
       if name <> $
-	 { vrName = name; }
+      {
+         vrName = name;
+      }
+
       if Text <> $
-	 { prText = Text; }
+      {
+         prText = Text;
+      }
 
       propagate;
    }
@@ -49,12 +58,13 @@ messages:
    SendLookAnimation()
    {
       AddPacket(1, ANIMATE_NONE, 2, 2);
+
       return;
    }
 
    GetObjectFlags()
    {
-      return MOVEON_NO | LOOK_NO;
+      return OF_NOEXAMINE;
    }
 
    CanEditInscription()
@@ -75,14 +85,16 @@ messages:
    ShowInscription()
    {
       AddPacket(4, prText);
+
       return;
    }
 
    ShowDesc()
    {
       AddPacket(4, vrDesc);
+
       return;
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

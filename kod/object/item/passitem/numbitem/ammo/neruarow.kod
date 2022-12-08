@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 NeruditeArrow is Ammo
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include neruarow.lkod
 
    nerudite_arrow_name_rsc = "nerudite arrows"
    nerudite_arrow_icon_rsc = arrowner.bgf
@@ -41,27 +43,43 @@ classvars:
    viBulk = 4
    viWeight = 5
 
+   viMinDamage = 2
+   viMaxDamage = 6
+
+   viMinShatterDamage = 3
+   viMaxShatterDamage = 8
+
 properties:
 
    piNumber = 5
-   piAttack_type = ATCK_WEAP_PIERCE + ATCK_WEAP_NERUDITE
+   piAttack_type = ATK_TYPE_PIERCE + ATK_TYPE_NERUDITE
 
 messages:
 
    GetDamage(who=$,target=$)
    {
-      if target <> $ AND random(1,100) <= 10
+      if target <> $ AND Random(1,100) <= 10
       {
-         send(who,@MsgSendUser,#message_rsc=nerudite_arrow_explodes);
-         if isClass(target,&Player)
+         Send(who,@MsgSendUser,#message_rsc=nerudite_arrow_explodes);
+         if IsClass(target,&Player)
          {
-            send(target,@MsgSendUser,#message_rsc=nerudite_arrow_explodes);
+            Send(target,@MsgSendUser,#message_rsc=nerudite_arrow_explodes);
          }
 
-         return random(3,8);
+         return Random(viMinShatterDamage,viMaxShatterDamage);
       }
 
-      return random(2,6);
+      propagate;
+   }
+
+   GetMinSpecialDamage()
+   {
+      return viMinShatterDamage;
+   }
+
+   GetMaxSpecialDamage()
+   {
+      return viMaxShatterDamage;
    }
 
    SendProjectileAnimation()
@@ -78,9 +96,8 @@ messages:
 
    GetProjectileIcon()
    {
-      return arrow_icon_rsc;
+      return vrIcon;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

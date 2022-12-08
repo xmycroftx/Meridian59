@@ -185,22 +185,19 @@ compress_bidder_bid(struct archive_read_filter_bidder *self,
 
 	(void)self; /* UNUSED */
 
-	/* Shortest valid compress file is 3 bytes. */
-	buffer = __archive_read_filter_ahead(filter, 3, &avail);
+	buffer = __archive_read_filter_ahead(filter, 2, &avail);
 
 	if (buffer == NULL)
 		return (0);
 
 	bits_checked = 0;
-	/* First two bytes are the magic value */
 	if (buffer[0] != 0x1F || buffer[1] != 0x9D)
 		return (0);
-	/* Third byte holds compression parameters. */
-	if (buffer[2] & 0x20) /* Reserved bit, must be zero. */
-		return (0);
-	if (buffer[2] & 0x40) /* Reserved bit, must be zero. */
-		return (0);
-	bits_checked += 18;
+	bits_checked += 16;
+
+	/*
+	 * TODO: Verify more.
+	 */
 
 	return (bits_checked);
 }
@@ -242,13 +239,7 @@ compress_bidder_init(struct archive_read_filter *self)
 	(void)getbits(self, 8); /* Skip first signature byte. */
 	(void)getbits(self, 8); /* Skip second signature byte. */
 
-	/* Get compression parameters. */
 	code = getbits(self, 8);
-	if ((code & 0x1f) > 16) {
-		archive_set_error(&self->archive->archive, -1,
-		    "Invalid compressed data");
-		return (ARCHIVE_FATAL);
-	}
 	state->maxcode_bits = code & 0x1f;
 	state->maxcode = (1 << state->maxcode_bits);
 	state->use_reset_code = code & 0x80;
@@ -377,8 +368,7 @@ next_code(struct archive_read_filter *self)
 		return (next_code(self));
 	}
 
-	if (code > state->free_ent
-	    || (code == state->free_ent && state->oldcode < 0)) {
+	if (code > state->free_ent) {
 		/* An invalid code is a fatal error. */
 		archive_set_error(&(self->archive->archive), -1,
 		    "Invalid compressed data");

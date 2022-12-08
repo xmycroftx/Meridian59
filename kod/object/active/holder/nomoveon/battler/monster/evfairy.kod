@@ -1,43 +1,45 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 EvilFairy is Monster
 
 constants:
 
-	include blakston.khd
+   include blakston.khd
 
 resources:
-   
+
+   include evfairy.lkod
+
    dark_fairy_koc_name_rsc = "teotimixlal"
    dark_fairy_name_rsc = "fey dirhai"
-	
+
    dark_fairy_icon_rsc = faerie-e.bgf
    dark_fairy_desc_rsc = \
-	   "Dark, mischievious and ultimately malicious, these imps have but "
-	   "one goal - to bring the Quilicia wood into permanent darkness, so "
-	   "they can claim the Vale of Sorrows as their own.  They hate their "
-	   "kinsmen, the fey elhai, with a fervent passion."
+      "Dark, mischievous and ultimately malicious, these imps have but "
+      "one goal - to bring the Quilicia wood into permanent darkness, so "
+      "they can claim the Vale of Sorrows as their own.  They hate their "
+      "kinsmen, the fey elhai, with a fervent passion."
 
    darkfairy_fireball = feyball.bgf
 
    darkfairy_dead_icon_rsc = faerieXE.bgf
    darkfairy_dead_name_rsc = "dead fey"
-	
-   darkfairy_sound_hit = evl_atkh.wav
-   darkfairy_sound_miss = evl_atkm.wav
-   darkfairy_sound_death = evl_die.wav
-   darkfairy_sound_aware = evl_awr.wav
+
+   darkfairy_sound_hit = evl_atkh.ogg
+   darkfairy_sound_miss = evl_atkm.ogg
+   darkfairy_sound_death = evl_die.ogg
+   darkfairy_sound_aware = evl_awr.ogg
 
 classvars:
-   
+
    vrDesc = dark_fairy_desc_rsc
    vrName = dark_fairy_koc_name_rsc
    vrName = dark_fairy_name_rsc
@@ -50,52 +52,71 @@ classvars:
 
    viSpeed = SPEED_VERY_FAST
    viAttack_type = 0
-   viAttack_spell = ATCK_SPELL_SHOCK
-    
-   viLevel = 60
-   viDifficulty = 5
-   viDefault_behavior = AI_MOVE_REGROUP | AI_FIGHT_MONSTERS | AI_FIGHT_KARMA_AGGRESSIVE
-   viWimpy = 10
+   viSpell_type = SPL_TYPE_UNHOLY
 
+   viLevel = 80
+   viDifficulty = 5
+   viVisionDistance = 15
+   // Attack range of 192, or 3 row/col.
+   viMeleeRange = 0
+   viFireRange = 192
+   viDefault_behavior = AI_FIGHT_KARMA_AGGRESSIVE
+   viWimpy = 10
+   viCashmin = 300
+   viCashmax = 600
    vrSound_hit = darkfairy_sound_hit
    vrSound_miss = darkfairy_sound_miss
    vrSound_aware = darkfairy_sound_aware
    vrSound_death = darkfairy_sound_death
-   
+
+   // Airborne. Don't care if hovering above water or not.
+   vbAquatic = TRUE
+
+   // Used to dark places.
+   viNightVision = 100
+
 properties:
 
-   piDrawfx = BOUNCE_YES
+   piDrawEffectFlag = OF_BOUNCING
    viKarma = -50
    piAnimation = ANIM_NONE
+
+   piMana = 6000
+   piMax_Mana = 60
+
+   piReputationGroup = REP_FEY_EVIL
 
 messages:
 
    Constructor()
-   {	  
-      plResistances = [ [ -30, -ATCK_SPELL_HOLY ],
-                        [ 30, -ATCK_SPELL_ALL ],
-                        [ 30, ATCK_WEAP_MAGIC ],
-                        [ 30, -ATCK_SPELL_UNHOLY ]
+   {
+      plResistances = [ [-SPL_TYPE_HOLY, -30 ],
+                        [-SPL_TYPE_ALL, 30 ],
+                        [ATK_TYPE_MAGIC, 30 ],
+                        [-SPL_TYPE_UNHOLY, 30 ]
                       ];
+
+      plReputationEnemies = [REP_FEY_GOOD];
 
       propagate;
    }
 
-   MonsterAttack(what = $)
+   Constructed()
    {
-      % add in any attack animation calls
-      Send(self,@DoSlash);
-      Send(poOwner,@SomethingShot,#who=self,#target=what,#projectile=self,
-           #flags=PROJ_FLAG_LIGHT_SOURCE);
+      plActions = [ [SID_VAMPIRIC_DRAIN],
+                    [SID_DARKNESS] ];
 
-      return;
+      propagate;
    }
 
-   DoSlash()
+   DoMissileAnimation()
+   "Handles ranged attack animation. Default is same as melee."
    {
       piAnimation = ANIM_ATTACK;
       Send(poOwner,@SomethingChanged,#what=self);
       piAnimation = ANIM_NONE;
+      Send(poOwner,@SomethingShot,#who=self,#target=poTarget,
+         #projectile=self,#flags=PROJ_FLAG_LIGHT_SOURCE);
 
       return;
    }
@@ -124,21 +145,21 @@ messages:
       }
 
       AddPacket(1,ANIMATE_CYCLE,4,100,2,1,2,2);
-	             
+                
       return;
    }
 
    GetProjectileSpeed()
    {
       return 7;
-   }   
+   }
 
    SendProjectileAnimation()
    {
       AddPacket(1,ANIMATE_CYCLE,4,50,2,1,2,4);
 
       return;
-   }      
+   }
 
    GetProjectileIcon()
    {
@@ -147,44 +168,26 @@ messages:
 
    GetProjectileLightFlags()
    {
-      % General lighting information.
+      // General lighting information.
       return LIGHT_FLAG_ON | LIGHT_FLAG_DYNAMIC;
    }
 
    GetProjectileLightIntensity()
    {
-      % Fairly small light radius for projectile.  Out of 255 levels.
+      // Fairly small light radius for projectile.  Out of 255 levels.
       return 50;
    }
 
    GetProjectileLightColor()
    {
-      % Color is orange.
+      // Color is orange.
       return LIGHT_ORANGE;
-   }
-
-   AssessDamage(what=$)
-   {
-      if isClass(what,&Fairy)
-      {
-         return 1;
-      }
-
-      propagate;
-   }   
-
-   GetObjectFlags()
-   {
-      return MOVEON_NO | BOUNCE_YES | BATTLER_YES;
    }
 
    SendLightingInformation()
    {
-      AddPacket(2,(LIGHT_FLAG_ON | LIGHT_FLAG_DYNAMIC));
-      % Intensity (out of 255)
-      AddPacket(1,30);
-      % Color
-      AddPacket(2,LIGHT_BLUE);
+      // Intensity is 30 out of 255.
+      AddPacket(2,(LIGHT_FLAG_ON | LIGHT_FLAG_DYNAMIC), 1,30, 2,LIGHT_BLUE);
 
       return;
    }
@@ -192,8 +195,28 @@ messages:
    CanMorphTo()
    {
       return FALSE;
-   }      
+   }
 
+   IsEnemy(what=$)
+   {
+      /// Fey Dirhai hate Fey Elhai.
+      if IsClass(what,&Fairy)
+      {
+         return TRUE;
+      }
+
+      propagate;
+   }
+
+   CanBeWebbed()
+   {
+      return FALSE;
+   }
+
+   CanBeTangled()
+   {
+      return FALSE;
+   }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

@@ -57,7 +57,7 @@ typedef struct {
    int  platform;           // Operating system identifier
    int  platform_major;     // Major version of OS
    int  platform_minor;     // Minor version of OS
-   int  memory;             // Amount of physical memory, in bytes
+   int  flags;              // Client info (e.g. render mode)
    int chip;                // Chip type
    WORD screen_width;
    WORD screen_height;
@@ -90,6 +90,7 @@ DWORD  GetCRC32(char *buf, int length);
 M59EXPORT BITMAPINFOHEADER *GetBitmapResource(HMODULE hModule, int bitmap_id);
 M59EXPORT Bool GetBitmapResourceInfo(HMODULE hModule, int bitmap_id, RawBitmap *b);
 M59EXPORT void InitMenuPopupHandler(HWND hwnd, HMENU hMenu, UINT item, BOOL fSystemMenu);
+M59EXPORT HBITMAP GetHBitmapFromResource( HMODULE hModule, int bitmap_id );
 
 M59EXPORT void *SafeMalloc(int bytes);
 M59EXPORT void *ZeroSafeMalloc(int bytes);

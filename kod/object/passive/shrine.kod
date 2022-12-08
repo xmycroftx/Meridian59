@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Shrine is PassiveObject
 
 constants:
@@ -18,6 +18,8 @@ constants:
    PRAY_TIME = 30000
 
 resources:
+
+   include shrine.lkod
 
    Shrine_name_rsc = "shrine"
    Shrine_icon_rsc = shrine.bgf
@@ -38,28 +40,28 @@ resources:
    Shrine_Shalille_text = \
       "You are seized by a sense of sudden well being, as though you were "
       "being held and comforted."
-   Shrine_Shalille_sound = shalille.wav
+   Shrine_Shalille_sound = shalille.ogg
    Shrine_Qor_text = \
       "A chill runs up your spine and the shadows seem suddenly darker and "
       "more foreboding."
-   Shrine_Qor_sound = qor.wav
+   Shrine_Qor_sound = qor.ogg
    Shrine_Kraanan_text = \
       "A sudden triumphant call of victory splits the heavens."
-   Shrine_Kraanan_sound = kraanan.wav
+   Shrine_Kraanan_sound = kraanan.ogg
    Shrine_Faren_text = \
       "A massive crash of the elements reverberates through the shuddering air."
-   Shrine_Faren_sound = faren.wav
+   Shrine_Faren_sound = faren.ogg
    Shrine_Riija_text = "Mischievous noises cascade down from the heavens."
-   Shrine_Riija_sound = riija.wav
+   Shrine_Riija_sound = riija.ogg
    Shrine_Jala_text =  "A sweet song drifts lazily through the air."
-   Shrine_Jala_sound = nodeup.wav
+   Shrine_Jala_sound = nodeup.ogg
 
    Shrine_unsatisfied = "The shrine finds nothing to its liking."
    Shrine_mana_boost = \
       "Your body thrills to a rush of magical energy from the shrine."
 
    shrine_trance_break = "Your prayer ends abruptly."
-   shrine_trance_break_sound = spelfail.wav
+   shrine_trance_break_sound = spelfail.ogg
 
 
 classvars:
@@ -71,15 +73,15 @@ properties:
 
    vrName = Shrine_name_rsc
 
-   % This is the bonus to spellpower gained by the shrine.  Should be lowered
-   %  to 5 in the future?
+   // This is the bonus to spellpower gained by the shrine.  Should be lowered
+   //  to 5 in the future?
    piShrine_power = 6
 
    piShrine_Num = 0
 
-   % This records the school the shrine boosts.
+   // This records the school the shrine boosts.
    piAllegiance = 0
-   
+
 messages:
 
    Constructor(shrine_num=0,name_rsc=$)
@@ -91,7 +93,7 @@ messages:
 
       piShrine_num = shrine_num;
       Send(SYS,@AddShrine,#oShrine=self,#num=shrine_num);
-	
+
       propagate;
    }
 
@@ -106,12 +108,12 @@ messages:
       }
       else
       {
-	      AddPacket(4,shrine_dedicated);
-	      AddPacket(4,Send(self,@GetName));
+         AddPacket(4,shrine_dedicated);
+         AddPacket(4,Send(self,@GetName));
 
-         % Find any spell, any will give us the school string.
+         // Find any spell, any will give us the school string.
          oSpell = Send(SYS,@FindSpellByNum,#num=SID_BLINK);
-         AddPacket(4,Send(oSpell,@GetSchoolStr,#ischool=piAllegiance));
+         AddPacket(4,Send(oSpell,@GetSchoolStr,#iSchool=piAllegiance));
       }
 
       return;
@@ -123,36 +125,36 @@ messages:
 
       if piShrine_num = 0
       {
-         debug("this shrine node was not assigned an ID!  Invalid!");
+         Debug("this shrine node was not assigned an ID!  Invalid!");
 
          return FALSE;
-      }      
+      }
 
-      if isClass(what,&Offering)
+      if IsClass(what,&Offering)
       {
          Send(self,@MakeOffering,#oOffering=what);
       }
       else
       {
-         % Show our disappointment
-         Send(poOwner,@Someonesaid,#type=SAY_MESSAGE,#what=self,
-              #string=Shrine_unsatisfied);          
+         // Show our disappointment
+         Send(poOwner,@SomeoneSaid,#type=SAY_MESSAGE,#what=self,
+               #string=Shrine_unsatisfied);
       }
 
       return;
    }
-      
+
    MakeOffering(oOffering=$)
    {
       piAllegiance = Send(oOffering,@GetAllegiance);
       Send(SYS,@RecomputeShrineTotals);
-      
-      % If we find one, then switch over to that god.
+
+      // If we find one, then switch over to that god.
       Send(poOwner,@SomeoneSaid,#type=SAY_MESSAGE,#what=self,
-           #string=Shrine_satisfied,#parm1=Send(oOffering,@Getname));         
+            #string=Shrine_satisfied,#parm1=Send(oOffering,@GetName));
       Send(self,@TellServer);
-      
-      % Remove the offering - the gods eat it.
+
+      // Remove the offering - the gods eat it.
       Send(oOffering,@Delete);
       Send(poOwner,@ShrineUsed);
 
@@ -175,7 +177,7 @@ messages:
          rSound = Shrine_Qor_sound;
       }
 
-      if piAllegiance = SS_KRAANAN    
+      if piAllegiance = SS_KRAANAN
       {
          rRsc = Shrine_Kraanan_text;
          rSound = Shrine_Kraanan_sound;
@@ -198,13 +200,13 @@ messages:
          rRsc = Shrine_Jala_text;
          rSound = Shrine_Jala_sound;
       }
-      
-      for iUserCntr in Send(SYS,@GetUsersLoggedOn)
+
+      foreach iUserCntr in Send(SYS,@GetUsersLoggedOn)
       {
          Post(iUserCntr,@MsgSendUser,#message_rsc=rRsc);
          Post(iUserCntr,@WaveSendUser,#wave_rsc=rSound);
       }
-      
+
       return;
    }
 
@@ -222,6 +224,12 @@ messages:
    {
       return piAllegiance;
    }
+   
+   SetAllegiance(allegiance=$)
+   {
+      piAllegiance = allegiance;
+      return;
+   }
 
    GetPower()
    {
@@ -235,7 +243,5 @@ messages:
       propagate;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+////////////////////////////////////////////////////////////////////////////////

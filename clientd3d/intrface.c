@@ -38,7 +38,9 @@ void InterfaceInitialize(HWND hParent)
    EditBoxCreate(hParent);
    ToolbarCreate();
    TooltipCreate();
+   Timebox_Create();
    Lagbox_Create();
+   Fpsbox_Create();
 
    MapAnnotationsInitialize();
    
@@ -64,17 +66,20 @@ void InterfaceClose(void)
    AbortGameDialogs();
    AbortPasswordDialog();
    AbortPreferencesDialog();
+   AbortGraphicsDialog();
    AbortAboutDialog();
 
-   MusicAbort();
-   SoundAbort();
+   MusicStop();
+   SoundStopAll();
 
    GraphicsAreaDestroy();
    TextInputDestroy();
    EditBoxDestroy();
    ToolbarDestroy();
    TooltipDestroy();
+   Timebox_Destroy();
    Lagbox_Destroy();
+   Fpsbox_Destroy();
    
    //InvalidateRect(hMain, NULL, TRUE);
    interface_created = False;
@@ -117,6 +122,8 @@ void InterfaceResize(int xsize, int ysize)
    EditBoxResize(xsize, ysize, view);
    ToolbarResize(xsize, ysize, view);
    Lagbox_Reposition();
+   Timebox_Reposition();
+   Fpsbox_Reposition();
 
    RedrawAll();
 
@@ -126,12 +133,34 @@ void InterfaceResize(int xsize, int ysize)
 }
 /************************************************************************/
 /* 
- * InterfaceGetMaxSize:  Fill s with primary display monitor max size.
+ * InterfaceGetMaxSize:  Fill s with maximum allowed main window size.
  */
 void InterfaceGetMaxSize(SIZE *s)
 {
-   s->cx = GetSystemMetrics(SM_CXMAXIMIZED);
-   s->cy = GetSystemMetrics(SM_CYMAXIMIZED);
+   int factor = config.large_area ? 2 : 1;
+
+   s->cx = MAXX * factor + INVENTORY_MAX_WIDTH + LEFT_BORDER * 3 
+      + 2 * GetSystemMetrics(SM_CXFRAME);
+   s->cy = GetSystemMetrics(SM_CYSCREEN) + 2 * GetSystemMetrics(SM_CYFRAME);
+
+   POINT mousePos;
+   GetCursorPos(&mousePos);
+   HMONITOR hMonitor = NULL;
+   MONITORINFO monitorInfo;
+
+   // Get the nearest monitor to mouse cursor.
+   hMonitor = MonitorFromPoint(mousePos, MONITOR_DEFAULTTONEAREST);
+
+   // Get the target monitor info
+   memset(&monitorInfo, 0, sizeof(MONITORINFO));
+   monitorInfo.cbSize = sizeof(MONITORINFO);
+
+   // Cap to available space.
+   if (GetMonitorInfo(hMonitor, &monitorInfo))
+   {
+      s->cx = min(s->cx, monitorInfo.rcWork.right - monitorInfo.rcWork.left + 2 * GetSystemMetrics(SM_CXFRAME));
+      s->cy = min(s->cy, monitorInfo.rcWork.bottom - monitorInfo.rcWork.top + 2 * GetSystemMetrics(SM_CYFRAME));
+   }
 }
 
 /************************************************************************/
@@ -437,8 +466,7 @@ void PerformAction(int action, void *action_data)
       break;
 
    case A_GO:
-      MoveUpdatePosition();   // Send our exact position, so that we try to go in right spot
-      RequestGo();
+      UserTryGo();
       break;
       
    case A_TARGETCLEAR:
@@ -482,6 +510,10 @@ void PerformAction(int action, void *action_data)
       RequestAction((int) action_data);
       break;
 
+   case A_MOUSEMOVE:
+      UserMouseMove();
+      break;
+
    case A_MAP:
      GraphicsToggleMap();
 
@@ -519,6 +551,10 @@ void PerformAction(int action, void *action_data)
 
    case A_TEXTINSERT:
       TextInputSetText((char *) action_data, True);
+      break;
+
+   case A_TEXTINSERT_MERINTR_RSC:
+      TextInputSetText(GetString(GetModuleHandle("MERINTR"),(int)action_data), True);
       break;
 
    case A_TEXTCOMMAND:

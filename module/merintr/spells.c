@@ -93,6 +93,42 @@ void SpellsExit(void)
 }
 /********************************************************************/
 /*
+* MenuRemoveAllSpells:  Remove all spells from menu.
+*/
+void MenuRemoveAllSpells(void)
+{
+   list_type l;
+
+   for (l = spells; l != NULL; l = l->next)
+   {
+      MenuRemoveSpell((spell *)(l->data));
+   }
+   for (int i = 0; i < num_schools; i++)
+   {
+      if (submenus[i])
+      {
+         DestroyMenu(submenus[i]);
+         submenus[i] = NULL;
+      }
+      RemoveMenu(spell_menu, 0, MF_BYPOSITION);
+   }
+
+}
+/********************************************************************/
+/*
+* MenuReAddAllSpells:  Add all spells to menu.
+*/
+void MenuAddAllSpells(void)
+{
+   list_type l;
+
+   for (l = spells; l != NULL; l = l->next)
+   {
+      MenuAddSpell((spell *)(l->data));
+   }
+}
+/********************************************************************/
+/*
  * SpellsGotSchools:  Display spell school names in menu.  This
  *   must be done before the spells themselves arrive, since the spells
  *   are added to the schools' submenus.
@@ -273,7 +309,7 @@ spell *FindSpellByID(ID id)
 spell *FindSpellByName(char *name)
 {
    list_type l;
-   spell *sp, *best_spell;
+   spell *sp, *best_spell = NULL;
    int match, max_match;
    Bool tied;            // True if a different spell matches as well as best_spell
    char *ptr, *spell_name;
@@ -328,7 +364,7 @@ spell *FindSpellByName(char *name)
 /********************************************************************/
 void UserCastSpell(void)
 {
-   spell *sp, *temp;
+   spell *sp = NULL, *temp;
    list_type sel_list, l;
 
    if (GetPlayer()->viewID && (GetPlayer()->viewID != GetPlayer()->id))
@@ -549,7 +585,7 @@ void MenuSpellChosen(int id)
    int len, num=0, index=0, i;
    char item_name[MAXRSCSTRING + 1];
    spell *sp;
-   HMENU submenu;
+   HMENU submenu = NULL;
 
    if (spell_menu == NULL)
       return;

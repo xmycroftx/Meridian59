@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 MartyrScroll is Scroll
 
 constants:
@@ -16,10 +16,10 @@ constants:
 
 resources:
 
+   include mrtrscrl.lkod
+
    MartyrScroll_label_name_rsc = "scroll of Martyrs Battleground"
-   MartyrScroll_icon_rsc = scr07.bgf
-   MartyrScroll_desc_rsc = \
-      "This scroll is covered with indecipherable mystical writing in a spidery hand."
+   MartyrScroll_icon_rsc = scr05.bgf
 
 classvars:
 
@@ -30,9 +30,7 @@ classvars:
 
 properties:
 
-   vrDesc = MartyrScroll_desc_rsc
-
 messages:
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

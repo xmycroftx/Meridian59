@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 JasperAB10 is JasperRoom
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include jasab10.lkod
 
    room_jasperAB10 = jasab10.roo
    room_name_JasperAB10 = "Disused Shop"
@@ -42,11 +44,16 @@ messages:
    {
       plExits = $;
 
-      %% TO TOWN
+      /// TO TOWN
       plExits = Cons([ 6, 2, RID_JASWEST, 35, 25, ROTATE_NONE ],plExits);
 
       propagate;
    }
 
+   GetRegion()
+   {
+      return RID_HISTORIC;
+   }
+
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

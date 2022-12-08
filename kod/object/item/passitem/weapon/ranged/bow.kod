@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Bow is RangedWeapon
 
 constants:
@@ -19,8 +19,10 @@ constants:
 
 resources:
 
+   include bow.lkod
+
    bow_name_rsc = "bow"
-   bow_icon_rsc = bow.bgf          
+   bow_icon_rsc = bow.bgf
 
    bow_desc_rsc = \
       "This bow offers the advantage of long ranged attacks." 
@@ -49,9 +51,9 @@ classvars:
    viInventory_group = 3
    viBroken_group = 2
 
-   % Base damage determined by ammo, but this can add to the bow's strength.
+   // Base damage determined by ammo, but this can add to the bow's strength.
    viWeaponDamage = 0
-   viRange = 100
+   viRange = 100 * FINENESS
 
    viValue_average = 2500
    viBulk = 80
@@ -59,7 +61,7 @@ classvars:
 
    viSpell_modifier = -25
 
-   % What's the basic color of the wood?
+   // What's the basic color of the wood?
    viBaseXLAT = XLAT_TO_SKIN4
 
 properties:
@@ -75,7 +77,7 @@ messages:
 
    Constructor()
    {
-      send(self,@UpdateColor);
+      Send(self,@UpdateColor);
 
       propagate;
    }
@@ -84,40 +86,61 @@ messages:
    "Called by ReqWeaponAttack when the weapon is actually used in an attack."
    {
       piUsed = ATTACKING;
-      
+
       if vrWeapon_window_overlay <> $
       {
          Send(poOwner,@ChangeWindowOverlay,#what=self);
       }
-      
+
       if vrWeapon_overlay <> $
       {
          Send(poOwner,@DoBowFire);
       }
-      
+
       piUsed = USED;
 
       return;
-   }   
+   }
+
+   ReqUseSomething(what = $)
+   {
+      // Checks for using other weapons in weapon superclass.
+      // Here we are just concerned with shields and lutes.
+      if (IsClass(what,&Shield)
+         AND NOT IsClass(what,&SoldierShield))
+         OR IsClass(what,&Book)
+      {
+         if Send(poOwner,@TryUnuseItem,#what=self)
+         {
+            propagate;
+         }
+         else
+         {
+            return FALSE;
+         }
+      }
+
+      propagate;
+   }
 
    NewUsed()
    {
       local oSoldierShield, iFaction, iTranslation;
-      
+
       if poOwner <> $
          AND IsClass(poOwner,&User)
       {
          iFaction = FACTION_NEUTRAL;
 
-         % Check for shield
-         oSoldierShield = send(poOwner,@FindUsing,#class=&SoldierShield);
+         // Check for shield
+         oSoldierShield = Send(poOwner,@FindUsing,#class=&SoldierShield);
 
-         % Sling it on the back if it's there.
-         %  Also, record faction so we can set our bands if needed.
+         // Sling it on the back if it's there.
+         //  Also, record faction so we can set our bands if needed.
          if oSoldierShield <> $
          {
-            iFaction = send(oSoldierShield,@GetFaction);
-            send(oSoldierShield,@SlingOnBack);
+            iFaction = Send(oSoldierShield,@GetFaction);
+            Send(oSoldierShield,@SlingOnBack);
          }
 
          if iFaction = FACTION_NEUTRAL
@@ -125,7 +148,7 @@ messages:
             prBowTop = bow_top;
             prBowBottom = bow_bottom;
             prBowOverlay = bow_window_overlay_rsc;
-            % No faction translation
+            // No faction translation
             iTranslation = 0;
          }
          else
@@ -138,39 +161,26 @@ messages:
             {
                iTranslation = XLAT_TO_PURPLE;
             }
-
-            if iFaction = FACTION_PRINCESS
+            else if iFaction = FACTION_PRINCESS
             {
                iTranslation = XLAT_TO_ORANGE;
             }
-
-            if iFaction = FACTION_REBEL
+            else if iFaction = FACTION_REBEL
             {
                iTranslation = XLAT_TO_RED;
+            }
+            else if iFaction = FACTION_NECROMANCER
+            {
+               iTranslation = XLAT_TO_GRAY;
             }
 
          }
 
-         send(self,@UpdateColor,#iFactionColor=iTranslation);
+         Send(self,@UpdateColor,#iFactionColor=iTranslation);
       }
 
       vrWeapon_window_overlay = prBowOverlay;
       vrWeapon_overlay = prBowBottom;
-
-      propagate;
-   }
-
-   NewUnused()
-   {
-      local oSoldierShield;
-      
-      % Take shield off back.
-      oSoldierShield = send(poOwner,@FindUsing,#class=&SoldierShield);
-
-      if oSoldierShield <> $
-      {
-         send(oSoldierShield,@RemoveFromBack);
-      }
 
       propagate;
    }
@@ -187,41 +197,45 @@ messages:
 
    SendOverlayInformation(iAnimation = $)
    {
-      if piUsed = ATTACKING and iAnimation <> $
+      if iAnimation <> $
+         AND (piUsed = ATTACKING
+            OR iAnimation = PANM_BOW_FIRE)
       {
          AddPacket(4,prBowTop);
          AddPacket(1,HS_TOP_BOW);
-         Send(self,@SendSecondaryOverlayAnimation,#iAnimation=iAnimation);       
-      
+         Send(self,@SendSecondaryOverlayAnimation,#iAnimation=iAnimation);
+
          AddPacket(4,prBowBottom);
          AddPacket(1,HS_BOTTOM_BOW);
-         Send(self,@SendOverlayAnimation,#iAnimation=iAnimation);      
+         Send(self,@SendOverlayAnimation,#iAnimation=iAnimation);
       }
       else
       {
          propagate;
       }
-      
+
       return;
    }
-      
+
    SendSecondaryOverlayAnimation(iAnimation = $)
    {
       if (piItem_flags & ITEM_PALETTE_MASK) <> 0
       {
          AddPacket(1,ANIMATE_TRANSLATION,1,piItem_flags & ITEM_PALETTE_MASK);
       }
-      
-      if piUsed = ATTACKING and iAnimation <> $
+
+      if iAnimation <> $
+         AND (piUsed = ATTACKING
+            OR iAnimation = PANM_BOW_FIRE)
       {
          AddPacket(1,ANIMATE_ONCE,4,1200,2,1,2,1,2,2);
-         
-         return;	 
+
+         return;
       }
       else
-      { 
+      {
          AddPacket(1,ANIMATE_NONE,2,2);
-         
+
          return;
       }
 
@@ -234,45 +248,48 @@ messages:
       {
          AddPacket(1,ANIMATE_TRANSLATION,1,piItem_flags & ITEM_PALETTE_MASK);
       }
-      
-      if  piUsed = ATTACKING and iAnimation <> $
+
+      if iAnimation <> $
+         AND (piUsed = ATTACKING
+            OR iAnimation = PANM_BOW_FIRE)
       {
-         AddPacket(1,ANIMATE_ONCE,4,1200,2,1,2,1,2,2);	 
+         AddPacket(1,ANIMATE_ONCE,4,1200,2,1,2,1,2,2);
       }
       else
-      { 
+      {
          AddPacket(1,ANIMATE_NONE,2,2);
       }
-      
+
       return;
    }
 
    GetNumberOverlays(iAnimation = $)
    {
-      %% most overlay items only offer one overlay.  weapons and bows may offer two.
-      if piUsed = ATTACKING
-         AND iAnimation <> $
-      {  
-         return 2;  
+      /// most overlay items only offer one overlay.  weapons and bows may offer two.
+      if iAnimation <> $
+         AND (piUsed = ATTACKING
+            OR iAnimation = PANM_BOW_FIRE)
+      {
+         return 2;
       }
-      
+
       propagate;
    }
-   
+
    GetWindowOverlayHotspot()
    {
-      % turns off the window overlay
+      // turns off the window overlay
       if piUsed = UNUSED
       {
          return 0;
-      } 
+      }
 
       return HS_SW;
    }
 
    GetDisarmBonus()
    {
-      % Keep this a big negative.  Disarming with a bow is possible, just not likely. ;)
+      // Keep this a big negative.  Disarming with a bow is possible, just not likely. ;)
       return -90;
    }
 
@@ -280,12 +297,11 @@ messages:
    {
       local iTranslation;
       
-      iTranslation = send(SYS,@EncodeTwoColorXlat,#color1=iFactionColor,#color2=viBaseXLAT);
-      send(self,@SetPaletteTranslation,#translation=iTranslation);
+      iTranslation = Send(SYS,@EncodeTwoColorXlat,#color1=iFactionColor,#color2=viBaseXLAT);
+      Send(self,@SetPaletteTranslation,#translation=iTranslation);
 
       return;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

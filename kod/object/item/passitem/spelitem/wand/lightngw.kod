@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 LightningWand is Wand
 
 constants:
@@ -16,9 +16,10 @@ constants:
 
 resources:
 
+   include lightngw.lkod
+
    LightningWand_label_name_rsc = "lightning wand"
    LightningWand_icon_rsc = wand6.bgf
-   LightningWand_desc_rsc = "Magical energy crackles about this slender wand."
 
 classvars:
 
@@ -29,9 +30,7 @@ classvars:
 
 properties:
 
-   vrDesc = LightningWand_desc_rsc
-
 messages:
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Brazier is Flickerer
 
 constants:
@@ -18,9 +18,12 @@ constants:
 
 resources:
 
+   include brazier.lkod
+
    brazier_name_rsc = "brazier"
    brazier_icon_rsc = brazier.bgf
-   brazier_desc_rsc = "The flame burns bright, offering welcome light to the surroundings."
+   brazier_desc_rsc = \
+      "The flame burns bright, offering welcome light to the surroundings."
 
 classvars:
 
@@ -28,12 +31,12 @@ classvars:
    vrIcon = brazier_icon_rsc
    vrDesc = brazier_desc_rsc
 
-   viObject_flags = LOOK_NO
+   viObject_flags = OF_NOEXAMINE
 
-   % Lighting flags.  Default "on" and wavering flags
+   // Lighting flags.  Default "on" and wavering flags
    viLightFlags = LIGHT_FLAG_ON
 
-   % Light color.
+   // Light color.
    viLightColor = LIGHT_FIRE
 
 properties:
@@ -41,7 +44,7 @@ properties:
    viStart_frame = 3
    viEnd_frame = 6
 
-   % Intensity, from 0-255.
+   // Intensity, from 0-255.
    piLightIntensity = 40
 
 messages:
@@ -55,12 +58,12 @@ messages:
 
    SetAnimationSpeed()
    {
-      % Set our animations a bit randomly.
-      piAnim_speed = (random(10,12) * 10);
-      viStart_frame = random(2,3);
-      viEnd_frame = random(6,7);
+      // Set our animations a bit randomly.
+      piAnim_speed = (Random(10,12) * 10);
+      viStart_frame = Random(2,3);
+      viEnd_frame = Random(6,7);
 
-      return;   
+      return;
    }
 
    ReqNewOwner(what = $)
@@ -73,8 +76,8 @@ messages:
       pbIsLit = has_flame;
       if pbIsLit
       {
-         % randomize each time it comes on.
-         send(self,@SetAnimationSpeed);
+         // Randomize each time it comes on.
+         Send(self,@SetAnimationSpeed);
       }
 
       Send(poOwner,@SomethingChanged,#what=self);
@@ -82,6 +85,5 @@ messages:
       return;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

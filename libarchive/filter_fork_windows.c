@@ -36,7 +36,7 @@ __archive_create_child(const char *cmd, int *child_stdin, int *child_stdout)
 {
 	HANDLE childStdout[2], childStdin[2],childStderr;
 	SECURITY_ATTRIBUTES secAtts;
-	STARTUPINFOA staInfo;
+	STARTUPINFO staInfo;
 	PROCESS_INFORMATION childInfo;
 	struct archive_string cmdline;
 	struct archive_string fullpath;

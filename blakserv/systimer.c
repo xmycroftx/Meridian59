@@ -14,7 +14,7 @@
  session.c (PollSessions()) calls us to see if we need to do anything.
  The times are all seconds.
 
- The way these guys work is that if the current time mod a timer's
+ The way these guys work is that if the current time mod a timer's 
  period equal the timer's time, then it is activated.  For example,
  the garbage collector could be activated on the hour with time = 0
  period = 60*60 (one hour).
@@ -54,7 +54,7 @@ void ResetSysTimer()
 void CreateSysTimer(int type,int time,int period)
 {
    systimer_node *st;
-   INT64 now,next_time;
+   int now,next_time;
 
    if (period == 0)
    {
@@ -77,8 +77,8 @@ void CreateSysTimer(int type,int time,int period)
       next_time += period;
 
    st->next_time_activate = next_time;
-
-
+   
+   
    st->next = systimers;
    systimers = st;
 }
@@ -94,15 +94,9 @@ void CreateInitialSysTimers()
 		  60*ConfigInt(AUTO_KOD_PERIOD));
    CreateSysTimer(SYST_SAVE,60*ConfigInt(AUTO_SAVE_TIME),
 		  60*ConfigInt(AUTO_SAVE_PERIOD));
-   CreateSysTimer(SYST_REOPEN_CHANNELS,ConfigInt(AUTO_REOPEN_CHANNELS_TIME), ConfigInt(AUTO_REOPEN_CHANNELS_PERIOD));
-	/*
-	  no garbage collection now
-   CreateSysTimer(SYST_GARBAGE,60*ConfigInt(AUTO_GARBAGE_TIME),
-		  60*ConfigInt(AUTO_GARBAGE_PERIOD));
-	*/
 }
 
-void ProcessSysTimer(INT64 time)
+void ProcessSysTimer(int time)
 {
    systimer_node *st;
 
@@ -133,7 +127,7 @@ void ProcessOneSysTimer(systimer_node *st)
       lprintf("ProcessOneSysTimer garbage collecting\n");
       SendBlakodBeginSystemEvent(SYSEVENT_GARBAGE);
       GarbageCollect();
-      AllocateParseClientListNodes();
+      AllocateParseClientListNodes(); 
       SendBlakodEndSystemEvent(SYSEVENT_GARBAGE);
       UnpauseTimers();
       break;
@@ -145,7 +139,7 @@ void ProcessOneSysTimer(systimer_node *st)
       GarbageCollect();
       SaveAll();
       SendBlakodEndSystemEvent(SYSEVENT_SAVE);
-      AllocateParseClientListNodes();
+      AllocateParseClientListNodes(); 
       UnpauseTimers();
       break;
 
@@ -158,19 +152,13 @@ void ProcessOneSysTimer(systimer_node *st)
 	 dprintf("In last %i seconds, server has transmitted %i bytes.\n",
 		 ConfigInt(AUTO_TRANSMITTED_PERIOD),GetTransmittedBytes());
 
-
+      
       ResetTransmittedBytes();
       break;
 
    case SYST_RESET_POOL :
       ResetBufferPool();
-      break;
-
-   case SYST_REOPEN_CHANNELS :
-      CloseDefaultChannels();
-      OpenDefaultChannels();
-      break;
-
+      break;  
    }
 }
 
@@ -222,3 +210,6 @@ Bool EnableSysTimer(int systimer_type)
    }
    return False;
 }
+
+
+

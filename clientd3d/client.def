@@ -15,6 +15,7 @@ EXPORTS
 	LookupRsc
 	LookupNameRsc
 	LookupRscNoError
+	LookupRscRedbook
 	dprintf
 	MouseToRoom
 	ParseCommand
@@ -26,6 +27,8 @@ EXPORTS
 	ResetUserData
 	WebLaunchBrowser
 	InitMenuPopupHandler
+	GetHBitmapFromResource
+	GetAvailableLanguages
 
 ; Keyboard handling
 	KeyAddTable
@@ -99,6 +102,7 @@ EXPORTS
 	ExtractOverlays
 	ExtractOverlay
 	CheckServerMessage
+	CheckMessageOrder
 
 ; Owner drawn list boxes
 	ItemListGetId
@@ -140,10 +144,12 @@ EXPORTS
 	list_last_item
 	list_nth_item
 	list_find_item
+	list_get_position
 	list_delete
 	list_destroy
 	list_length
 	list_move_to_front
+	list_move_to_nth
 	list_add_sorted_item
 
 ; ID lists
@@ -164,6 +170,8 @@ EXPORTS
 	GetTextInputHeight
 	GetAmount
 	ToolbarGetUnionRect
+	Timebox_GetRect
+	Fpsbox_GetRect
 	Lagbox_GetRect
 	EditBoxGetArea
 	UserMouselookIsEnabled
@@ -192,18 +200,23 @@ EXPORTS
 	DibOpenFile
 	BitmapsFree
 	CreateMemBitmap
+	DibOpenBitmapFile
+	DibOpenBitmapResource
+	CreateMemBitmapFromBmp
 
 ; Animation
 	AnimateObject
 
 ; Sound and music
-	PlayMusicFile
-	PlayMusicRsc
-	PlayMidiRsc
-	PlayWaveFile
-	PlayWaveRsc
-	SoundAbort
-	MusicAbort
+	SoundPlayFile
+	SoundPlayResource
+	SoundStop
+	SoundStopAll
+	SoundSetVolume
+	MusicPlayResource
+	MusicPlayFile
+	MusicStop
+	MusicSetVolume
 
 ; Non-game mode functions
 	OfflineConnect

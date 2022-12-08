@@ -49,11 +49,11 @@
 //{{TDialog = TConfirmThingDialog}}
 struct TConfirmThingDialogXfer {
 //{{TConfirmThingDialogXFER_DATA}}
-	uint16 pAngleCheck;
-	uint16 pTypeCheck;
-	uint16 pXPosCheck;
-	uint16 pYPosCheck;
-	uint16 pExitCheck;
+   uint16 pAngleCheck;
+   uint16 pTypeCheck;
+   uint16 pXPosCheck;
+   uint16 pYPosCheck;
+   uint16 pExitCheck;
    uint16 pSubTypeCheck;
 //{{TConfirmThingDialogXFER_DATA_END}}
 };

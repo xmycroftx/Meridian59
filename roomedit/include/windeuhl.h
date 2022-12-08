@@ -69,8 +69,7 @@
 #define EDITOR_Save_as 69
 #define Quit_editor 70
 #define Edit 71
-// Unused; conflicts with a new Windows macro.  akirmse 2018-01-19
-//#define Edit_Undo 72
+#define Edit_Undo 72
 #define Edit_Redo 73
 #define Edit_objects 74
 #define Copy_objects 75
@@ -104,6 +103,7 @@
 #define Default_Info_bar_option 103
 #define Default_Additive_selection_box_option 104
 #define Default_Select_0_option 105
+#define Insert_Torch 106
 #define Default_Draw_LineDef_length_option 107
 #define Default_Maximum_undo 108
 #define Search 109
@@ -305,3 +305,5 @@
 #define Tips 305
 #define Editing_tips 306
 #define DOOM_LIMITS 307
+#define Insert_Circle 308
+#define Align_textures_X_circle 309

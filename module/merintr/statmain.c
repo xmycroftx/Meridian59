@@ -19,6 +19,7 @@
 #include "merintr.h"
 
 #define STAT_VIGOR 3         // Position in main stat group of vigor stat
+#define STAT_XP    4         // Position of XP bar in main stat group
 
 #define STAT_EMERGENCY_COLOR   RGB(255, 0, 0)   // Draw critical stats in this color when low
 
@@ -56,9 +57,9 @@ void StatsMainReceive(list_type stats)
    count = 0;
 
    // Create graph controls for integer stats
-   height = STAT_ICON_SIZE + STATS_MAIN_SPACING;	 
+   height = STAT_ICON_HEIGHT + STATS_MAIN_SPACING;	 
    //y = ENCHANT_SIZE + 2 * ENCHANT_BORDER - 1 + EDGETREAT_HEIGHT;
-   y = ENCHANT_BORDER + EDGETREAT_HEIGHT + ((USERAREA_HEIGHT - (STAT_ICON_SIZE * 3)) / 2);
+   y = ENCHANT_BORDER + EDGETREAT_HEIGHT + ((USERAREA_HEIGHT - (STAT_ICON_HEIGHT * 3)) / 2);
    for (l = stats; l != NULL; l = l->next)
    {
       Statistic *s = (Statistic *) (l->data);
@@ -68,12 +69,18 @@ void StatsMainReceive(list_type stats)
       y += height;
       
       if (s->numeric.tag != STAT_INT)
-	 continue;
+         continue;
       
-      s->hControl = CreateWindow(GraphCtlGetClassName(), NULL,
-				 WS_CHILD | WS_VISIBLE | GCS_LIMITBAR | GCS_NUMBER,
-				 0, 0, 0, 0, cinfo->hMain,
-				 NULL, hInst, NULL);
+      if (s->num == STAT_XP)
+         s->hControl = CreateWindow(GraphCtlGetClassName(), NULL,
+            WS_CHILD | WS_VISIBLE | GCS_LIMITBAR | GCS_NUMBER | GCS_XP,
+            0, 0, 0, 0, cinfo->hMain,
+            NULL, hInst, NULL);
+      else
+         s->hControl = CreateWindow(GraphCtlGetClassName(), NULL,
+            WS_CHILD | WS_VISIBLE | GCS_LIMITBAR | GCS_NUMBER,
+            0, 0, 0, 0, cinfo->hMain,
+            NULL, hInst, NULL);
 
       StatsMainSetColor(s);
       StatsMainChange(s);
@@ -84,7 +91,7 @@ void StatsMainReceive(list_type stats)
       SendMessage(cinfo->hToolTips, TTM_ADDTOOL, 0, (LPARAM) &ti);
       count++;
    }
-
+   StatsMainRedraw();
    StatsMainMove();
 }
 /************************************************************************/
@@ -126,7 +133,10 @@ void StatsMainChange(Statistic *s)
 
    SendMessage(s->hControl, GRPH_RANGESET, s->numeric.min, s->numeric.max);
    SendMessage(s->hControl, GRPH_POSSET, 0, s->numeric.value);
-   SendMessage(s->hControl, GRPH_LIMITSET, 0, s->numeric.current_max);	 
+   if (s->num == STAT_XP)
+      SendMessage(s->hControl, GRPH_LIMITSET, 0, 0);
+   else
+      SendMessage(s->hControl, GRPH_LIMITSET, 0, s->numeric.current_max);
 
    if (s->num == STAT_VIGOR)
    {
@@ -139,6 +149,11 @@ void StatsMainChange(Statistic *s)
 
       if (pinfo.vigor >= MIN_VIGOR && old_vigor < MIN_VIGOR)
 	 SendMessage(s->hControl, GRPH_COLORSET, GRAPHCOLOR_BAR, GetColor(COLOR_BAR1));	 
+   }
+   else if (s->num == STAT_XP)
+   {
+      // Update tooltip
+      StatsMainMove();
    }
 }
 
@@ -158,7 +173,7 @@ void StatsMainRedraw(void)
    obj = ObjectGetBlank();
 
    a.x    = stat_x;
-   a.cx   = STAT_ICON_SIZE;
+   a.cx   = STAT_ICON_HEIGHT;
 
    for (l = main_stats; l != NULL; l = l->next)
    {
@@ -190,7 +205,7 @@ void StatsMainRedraw(void)
 void StatsMainResize(int xsize, int ysize, AREA *view)
 {
    stat_x = view->x + view->cx + LEFT_BORDER + USERAREA_WIDTH + RIGHT_BORDER + MAPTREAT_WIDTH;
-   stat_bar_x = stat_x + STAT_ICON_SIZE + RIGHT_BORDER;
+   stat_bar_x = stat_x + STAT_ICON_WIDTH + RIGHT_BORDER;
    stat_width = xsize - stat_bar_x - RIGHT_BORDER - EDGETREAT_WIDTH - MAPTREAT_WIDTH - 4;
    StatsMainMove();
 }
@@ -203,6 +218,7 @@ void StatsMainMove(void)
    list_type l;
    int count = 0;
    TOOLINFO ti;
+   char buf[21];
 
    ti.cbSize = sizeof(TOOLINFO);
    ti.hwnd   = cinfo->hMain;
@@ -226,14 +242,19 @@ void StatsMainMove(void)
       if (cinfo->hToolTips != NULL)
       {
 	 ti.rect.left   = stat_x;
-	 ti.rect.right  = ti.rect.left + STAT_ICON_SIZE;
+	 ti.rect.right  = ti.rect.left + STAT_ICON_WIDTH;
 	 ti.rect.top    = s->y;
-	 ti.rect.bottom = ti.rect.top + STAT_ICON_SIZE;
+	 ti.rect.bottom = ti.rect.top + STAT_ICON_HEIGHT;
 	 switch (count)
 	 {
 	 case 0: ti.lpszText = (LPSTR) IDS_HEALTH; break;
 	 case 1: ti.lpszText = (LPSTR) IDS_MANA;   break;
 	 case 2: ti.lpszText = (LPSTR) IDS_VIGOR;  break;
+	 case 3:
+      sprintf(buf, "%s: %i", GetString(hInst, IDS_XP), s->numeric.current_max);
+      ti.lpszText = (LPSTR)buf;
+      break;
+
 	 default:
 	    debug(("StatsMainMove got unknown stat number %d\n", count));
 	    ti.lpszText = 0;

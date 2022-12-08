@@ -3,26 +3,34 @@
 TOPDIR=..
 !include $(TOPDIR)\common.mak
 
+# ----------------------------------------------------------------------
+# Additional compiler flags (see common.mak)
+# /TP           Compile as C++ code
+# /arch:SSE2    Use SSE2 instructions (VS2013+ default to SSE2)
+# /wd4065       Ignore specific warning
+CFLAGS = $(CFLAGS) /arch:SSE2 /TP /wd4065
+
+# ----------------------------------------------------------------------
+# Additional linker flags (see common.mak)
+# /SUBSYSTEM:CONSOLE",5.01" NO-UI Windows XP (5.01)
+LINKFLAGS = $(LINKFLAGS) /SUBSYSTEM:CONSOLE",5.01"
+
 SOURCEDIR = $(BLAKCOMPDIR)
 
-# Disable warnings in Bison-generated code
-CFLAGS = $(CFLAGS) /wd4065
-
-LIBS =
-
 OBJS = \
-        $(OUTDIR)\lexyy.obj \
-        $(OUTDIR)\blakcomp.tab.obj \
-	$(OUTDIR)\actions.obj \
-	$(OUTDIR)\table.obj \
-	$(OUTDIR)\kodbase.obj \
-	$(OUTDIR)\codegen.obj \
-	$(OUTDIR)\codeutil.obj \
-	$(OUTDIR)\function.obj \
-	$(OUTDIR)\util.obj \
-	$(OUTDIR)\sort.obj \
-	$(OUTDIR)\optimize.obj \
-	$(OUTDIR)\resource.obj
+    $(OUTDIR)\lexyy.obj \
+    $(OUTDIR)\blakcomp.tab.obj \
+    $(OUTDIR)\actions.obj \
+    $(OUTDIR)\table.obj \
+    $(OUTDIR)\kodbase.obj \
+    $(OUTDIR)\codegen.obj \
+    $(OUTDIR)\codeutil.obj \
+    $(OUTDIR)\function.obj \
+    $(OUTDIR)\util.obj \
+    $(OUTDIR)\sort.obj \
+    $(OUTDIR)\optimize.obj \
+    $(OUTDIR)\resource.obj \
+    $(OUTDIR)\dircompile.obj
 
 all: makedirs $(OUTDIR)\bc.exe
 
@@ -39,3 +47,4 @@ $(OUTDIR)\blakcomp.tab.c $(OUTDIR)\blakcomp.tab.h: {$(SOURCEDIR)}blakcomp.y {$(S
 	$(YACC) $(SOURCEDIR)\blakcomp.y -o $(OUTDIR)\blakcomp.tab.c
 
 !include $(TOPDIR)\rules.mak
+

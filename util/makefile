@@ -3,21 +3,33 @@
 TOPDIR=..
 !include $(TOPDIR)\common.mak
 
-OBJS3 = $(OUTDIR)\scrshot.obj $(OUTDIR)\dibutil.obj $(OUTDIR)\copy.obj $(OUTDIR)\file.obj
+# ----------------------------------------------------------------------
+# Additional compiler flags (see common.mak)
+# /TP           Compile as C++ code
+# /arch:SSE2    Use SSE2 instructions (VS2013+ default to SSE2)
+CFLAGS = $(CFLAGS) /arch:SSE2 /TP
 
+# ----------------------------------------------------------------------
+# Additional linker flags (see common.mak)
+# /SUBSYSTEM:CONSOLE",5.01" NO-UI Windows XP (5.01)
+LINKFLAGS = $(LINKFLAGS) /SUBSYSTEM:CONSOLE",5.01"
+
+OBJS3     = $(OUTDIR)\scrshot.obj $(OUTDIR)\dibutil.obj $(OUTDIR)\copy.obj $(OUTDIR)\file.obj $(OUTDIR)\md5.obj $(OUTDIR)\sha256.obj
 SOURCEDIR = $(TOPDIR)\util
-
-NTLIBS = user32.lib gdi32.lib
+NTLIBS    = user32.lib gdi32.lib
 
 all: \
-       makedirs \
-       $(OUTDIR)\rscload.lib \
-       $(OUTDIR)\rscprint.exe \
-       $(OUTDIR)\bmpdump.exe \
-       $(OUTDIR)\rscmerge.exe \
-       $(OUTDIR)\paldump.exe \
-       $(OUTDIR)\palcomp.exe \
-       $(OUTDIR)\porttest.exe 
+    makedirs \
+    $(OUTDIR)\rscload.lib \
+    $(OUTDIR)\rscprint.exe \
+    $(OUTDIR)\bmpdump.exe \
+    $(OUTDIR)\rscmerge.exe \
+    $(OUTDIR)\paldump.exe \
+    $(OUTDIR)\palcomp.exe \
+    $(OUTDIR)\porttest.exe \
+    $(OUTDIR)\md5.obj \
+    $(OUTDIR)\sha256.obj \
+    $(OUTDIR)\clientpatch.exe 
 
 $(OUTDIR)\remot.exe: $(OUTDIR)\remot.obj
 	$(LINK) $(LINKFLAGS) $** $(NTLIBS) -out:$@
@@ -41,7 +53,7 @@ $(OUTDIR)\ftptest.exe: ftptest.obj
 	$(LINK) $(LINKFLAGS) $** $(NTLIBS) wininet.lib -out:$@
 
 $(OUTDIR)\rscload.lib: $(OUTDIR)\rscload.obj $(OUTDIR)\memmap.obj
-	$(LIBPRG) $** -out:$@
+	$(LINKST) $(LINKSTFLAGS) $** -out:$@
 	$(CP) $@ $(BLAKLIBDIR)
 
 $(OUTDIR)\rscprint.exe: $(OUTDIR)\rscprint.obj
@@ -70,6 +82,16 @@ $(OUTDIR)\palcomp.exe: $(OUTDIR)\palcomp.obj $(OUTDIR)\memmap.obj
 
 $(OUTDIR)\porttest.exe: $(OUTDIR)\porttest.obj
 	$(LINK) $(LINKFLAGS) $** $(NTLIBS) wsock32.lib -out:$@
+	$(CP) $@ $(BLAKBINDIR)
+
+$(OUTDIR)\md5.obj : $(SOURCEDIR)\md5.c
+    $(CC) -Fo$(OUTDIR)/ $(CFLAGS) /Fd$(OUTDIR)\ /Fpmd5pch -c $**
+
+$(OUTDIR)\sha256.obj : $(SOURCEDIR)\sha256.c
+    $(CC) -Fo$(OUTDIR)/ $(CFLAGS) /Fd$(OUTDIR)\ /Fpsha256pch -c $**
+
+$(OUTDIR)\clientpatch.exe: $(OUTDIR)\clientpatch.obj
+	$(LINK) $(LINKFLAGS) $** $(NTLIBS) $(BLAKLIBDIR)\jansson.lib $(OUTDIR)\sha256.obj -out:$@
 	$(CP) $@ $(BLAKBINDIR)
 
 !include $(TOPDIR)\rules.mak

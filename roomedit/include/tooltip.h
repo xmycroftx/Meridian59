@@ -62,6 +62,7 @@ public:
 
 protected:
 //{{TTipControlBarRSP_TBL_BEGIN}}
+
 	void 	EvMouseMove (UINT modKeys, const TPoint& point);
 	void 	EvLButtonDown (UINT modKeys, const TPoint& point);
 	void 	EvLButtonUp (UINT modKeys, const TPoint& point);
@@ -137,10 +138,10 @@ protected:
 	void	GetWindowClass (WNDCLASS &wc);
 	LPSTR	GetClassName ();
 
-	void 	Paint (TDC &dc, BOOL erase, TRect &rc);
+	void 	Paint (TDC &dc, bool erase, TRect &rc);
 	void	EvTimer (UINT uiTimerId);
 
-	void	SetCaption (const char far* title);
+	void	SetCaption (const char* title);
 
 public:
 	TToolTip (Tip::Style style = Tip::SquareBorder, TFont* font = new TToolTipFont);

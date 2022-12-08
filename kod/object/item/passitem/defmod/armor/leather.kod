@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 LeatherArmor is Armor
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include leather.lkod
 
    leatherarmor_name_rsc = "leather armor"
    leatherarmor_icon_rsc = leathamr.bgf
@@ -40,17 +42,16 @@ classvars:
    viWeight = 100
    viBulk = 150
 
-   viSpell_modifier = 0
-
+   viSpell_modifier = 5
 
    vrIcon_male = Leatherarmor_male_icon_rsc
    vrIcon_female = Leatherarmor_female_icon_rsc
 
-   viDefense_base = 50
+   viDefense_base = 75
    viDamage_base = 0
 
 properties:
-   
+
 messages:
 
    ShowShirt()
@@ -60,7 +61,8 @@ messages:
 
    GetResistanceModifiers()
    {
-      return [ [ATCK_WEAP_ALL,5]
+      return [ [ATK_TYPE_ALL,5],
+               [-SPL_TYPE_FIRE,10]
              ];
    }
 
@@ -71,4 +73,4 @@ messages:
 
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

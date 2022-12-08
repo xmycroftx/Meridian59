@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 BarloqueSmithy is BarloqueRoom
 
 constants:
@@ -16,11 +16,13 @@ constants:
 
 resources:
 
+   include barsmith.lkod
+
    room_barloquesmith = barsmith.roo
    room_name_barloquesmith = "The Royal Blacksmith of Barloque"
 
-   barsmith_music = smithy.mid
-   fire_sound_barsmith = fireplac.wav
+   barsmith_music = smithy.ogg
+   fire_sound_barsmith = fireplac.ogg
 
 classvars:
 
@@ -45,12 +47,11 @@ properties:
 
 messages:
 
-
    CreateStandardExits()
    {
       plExits = $;
 
-      %% TO TOWN
+      /// TO TOWN
       plExits = Cons([ 3, 1, RID_BAR_SOUTH, 28, 41, ROTATE_NONE ],plExits);      
 
       propagate;
@@ -60,19 +61,20 @@ messages:
    {
 
       Send(self,@NewHold,#what=Create(&BarloqueBlacksmith),
-	 #new_row=4,#new_col=7,#fine_col=32,#fine_col=32);
+         #new_row=4,#new_col=7,#fine_row=32,#fine_col=32);
       Send(self,@NewHold,#what=Create(&Firepit),
          #new_row=4,#new_col=12,#fine_row=32,#fine_col=32);
- 
+
       propagate;
    }
 
    Constructed()
    {
-   %  each sound is [wave_file, row, col, cutoff radius, maximum volume]
+      // each sound is [wave_file, row, col, cutoff radius, maximum volume]
       plLooping_sounds = [[ fire_sound_barsmith, 4, 11, 10, 100 ]];
+
       propagate;
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

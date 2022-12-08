@@ -73,7 +73,9 @@ public:
 //{{TViewEntryDialogRSP_TBL_BEGIN}}
 protected:
 	void EntrySelChange ();
-	void EvDrawItem (UINT ctrlId, const DRAWITEMSTRUCT & drawInfo);
+
+	void EvDrawItem (UINT ctrlId, const DRAWITEMSTRUCT& drawInfo);
+
 //{{TViewEntryDialogRSP_TBL_END}}
 DECLARE_RESPONSE_TABLE(TViewEntryDialog);
 };    //{{TViewEntryDialog}}

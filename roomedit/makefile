@@ -3,25 +3,32 @@
 TOPDIR=..
 !include $(TOPDIR)\common.mak
 
-SOURCEDIR = $(ROOMEDITDIR)\source
-RESDIR = $(ROOMEDITDIR)\res
-OWLSOURCEDIR = $(ROOMEDITDIR)\owl-6.43\source\owlcore
-OWLINCLUDEDIR = $(ROOMEDITDIR)\owl-6.43\include
-OWLOUTDIR = $(ROOMEDITDIR)\owl-6.43\$(OUTDIR)
-OWLLIBNAME = owl.lib
+SOURCEDIR     = $(ROOMEDITDIR)\source
+RESDIR        = $(ROOMEDITDIR)\res
+OWLSOURCEDIR  = $(ROOMEDITDIR)\owl-6.34\source
+OWLINCLUDEDIR = $(ROOMEDITDIR)\owl-6.34\include
+OWLOUTDIR     = $(ROOMEDITDIR)\owl-6.34\$(OUTDIR)
 
-# /GR: Needs RTTI
-# /wd4244: conversion, possible loss of data
-# /wd4018: signed/unsigned mismatch
+# ----------------------------------------------------------------------
+# Additional compiler flags (see common.mak)
+# /TP           Compile as C++ code
+# /arch:SSE2    Use SSE2 instructions (VS2013+ default to SSE2)
+# /DOWL5_COMPAT Use OWL in compatibility mode
+# /D_OWLPCH     For OWL
+# /GR           Needs RTTI (creates warning due to common.mak)
+# /wd4244       Ignore conversion, possible loss of data
+# /wd4018       Ignore signed/unsigned mismatch
+CFLAGS = $(CFLAGS) /arch:SSE2 /TP /DOWL5_COMPAT /D_OWLPCH /D__WIN32__ \
+    -I$(ROOMEDITDIR)\include -I$(OWLINCLUDEDIR) -I$(RESDIR) \
+    /GR /wd4244 /wd4018
 
-CFLAGS = $(CFLAGS:-GR-=-GR) -DOWL5_COMPAT -D__WIN32__ -D_OWLPCH -I$(ROOMEDITDIR)\include -I$(OWLINCLUDEDIR) -I$(RESDIR) \
-	/wd4244 /wd4018
+# ----------------------------------------------------------------------
+# Additional linker flags (see common.mak)
+# /SUBSYSTEM:WINDOWS",5.01" UI Windows XP (5.01)
+LINKFLAGS = $(LINKFLAGS) /SUBSYSTEM:WINDOWS",5.01"
 
-#
-# Dependency List
-#
 
-all: makedirs $(OUTDIR)\windeu32.exe
+all: makedirs $(OUTDIR)\roomedit.exe
 
 OBJS = \
    $(OUTDIR)\save.obj\
@@ -48,6 +55,7 @@ OBJS = \
    $(OUTDIR)\entrydlg.obj\
    $(OUTDIR)\episdlg.obj\
    $(OUTDIR)\inpt2dlg.obj\
+   $(OUTDIR)\inpt1dlg.obj\
    $(OUTDIR)\lineedit.obj\
    $(OUTDIR)\lprogdlg.obj\
    $(OUTDIR)\mastdlg.obj\
@@ -73,9 +81,8 @@ OBJS = \
    $(OUTDIR)\windeapp.res
 
 LIBS = \
-	$(OWLOUTDIR)\$(OWLLIBNAME) \
-	zdll.lib \
-	user32.lib gdi32.lib shell32.lib advapi32.lib oleaut32.lib
+	$(OWLOUTDIR)\owl.lib \
+ 	user32.lib gdi32.lib shell32.lib advapi32.lib oleaut32.lib
 
 OWLOBJS = \
 	$(OWLOUTDIR)\animctrl.obj \
@@ -125,6 +132,7 @@ OWLOBJS = \
 	$(OWLOUTDIR)\dib.obj \
 	$(OWLOUTDIR)\dibdc.obj \
 	$(OWLOUTDIR)\dibitmap.obj \
+	$(OWLOUTDIR)\dispatch.obj \
 	$(OWLOUTDIR)\docking.obj \
 	$(OWLOUTDIR)\docmanag.obj \
 	$(OWLOUTDIR)\doctpl.obj \
@@ -291,16 +299,17 @@ OWLOBJS = \
 	$(OWLOUTDIR)\wsksockd.obj \
 	$(OWLOUTDIR)\wsksockm.obj \
 	$(OWLOUTDIR)\wsyscls.obj \
+	$(OWLOUTDIR)\owlpch.obj \
 	$(OWLOUTDIR)\owl.res
 
 {$(OWLSOURCEDIR)}.cpp{$(OWLOUTDIR)}.obj::
-	$(CC) $(CFLAGS) /FpCpch /Fd$(OWLOUTDIR)\vc90.pdb /Fo$(OWLOUTDIR)/ -c $< 
+	$(CC) $(CFLAGS) /FpCpch /Fd$(OWLOUTDIR)\ /Fo$(OWLOUTDIR)/ -c $< 
 
 {$(OWLSOURCEDIR)}.rc{$(OWLOUTDIR)}.res:
    $(RC) /i$(OWLINCLUDEDIR) /fo $@ $**
 
-$(OWLOUTDIR)\$(OWLLIBNAME): $(OWLOBJS)
-	$(LIBPRG) $** -OUT:$@
+$(OWLOUTDIR)\owl.lib: $(OWLOBJS)
+	$(LINKST) $** -OUT:$@
 
 {$(RESDIR)}.rc{$(OUTDIR)}.res:
    $(RC) /fo $@ $**
@@ -308,26 +317,10 @@ $(OWLOUTDIR)\$(OWLLIBNAME): $(OWLOBJS)
 makeowldir:
 		-@mkdir $(OWLOUTDIR)
 
-$(OUTDIR)\windeu32.exe : makedirs makeowldir $(OBJS) $(OWLOUTDIR)\$(OWLLIBNAME)
-	$(LINK) $(LINKFLAGS) $(LINKWINDOWSFLAGS) @<<
-	$(OBJS) $(LIBS) -OUT:$@
+$(OUTDIR)\roomedit.exe : makedirs makeowldir $(OBJS) $(OWLOUTDIR)\owl.lib
+	$(LINK) $(LINKFLAGS) @<< 
+	$(OBJS) $(LIBS) -OUT:$@ 
 <<
+    $(CP) $@ $(OUTDIR)\..\
 
-
-makedirs:
-        -@mkdir $(OUTDIR)
-
-{$(SOURCEDIR)}.c{$(OUTDIR)}.obj::
-	$(CC) $(CFLAGS) /FpCpch /Fd$(OUTDIR)\vc90.pdb /Fo$(OUTDIR)/ -c $< 
-
-{$(SOURCEDIR)}.cpp{$(OUTDIR)}.obj::
-	$(CC) $(CFLAGS) /FpCpch /Fd$(OUTDIR)\vc90.pdb /Fo$(OUTDIR)/ -c $< 
-
-{$(SOURCEDIR)}.rc{$(OUTDIR)}.res:
-        $(RC) /fo $@ /i$(SOURCEDIR) $**
-
-clean :
-        @$(RM) $(OUTDIR)\*
-        @$(RMDIR) $(OUTDIR)
-        @$(RM) $(OWLOUTDIR)\*
-        @$(RMDIR) $(OWLOUTDIR)
+!include $(TOPDIR)\rules.mak

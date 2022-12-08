@@ -1,18 +1,18 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 FungusBeast is Monster
 
-% The fungusbeast is composed of a couple pieces.  The head is attached to hot spot 1,
-% the mouth is attached to hotspot 12.  These are only seen in a couple views.
-% The abdomen is attached to hotspot 210, which is underneath.
+// The fungusbeast is composed of a couple pieces.  The head is attached to hot spot 1,
+// the mouth is attached to hotspot 12.  These are only seen in a couple views.
+// The abdomen is attached to hotspot 210, which is underneath.
 
 constants:
 
@@ -22,6 +22,8 @@ constants:
 
 resources:
 
+   include fungbst.lkod
+
    fungusbeast_koc_name_rsc = "puucmecmoch"
    fungusbeast_name_rsc = "fungus beast"
    fungusbeast_icon_rsc = fungbst.bgf
@@ -30,17 +32,17 @@ resources:
       "moves slowly and deliberately.  Giant spores cling to "
       "its back."
 
-   % fungusbeast_head_icon_rsc = fungh.bgf
+   // fungusbeast_head_icon_rsc = fungh.bgf
 
    fungusbeast_spore = spore.bgf
 
    fungusbeast_dead_icon_rsc = fungX.bgf
    fungusbeast_dead_name_rsc = "dead fungus beast"
 
-   fungusbeast_sound_hit = fng_atkh.wav
-   fungusbeast_sound_miss = fng_atkm.wav
-   fungusbeast_sound_death = fng_dth.wav
-   fungusbeast_sound_aware = fng_awr.wav
+   fungusbeast_sound_hit = fng_atkh.ogg
+   fungusbeast_sound_miss = fng_atkm.ogg
+   fungusbeast_sound_death = fng_dth.ogg
+   fungusbeast_sound_aware = fng_awr.ogg
 
 classvars:
 
@@ -55,14 +57,21 @@ classvars:
    viSpeed = SPEED_VERY_SLOW
    viAttributes = MOB_SPASM
    viLevel = 50
-   viDifficulty = 1
-   viKarma = 10
-   viDefault_behavior = AI_FIGHT_AGGRESSIVE | AI_FIGHT_WIZARD_KILLER
-
+   viDifficulty = 3
+   viVisionDistance = 10
+   viMeleeRange = 0
+   viFireRange = 128
+   viKarma = 30
+   viDefault_behavior = AI_FIGHT_AGGRESSIVE
+   viCashmin = 100
+   viCashmax = 500
    vrSound_hit = fungusbeast_sound_hit
    vrSound_miss = fungusbeast_sound_miss
    vrSound_aware = fungusbeast_sound_aware
    vrSound_death = fungusbeast_sound_death
+
+   vbCanBleed = FALSE
+   vbCanSiphon = FALSE
 
 properties:
 
@@ -72,21 +81,14 @@ messages:
 
    Constructed()
    {
-      plResistances = [ [ 60, -ATCK_SPELL_COLD ],
-                        [ 60, ATCK_WEAP_PIERCE ],
-                        [ 60, ATCK_WEAP_THRUST ]
+      plResistances = [ [-SPL_TYPE_COLD, 60 ],
+                        [ATK_TYPE_PIERCE, 60 ],
+                        [ATK_TYPE_THRUST, 60 ]
                       ];
 
+      plActions = [ [SID_SPORE_BURST,0,0,MAX_KOD_INT,-10000,11000,1,COMBAT_ACTION_NEUTRAL] ];
+
       propagate;
-   }
-
-   MonsterAttack(what = $)
-   {
-      Send(self,@DoAttack);
-
-      Send(poOwner,@SomethingShot,#who=self,#target=what,#projectile=self);
-
-      return;
    }
 
    DoSpasm()
@@ -104,20 +106,7 @@ messages:
       }
 
       Send(poOwner,@SomethingChanged,#what=self);
-      
-      return;
-   }
 
-   DoAttack()
-   {
-      local iAnim;
-
-      iAnim = piAnimation;
-      
-      piAnimation = ANIM_ATTACK;
-      Send(poOwner,@SomethingChanged,#what=self);
-      piAnimation = iAnim;
-            
       return;
    }
 
@@ -144,14 +133,14 @@ messages:
          return;
       }
 
-      % No body animation
+      // No body animation
       
       AddPacket(1,ANIMATE_NONE,2,1);
 
       return;
    }
 
-   % stuff for spore sending
+   // stuff for spore sending
 
    GetProjectileIcon()
    {
@@ -168,14 +157,32 @@ messages:
       AddPacket(1,ANIMATE_CYCLE,4,100,2,1,2,1);
 
       return;
-   }      
+   }
 
    GetProjectileLightFlags()
    {
-      % No lighting information.
+      // No lighting information.
       return LIGHT_FLAG_NONE;
    }
 
+   AssessDamage(stype=0)
+   {
+      local i;
+
+      // Casting spells will make them go poof.
+      if (stype& SPL_TYPE_ALL)
+      {
+         foreach i in plActions
+         {
+            if First(i) = SID_SPORE_BURST
+            {
+               SetNth(i,5,1000);
+            }
+         }
+      }
+
+      propagate;
+   }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

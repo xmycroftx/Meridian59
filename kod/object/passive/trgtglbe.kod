@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 TargetGlobe is PassiveObject
 
 constants:
@@ -15,9 +15,14 @@ constants:
    include blakston.khd
 
 resources:
-TargetGlobe_name = "Globe"
-TargetGlobe_icon = necglobe.bgf
-TargetGlobe_desc = "Looking up at this dark globe, you get the funny feeling that you are being watched."
+
+   include trgtglbe.lkod
+
+   TargetGlobe_name = "Globe"
+   TargetGlobe_icon = necglobe.bgf
+   TargetGlobe_desc = \
+      "Looking up at this dark globe, you get the funny feeling "
+      "that you are being watched."
 
 classvars:
 
@@ -31,8 +36,8 @@ messages:
 
    GetObjectFlags()
    {
-      return OF_HANGING; 
+      return OF_HANGING;
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

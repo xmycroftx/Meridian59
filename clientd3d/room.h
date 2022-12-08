@@ -12,6 +12,14 @@
 #ifndef _ROOM_H
 #define _ROOM_H
 
+#define FINENESSKODTOROO(x) ((x) * 16.0f)      // scales a value from KOD fineness to ROO fineness
+
+typedef struct BoundingBox2D
+{
+   V2 Min;
+   V2 Max;
+} BoundingBox2D;
+
 /* Room contents to draw */
 typedef struct
 {
@@ -30,7 +38,8 @@ typedef struct
    WallDataList walls;    // Array of walls in use
    Sector *sectors;       // Array of sectors in use
    Sidedef *sidedefs;     // Array of sidedefs in use
-   
+   BoundingBox2D ThingsBox; // Bounding box of room
+
    int num_nodes, num_walls, num_sectors, num_sidedefs;
 
    int security;          /* Security number, unique to each roo file, to ensure that client
@@ -46,6 +55,6 @@ typedef struct
    DWORD overrideDepth[4];
 } room_type;
 
-Bool AnimateRoom(room_type *room, int dt);
+Bool AnimateRoom(room_type *room, float dt);
 
 #endif /* #ifndef _ROOM_H */

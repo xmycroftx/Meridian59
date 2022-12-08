@@ -124,8 +124,10 @@ protected:
 	void ClearAboveClicked ();
 	void WTextureSelChange ();
 	void WTextureDblClk ();
+
 	void EvLButtonDown (UINT modKeys, const TPoint& point);
 	void EvLButtonDblClk (UINT modKeys, const TPoint& point);
+
 //{{TPreferencesDialogRSP_TBL_END}}
 DECLARE_RESPONSE_TABLE(TPreferencesDialog);
 };    //{{TPreferencesDialog}}

@@ -111,8 +111,10 @@ protected:
 	void NewTagClicked ();
 	void DepthClicked ();
 	void ScrollClicked ();
+
 	void EvLButtonDown (UINT modKeys, const TPoint& point);
 	void EvLButtonDblClk (UINT modKeys, const TPoint& point);
+
 //{{TSectorEditDialogRSP_TBL_END}}
 DECLARE_RESPONSE_TABLE(TSectorEditDialog);
 
@@ -121,6 +123,7 @@ protected:
 	TListBox *pSectorList;
 	TEdit *pLightEdit;
 	TCheckBox *pFlickerCheck;
+	TCheckBox *pNoMoveCheck;
 	TEdit *pTextureXEdit;
 	TEdit *pTextureYEdit;
 	TListBox *pTextureList;

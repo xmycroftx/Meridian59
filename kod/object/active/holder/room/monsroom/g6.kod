@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 OutdoorsG6 is MonsterRoom
 
 constants:
@@ -16,9 +16,11 @@ constants:
 
 resources:
 
+   include g6.lkod
+
    room_name_OutdoorsG6 ="The King's Way"
    room_OutdoorsG6 = g6.roo
-   OutdoorsG6_music = forest.mid
+   OutdoorsG6_music = forest.ogg
 
    G6_lakewalk = \
       "The bottom of the lake drops sharply here.  You doubt you should go "
@@ -36,6 +38,8 @@ classvars:
    viFlag_row = 110
    viFlag_col = 46
 
+   viWeatherZone = WEATHER_ZONE_CORNOTH
+
 properties:
 
    prRoom = room_OutdoorsG6
@@ -44,31 +48,39 @@ properties:
 
    piBaseLight = LIGHT_NICE
    piOutside_factor = 8
-   piGen_time = 100000
-   piGen_percent = 80
+   piGen_time = 20000
+   piGen_percent = 100
 
    piDirectional_percent = DIRECTIONAL_PERCENT_OUTDOORS
+
+   pbSnowGroundTexture = TRUE
 
    piInit_count_min = 4
    piInit_count_max = 8
 
-   piMonster_count_max = 9
+   piMonster_count_max = 15
 
 messages:
 
    Constructed()
    {
-      plMonsters = [ [&Frogman, 90], [&Centipede, 10] ];
+      plMonsters = [ [&Frogman, 100] ];
 
-      plGenerators = [ [9,62], [18,77], [29,65], [38,76], [48,65],
-                       [104,30], [119,42], [110,22]
-                     ];
       propagate;
+   }
+
+   SetMonsterGenPoints()
+   {
+      plGenerators = [ [9,62], [18,77], [29,65], [30,78], [38,76], [48,65],
+                       [104,30], [119,42], [110,22], [118,24], [121,36]
+                     ];
+
+      return;
    }
 
    CreateStandardObjects()
    {
-      % A fire for poor Bei Naq
+      // A fire for poor Bei Naq
       Send(self,@NewHold,#what=Create(&FirePit),#new_row=48,#new_col=5);
 
       propagate;
@@ -76,10 +88,10 @@ messages:
 
    StandardLeaveDir(what = $,dir = $,pos = $,new_room_num = $)
    {
-      if (dir = LEAVE_WEST) and (send(what,@GetRow) < 115)
+      if (dir = LEAVE_WEST) AND (Send(what,@GetRow) < 115)
       {
-         send(what,@MsgSendUser,#message_rsc=G6_lakewalk);
-      }      
+         Send(what,@MsgSendUser,#message_rsc=G6_lakewalk);
+      }
 
       propagate;
    }
@@ -97,6 +109,5 @@ messages:
       return;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

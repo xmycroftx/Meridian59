@@ -13,24 +13,21 @@
 #ifndef _ROOMDATA_H
 #define _ROOMDATA_H
 
+#define INIT_ROOMTABLE_SIZE 400
 
-typedef struct roomdata_struct
+typedef struct room_node
 {
-   blak_int roomdata_id;
-   room_type file_info;
-   struct roomdata_struct *next;
-} roomdata_node;
+   room_type data;
+   struct room_node *next;
+} room_node;
 
-enum
-{
-   ROOM_FLAG_WALKABLE = 0x01
-};
-
-void InitRoomData(void);
-void ResetRoomData(void);
-Bool CanMoveInRoom(roomdata_node *r,int from_row,int from_col,int to_row,int to_col);
-Bool CanMoveInRoomFine(roomdata_node *r,int from_row,int from_col,int to_row,int to_col);
-blak_int LoadRoomData(int resource_id);
-roomdata_node * GetRoomDataByID(int id);
+void        InitRooms(void);
+void        ExitRooms(void);
+void        ResetRooms(void);
+int         LoadRoom(int resource_id);
+void        UnloadRoom(room_node *r);
+room_node*  GetRoomDataByID(int id);
+void PrintRoomTable();
+void ForEachRoom(void(*callback_func)(room_node *r));
 
 #endif

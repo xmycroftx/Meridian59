@@ -112,7 +112,7 @@ void AddClass(int id,bof_class_header *class_data,char *fname,char *bof_base,
 {
 	int i,hash_num;
 	class_node *new_node;
-	bof_list_elem *classvar_values, *prop_values;
+   bof_list_elem *classvar_values, *prop_values;
 
 	new_node = (class_node *)AllocateMemory(MALLOC_ID_CLASS,sizeof(class_node));
 	memset(new_node, 0, sizeof(class_node));
@@ -135,7 +135,7 @@ void AddClass(int id,bof_class_header *class_data,char *fname,char *bof_base,
 	for (i=0;i<new_node->num_prop_defaults;i++)
 	{
 		new_node->prop_default[i].id = prop_values[i].id;
-		new_node->prop_default[i].val.int_val = val32to64(prop_values[i].offset);
+		new_node->prop_default[i].val.int_val = prop_values[i].offset; 
 	}
 	new_node->fname = fname;
 	new_node->class_name = NULL;
@@ -165,7 +165,7 @@ void AddClass(int id,bof_class_header *class_data,char *fname,char *bof_base,
 	for (i=0;i<new_node->num_var_defaults;i++)
 	{
 		new_node->var_default[i].id = classvar_values[i].id;
-		new_node->var_default[i].val.int_val = val32to64(classvar_values[i].offset); 
+		new_node->var_default[i].val.int_val = classvar_values[i].offset; 
 	}
 	
 	new_node->vars = NULL;
@@ -361,6 +361,36 @@ class_node * GetClassByName(const char *class_name)
 	return NULL;
 }
 
+int GetClassIDByName(const char *class_name)
+{
+   int class_id;
+
+   if (SIHashFind(class_name_map, class_name, &class_id))
+      return class_id;
+
+   return INVALID_CLASS;
+}
+
+// Always returns a string, not NULL.
+const char * GetClassNameByID(int class_id)
+{
+   class_node *c = GetClassByID(class_id);
+   if (!c || !c->class_name)
+      return "Unknown";
+
+   return c->class_name;
+}
+
+// Always returns a string, not NULL.
+const char * GetClassNameByObjectID(int object_id)
+{
+   object_node *o = GetObjectByID(object_id);
+   if (!o)
+      return "Unknown";
+
+   return GetClassNameByID(o->class_id);
+}
+
 const char * GetPropertyNameByID(class_node *c,int property_id)
 {
 	return SIHashFindByValue(c->property_names,property_id);
@@ -444,7 +474,7 @@ void ForEachClass(void (*callback_func)(class_node *c))
 
 const char * GetClassDebugStr(class_node *c,int dstr_id)
 {
-	if (dstr_id > c->dstrs->num_strings)
+	if (dstr_id > c->dstrs->num_strings || dstr_id < 0)
 	{
 		eprintf("GetClassDebugStr got invalid dstr id, %i %i\n",c->class_id,dstr_id);
 		return "Invalid DStr";

@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 BarlSewer3 is MonsterRoom
 
 constants:
@@ -19,11 +19,13 @@ constants:
 
 resources:
 
+   include barlsew3.lkod
+
    room_name_barsew3 = "The Sewers of Barloque"
    room_barlsew3 = barlsew3.roo
-   barsew3_music = cave.mid
+   barsew3_music = cave.ogg
 
-   waterfall_soundbsew3 = wfall2.wav
+   waterfall_soundbsew3 = wfall2.ogg
 
 classvars:
 
@@ -45,7 +47,7 @@ properties:
 
    prMusic = barsew3_music
 
-   piGen_time = 50000
+   piGen_time = 30000
    piGen_percent = 80
 
    piInit_count_min = 7
@@ -57,18 +59,24 @@ messages:
 
    Constructed()
    {
-      plMonsters = [ [&GiantRat, 20], [&Lupogg, 80] ];
+      plMonsters = [ [&Lupogg, 100] ];
+
+      plLooping_sounds = [ [ waterfall_soundbsew3,  1, 17, 10, 100 ],
+                           [ waterfall_soundbsew3, 29, 30, 10, 100 ]
+                         ];
+
+      propagate;
+   }
+
+   SetMonsterGenPoints()
+   {
       plGenerators = [ [5, 17], [5, 8], [22, 20], [44, 9], [25, 13],
                        [21, 6], [35, 3], [41, 26], [43, 39], [35, 42],
                        [17, 29], [8, 30], [4, 40], [11, 43], [22, 39],
                        [30, 30]
                      ];
 
-      plLooping_sounds = [ [ waterfall_soundbsew3,  1, 17, 10, 100 ],
-                           [ waterfall_soundbsew3, 29, 30, 10, 100 ]
-                         ];
- 
-      propagate;
+      return;
    }
 
    AddBaseLight(amount=$)
@@ -99,8 +107,7 @@ messages:
       plEdge_Exits = Cons([LEAVE_WEST, RID_SEWER_KING, 15, 58, ROTATE_NONE], plEdge_exits);
 
       return;
-   }         
-
+   }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

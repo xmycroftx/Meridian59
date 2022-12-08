@@ -80,6 +80,7 @@ void TurnObject(ID object_id, WORD angle);
 void CreateObject(room_contents_node *r);
 void RemoveObject(ID obj_id);
 void ChangeObject(object_node *new_obj, BYTE translation, BYTE effect, Animate *a, list_type overlays);
+void ChangeObjectFlags(object_node *new_obj);
 void SetObjectContents(ID object_id, list_type contents);
 
 void SetInventory(list_type inventory);
@@ -97,7 +98,7 @@ void GameQuit(void);
 M59EXPORT void GameMessage(char *message);
 M59EXPORT void _cdecl GameMessagePrintf(char *fmt, ...);
 void GameDisplayResync(void);
-void GamePlaySound(ID sound_rsc, ID source_obj, BYTE flags, WORD y, WORD x, WORD radius, WORD max_vol);
+void GamePlaySound(ID sound_rsc, ID source_obj, BYTE flags, int y, int x, int radius, int max_vol);
 
 int  ComputeObjectDistance(room_contents_node *r1, room_contents_node *r2);
 

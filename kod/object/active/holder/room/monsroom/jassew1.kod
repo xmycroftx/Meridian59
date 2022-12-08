@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 JasSewer1 is MonsterRoom
 
 constants:
@@ -16,11 +16,13 @@ constants:
 
 resources:
 
+   include jassew1.lkod
+
    room_name_jassew1 = "The Sewers of Jasper"
    room_jassew1 = jassew1.roo
-   jassew1_music = cave.mid
+   jassew1_music = cave.ogg
 
-   waterfall_soundjsew1 = wfall2.wav
+   waterfall_soundjsew1 = wfall2.ogg
 
    jassewer1_book_name = "The Smuggler's Crossing"
    jassewer1_book_text = \
@@ -83,7 +85,7 @@ properties:
 
    prMusic = jassew1_music
 
-   piGen_time = 80000
+   piGen_time = 30000
    piGen_percent = 80
 
    piInit_count_min = 6
@@ -95,28 +97,34 @@ messages:
 
    Constructed()
    {
-      plMonsters = [ [&GiantRat, 95], [&Lupogg, 5] ];
-      plGenerators = [ [32, 14], [32, 23], [23, 26], [30, 29], [16, 21],
-                       [ 6, 18], [ 9, 33], [16,  8], [17, 35], [28, 39],
-                       [36, 31], [42, 31], [42, 31], [44, 16], [33, 45],
-                       [38, 46], [21, 16], [26, 20]
-                     ];
+      plMonsters = [ [&SewerRat, 95], [&Lupogg, 5] ];
 
       plLooping_sounds = [ [ waterfall_soundjsew1, 19, 19, 10, 100  ] ];
 
       propagate;
    }
 
+   SetMonsterGenPoints()
+   {
+      plGenerators = [ [32, 14], [32, 23], [23, 26], [30, 29], [16, 21],
+                       [ 6, 18], [ 9, 33], [16,  8], [17, 35], [28, 39],
+                       [36, 31], [42, 31], [42, 31], [44, 16], [33, 45],
+                       [38, 46], [21, 16], [26, 20]
+                     ];
+
+      return;
+   }
+
    CreateStandardExits()
    {
       plExits = $;
 
-      % TO TOWN
+      // TO TOWN
       plExits = Cons([ 30, 5, RID_JASWEST, 35, 28, ROTATE_NONE ],plExits);
 
       plEdge_Exits = $;
       plEdge_Exits = Cons([LEAVE_EAST, RID_JAS_SEWER2, 7, 1, ROTATE_NONE], plEdge_exits);
-   
+
       propagate;
    }
 
@@ -128,15 +136,24 @@ messages:
       Send(self,@NewHold,#what=oBook,#new_row=30,#new_col=8,
            #fine_row=0,#fine_col=32,#new_angle=ANGLE_SOUTH_WEST);
 
-      % Lighting
-      send(self,@NewHold,#what=Create(&DynamicLight,#iColor=LIGHT_FIRE,#iIntensity=25),
-           #new_row=30,#new_col=8,#fine_row=0,#fine_col=48);
-      send(self,@NewHold,#what=Create(&DynamicLight,#iColor=LIGHT_FIRE,#iIntensity=25),
-           #new_row=25,#new_col=8,#fine_row=50,#fine_col=0);
+      // Lighting
+      Send(self,@NewHold,#what=Create(&DynamicLight,#iColor=LIGHT_FIRE,#iIntensity=60),
+           #new_row=30,#new_col=9,#fine_row=16,#fine_col=0);
+      Send(self,@NewHold,#what=Create(&DynamicLight,#iColor=LIGHT_FIRE,#iIntensity=60),
+           #new_row=25,#new_col=6,#fine_row=44,#fine_col=32);
+      Send(self,@NewHold,#what=Create(&DynamicLight,#iColor=LIGHT_FIRE,#iIntensity=60),
+           #new_row=25,#new_col=8,#fine_row=44,#fine_col=0);
+      Send(self,@NewHold,#what=Create(&DynamicLight,#iColor=LIGHT_FIRE,#iIntensity=60),
+           #new_row=31,#new_col=11,#fine_row=24,#fine_col=12);
+      Send(self,@NewHold,#what=Create(&DynamicLight,#iColor=LIGHT_FIRE,#iIntensity=60),
+           #new_row=31,#new_col=13,#fine_row=4,#fine_col=24);
+      Send(self,@NewHold,#what=Create(&DynamicLight,#iColor=LIGHT_FIRE,#iIntensity=60),
+           #new_row=35,#new_col=17,#fine_row=4,#fine_col=56);
+      Send(self,@NewHold,#what=Create(&DynamicLight,#iColor=LIGHT_FIRE,#iIntensity=60),
+           #new_row=28,#new_col=21,#fine_row=44,#fine_col=40);
 
       propagate;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

@@ -34,19 +34,19 @@
 	#include "seditdlg.h"
 #endif
 
-#ifndef __OWL_DIALOG_H
+#ifndef OWL_DIALOG_H
 	#include <owl\dialog.h>
 #endif
 
-#ifndef __OWL_LISTBOX_H
+#ifndef OWL_LISTBOX_H
 	#include <owl\listbox.h>
 #endif
 
-#ifndef __OWL_EDIT_H
+#ifndef OWL_EDIT_H
 	#include <owl\edit.h>
 #endif
 
-#ifndef __OWL_STATIC_H
+#ifndef OWL_STATIC_H
 	#include <owl\static.h>
 #endif
 
@@ -153,6 +153,7 @@ DEFINE_RESPONSE_TABLE1(TSectorEditDialog, TDialog)
 	EV_BN_CLICKED(IDC_SCROLLMEDIUM, ScrollClicked),
 	EV_BN_CLICKED(IDC_SCROLLFAST, ScrollClicked),
 	EV_BN_CLICKED(IDC_FLICKER, ScrollClicked),
+	EV_BN_CLICKED(IDC_NOMOVE, ScrollClicked),
 //	EV_LBN_SELCHANGE(IDC_SECTOR_LIST, SectorSelChange),
 	EV_LBN_SELCHANGE(IDC_FTEXTURE_LIST, TextureSelChange),
 	EV_LBN_DBLCLK(IDC_FTEXTURE_LIST, TextureDblclick),
@@ -221,6 +222,7 @@ TSectorEditDialog::TSectorEditDialog (TWindow* parent, SelPtr sel,
 	pScrollMediumRadio = newTRadioButton(this, IDC_SCROLLMEDIUM, 0);
 	pScrollFastRadio   = newTRadioButton(this, IDC_SCROLLFAST, 0);
 	pFlickerCheck      = newTCheckBox(this, IDC_FLICKER, 0);
+	pNoMoveCheck       = newTCheckBox(this, IDC_NOMOVE, 0);
 	pSlopeFloorVertex[0]  = newTEdit(this, IDC_FLOORV1, 6);
 	pSlopeFloorVertex[1]  = newTEdit(this, IDC_FLOORV2, 6);
 	pSlopeFloorVertex[2]  = newTEdit(this, IDC_FLOORV3, 6);
@@ -311,7 +313,6 @@ void TSectorEditDialog::SetSectorList ()
 void TSectorEditDialog::SetTextureList ()
 {
 	assert (pTextureList->IsWindow());
-	assert (FTexture != NULL);
 
 	pTextureList->ClearList();
 
@@ -352,7 +353,10 @@ void TSectorEditDialog::SetSector()
 
    if (CurSector.blak_flags & SF_FLICKER)
       pFlickerCheck->SetCheck(BF_CHECKED);
-   
+
+   if (CurSector.blak_flags & SF_NOMOVE)
+      pNoMoveCheck->SetCheck(BF_CHECKED);
+
    wsprintf (str, "%d", CurSector.xoffset);
    pTextureXEdit->SetText (str);
 
@@ -500,6 +504,9 @@ BOOL TSectorEditDialog::GetSector()
    if (pFlickerCheck->GetCheck() == BF_CHECKED)
       flags |= SF_FLICKER;
 
+   if (pNoMoveCheck->GetCheck() == BF_CHECKED)
+      flags |= SF_NOMOVE;
+
    pTextureXEdit->GetText (str, 4);
    if ( CurSector.xoffset != atoi(str) )	ConfirmData.pTextureOffsetCheck = TRUE;
    CurSector.xoffset = atoi (str);
@@ -532,7 +539,7 @@ BOOL TSectorEditDialog::GetSector()
 
    pSpeedEdit->GetText (str, 6);
    if ( CurSector.animate_speed != (SHORT)atoi(str) )	ConfirmData.pSpeedCheck = TRUE;
-   CurSector.animate_speed = (SHORT)atoi (str);
+   CurSector.animate_speed = (BYTE)atoi (str);
 
    if (pDepth0Radio->GetCheck() == BF_CHECKED)
       flags |= SF_DEPTH0;
@@ -990,7 +997,7 @@ void TSectorEditDialog::EvLButtonDown (UINT modKeys, const TPoint& point)
 	TDialog::EvLButtonDown(modKeys, point);
 
 	// Retreive object for handle
-	TStatic *pStatic = GetPointedStatic ((TPoint &) point);
+	TStatic *pStatic = GetPointedStatic ((TPoint&)point);
 	if ( pStatic == NULL )
 		return;
 
@@ -1015,7 +1022,7 @@ void TSectorEditDialog::EvLButtonDblClk (UINT modKeys, const TPoint& point)
 	TDialog::EvLButtonDblClk(modKeys, point);
 
 	// Retreive object for handle
-	TStatic *pStatic = GetPointedStatic ((TPoint &) point);
+	TStatic *pStatic = GetPointedStatic ((TPoint&)point);
 	if ( pStatic == NULL )
 		return;
 

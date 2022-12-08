@@ -28,14 +28,16 @@
 #define D3DRENDER_TRANS75	(192)
 
 // chunk or packet-wide flags
-#define D3DRENDER_WALL_NORMAL	(0x01000000)
-#define D3DRENDER_WALL_ABOVE	(0x02000000)
-#define D3DRENDER_WALL_BELOW	(0x04000000)
-#define D3DRENDER_NO_VTILE		(0x08000000)
-#define D3DRENDER_TRANSPARENT	(0x10000000)
-#define D3DRENDER_DIRTY			(0x20000000)
-#define D3DRENDER_NOCULL		(0x40000000)
-#define D3DRENDER_NOAMBIENT		(0x80000000)
+#define D3DRENDER_FLOOR          (0x00400000)
+#define D3DRENDER_CEILING        (0x00800000)
+#define D3DRENDER_WALL_NORMAL    (0x01000000)
+#define D3DRENDER_WALL_ABOVE     (0x02000000)
+#define D3DRENDER_WALL_BELOW     (0x04000000)
+#define D3DRENDER_NO_VTILE       (0x08000000)
+#define D3DRENDER_TRANSPARENT    (0x10000000)
+#define D3DRENDER_DIRTY          (0x20000000)
+#define D3DRENDER_NOCULL         (0x40000000)
+#define D3DRENDER_NOAMBIENT      (0x80000000)
 
 // cache system-wide flags
 #define D3DRENDER_WIREFRAME		(0x01)
@@ -66,25 +68,12 @@
 #define D3DRENDER_SCREEN_TO_CLIP_X(_x, _scale)	(((_x) - (_scale) / 2.0f) / ((_scale) / 2.0f))
 #define D3DRENDER_SCREEN_TO_CLIP_Y(_y, _scale)	(((_y) - (_scale) / 2.0f) / (-(_scale) / 2.0f))
 
-typedef struct custom_xyz
-{
-	float	x, y, z;
-} custom_xyz;
 
 typedef struct custom_xyzw
 {
 	float	x, y, z, w;
 } custom_xyzw;
 
-typedef struct custom_st
-{
-	float	s, t;
-} custom_st;
-
-typedef struct custom_bgra
-{
-	unsigned char	b, g, r, a;
-} custom_bgra;
 
 typedef short custom_index;
 

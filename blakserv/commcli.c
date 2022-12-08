@@ -17,8 +17,9 @@
 
 #include "blakserv.h"
 
-#define NUMBER_OBJECT 5		/* writes 4 bytes, but diff "tag" */
-#define STRING_RESOURCE 6	/* writes actual string, even though it's a resource */
+#define NUMBER_OBJECT 5     /* writes 4 bytes, but diff "tag" */
+#define STRING_RESOURCE 6   /* writes actual string, even though it's a resource */
+#define STRING_AS_INTEGER 7 /* converts string to 32-bit int, writes int */
 
 static buffer_node *blist;
 
@@ -34,13 +35,13 @@ void AddBlakodToPacket(val_type obj_size,val_type obj_data)
    short byte2;
    int byte4;
    string_node *snod;
-   resource_node *r;
-   v0_val_type temp_val;
+   const char *pStrConst;
+   val_type temp_val;
 
    if (obj_size.v.tag != TAG_INT)
    {
       bprintf("AddBlakodToPacket looking for int, # of bytes, got %i,%i\n",
-	      obj_size.v.tag,obj_size.v.data);
+         obj_size.v.tag,obj_size.v.data);
       return;
    }
 
@@ -56,10 +57,13 @@ void AddBlakodToPacket(val_type obj_size,val_type obj_data)
       snod = GetStringByID(obj_data.v.data);
       if (snod == NULL)
       {
-			bprintf("AddBlakodToPacket can't find string id %i\n",obj_data.v.data);
-			break;
+         bprintf("AddBlakodToPacket can't find string id %i\n",obj_data.v.data);
+         break;
       }
-      AddStringToPacket(snod->len_data,snod->data);
+      if (num_bytes == STRING_AS_INTEGER)
+         AddStringToPacketAsInt(snod->data);
+      else
+         AddStringToPacket(snod->len_data,snod->data);
       break;
       
    case TAG_TEMP_STRING :
@@ -71,43 +75,42 @@ void AddBlakodToPacket(val_type obj_size,val_type obj_data)
       switch (num_bytes)
       {
       case 1 :
-			byte1 = (char) obj_data.v.data;
-			AddByteToPacket(byte1);
-			break;
-      case 2 : 
-			byte2 = (short) obj_data.v.data;
-			AddShortToPacket(byte2);
-			break;
-      case 4 : 
-			byte4 = (int) obj_data.v.data;
-			AddIntToPacket(byte4);
-			break;
+         byte1 = (char) obj_data.v.data;
+         AddByteToPacket(byte1);
+         break;
+      case 2 :
+         byte2 = (short) obj_data.v.data;
+         AddShortToPacket(byte2);
+         break;
+      case 4 :
+         byte4 = (int) obj_data.v.data;
+         AddIntToPacket(byte4);
+         break;
       case NUMBER_OBJECT :
-			// Send as a 32 bit value with the "number object" tag in the high bits
-			temp_val.v.data = (int) obj_data.v.data;
-			temp_val.v.tag = CLIENT_TAG_NUMBER;
-			byte4 = temp_val.int_val;
-			AddIntToPacket(byte4);
-			break;
+         temp_val.int_val = obj_data.int_val;
+         temp_val.v.tag = CLIENT_TAG_NUMBER;
+         byte4 = temp_val.int_val;
+         AddIntToPacket(byte4);
+         break;
       case STRING_RESOURCE :
-			if (obj_data.v.tag != TAG_RESOURCE)
-			{
-				bprintf("AddBlakodToPacket can't send %i,%i as a resource/string\n",
-						  obj_data.v.tag,obj_data.v.data);
-				return;
-			}
-			r = GetResourceByID(obj_data.v.data);
-			if (r == NULL)
-			{
-				bprintf("AddBlakodToPacket can't find resource %i as a resource/string\n",
-						  obj_data.v.data);
-				return;
-			}
-			AddStringToPacket(strlen(r->resource_val),r->resource_val);
-			break;
+         if (obj_data.v.tag != TAG_RESOURCE)
+         {
+            bprintf("AddBlakodToPacket can't send %i,%i as a resource/string\n",
+               obj_data.v.tag,obj_data.v.data);
+            return;
+         }
+         pStrConst = GetResourceStrByLanguageID(obj_data.v.data, ConfigInt(RESOURCE_LANGUAGE));
+         if (pStrConst == NULL)
+         {
+            bprintf("AddBlakodToPacket can't find resource %i as a resource/string\n",
+               obj_data.v.data);
+            return;
+         }
+         AddStringToPacket(strlen(pStrConst),pStrConst);
+         break;
       default :
-			bprintf("AddBlakodToPacket can't send %i bytes\n",num_bytes);
-			break;
+         bprintf("AddBlakodToPacket can't send %i bytes\n",num_bytes);
+         break;
       }
    }
 }
@@ -128,6 +131,13 @@ void AddIntToPacket(int byte4)
    blist = AddToBufferList(blist,&byte4,4);
 }
 
+void AddStringToPacketAsInt(const char *ptr)
+{
+   int number = strtol(ptr, NULL, 10);
+
+   blist = AddToBufferList(blist, &number, 4);
+}
+
 void AddStringToPacket(int int_len,const char *ptr)
 {
    unsigned short len;
@@ -141,9 +151,9 @@ void AddStringToPacket(int int_len,const char *ptr)
 void SecurePacketBufferList(int session_id, buffer_node *bl)
 {
    session_node *s = GetSessionByID(session_id);
-   const char* pRedbook;
+   char* pRedbook;
 
-   if (!s || !s->account || !s->account->account_id ||
+   if (!session_id || !s || !s->account || !s->account->account_id ||
        s->conn.type == CONN_CONSOLE)
    {
       //dprintf("SecurePacketBufferList cannot find session %i", session_id);
@@ -166,11 +176,11 @@ void SecurePacketBufferList(int session_id, buffer_node *bl)
    if (s->sliding_token && pRedbook)
    {
       if (s->sliding_token < pRedbook ||
-	  s->sliding_token > pRedbook+strlen(pRedbook))
+         s->sliding_token > pRedbook+strlen(pRedbook))
       {
-	 lprintf("SecurePacketBufferList lost redbook on session %i account %i (%s), may break session\n",
-	    session_id, s->account->account_id, s->account->name);
-	 s->sliding_token = pRedbook;
+         lprintf("SecurePacketBufferList lost redbook on session %i account %i (%s), may break session\n",
+         session_id, s->account->account_id, s->account->name);
+         s->sliding_token = pRedbook;
       }
 
       s->secure_token += ((*s->sliding_token) & 0x7F);
@@ -209,6 +219,7 @@ void ClearPacket()
    DeleteBufferList(blist);
    blist = NULL;
 }
+
 void ClientHangupToBlakod(session_node *session)
 {
    val_type command,parm_list;
@@ -227,7 +238,6 @@ void ClientHangupToBlakod(session_node *session)
 
    SendTopLevelBlakodMessage(session->game->object_id,RECEIVE_CLIENT_MSG,1,parms);
 }
-
 
 void SendBlakodBeginSystemEvent(int type)
 {
@@ -257,7 +267,55 @@ void SendBlakodEndSystemEvent(int type)
    p[0].name_id = TYPE_PARM;
 
    SendTopLevelBlakodMessage(GetSystemObjectID(),GARBAGE_DONE_MSG,1,p);
-
 }
 
+#define BLAK_TAG_PARM_CREATE(a, b, c, d, e) \
+   do \
+   { \
+      a[b].type = CONSTANT; \
+      a[b].value = (c << KOD_SHIFT) + d; \
+      a[b].name_id = GetIDByName(e); \
+   } while (0)
 
+#define BLAK_PARM_CREATE(a, b, c, d) \
+   do \
+   { \
+      a[b].type = CONSTANT; \
+      a[b].value = c.int_val; \
+      a[b].name_id = GetIDByName(d); \
+   } while (0)
+
+void SendBlakodRegisterCallback(blakod_reg_callback *reg)
+{
+   parm_node p[12];
+
+   // Obj ID.
+   BLAK_TAG_PARM_CREATE(p, 0, TAG_OBJECT, reg->object_id, "oObject");
+   // Msg ID.
+   BLAK_TAG_PARM_CREATE(p, 1, TAG_MESSAGE, reg->message_id, "message");
+
+   // Second.
+   BLAK_TAG_PARM_CREATE(p, 2, TAG_INT, reg->second, "iSecond");
+   // Minute.
+   BLAK_TAG_PARM_CREATE(p, 3, TAG_INT, reg->minute, "iMinute");
+   // Hour.
+   BLAK_TAG_PARM_CREATE(p, 4, TAG_INT, reg->hour, "iHour");
+   // Day.
+   BLAK_TAG_PARM_CREATE(p, 5, TAG_INT, reg->day, "iDay");
+   // Month.
+   BLAK_TAG_PARM_CREATE(p, 6, TAG_INT, reg->month, "iMonth");
+   // Year.
+   BLAK_TAG_PARM_CREATE(p, 7, TAG_INT, reg->year, "iYear");
+
+   // Optional parameters.
+   // parm1
+   BLAK_PARM_CREATE(p, 8, reg->parm1, "parm1");
+   // parm2
+   BLAK_PARM_CREATE(p, 9, reg->parm2, "parm2");
+   // parm3
+   BLAK_PARM_CREATE(p, 10, reg->parm3, "parm3");
+   // parm4
+   BLAK_PARM_CREATE(p, 11, reg->parm4, "parm4");
+
+   SendTopLevelBlakodMessage(GetRealTimeObjectID(), GetIDByName("registercallback"), 12, p);
+}

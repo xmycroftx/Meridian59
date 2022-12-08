@@ -342,7 +342,7 @@ static ThingDesc DThingInfo2[MAXDTHINGINFO2 + 1 - MINDTHINGINFO2] =
 	"Box of Ammo", TP_PICK | TP_WAMMO},
   {  20,  16,    0,    0,  0, 1400, "SBOXA0", /* 2049 */
 	"Box of Shells", TP_PICK | TP_WAMMO}
-};                              // 
+};
 
 #define MINDTHINGINFO3   3001
 #define MAXDTHINGINFO3   3006
@@ -1161,7 +1161,7 @@ LPCSTR GetKodTypeDecorativeName(int objectNum, int index)
 {
 	if ((objectNum >= 0) && (objectNum < numKodObjects))
 	{
-		if (0 == strnicmp(GetKodTypeName(objectNum, index),"OO_",3))
+		if (0 == strnicmp(GetKodTypeName(objectNum, index), "OO_", 3))
 			return GetKodTypeName(objectNum, index)+3;
 		else
 			return GetKodTypeName(objectNum, index);

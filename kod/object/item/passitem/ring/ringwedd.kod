@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 RingWedding is Ring
 
 constants:
@@ -16,14 +16,15 @@ constants:
 
 resources:
 
+   include ringwedd.lkod
+
    ringwedding_name_rsc = "wedding ring"
    ringwedding_icon_rsc = ring1.bgf
-   ringwedding_desc_rsc = "This is an elegant gold band demonstrating the bond between two people."
+   ringwedding_desc_rsc = \
+      "This is an elegant gold band demonstrating the bond between two people."
 
-   ringwedding_one = " Inscribed with magic runes is the name "
-   ringwedding_two = " Inscribed with magic runes are the names "
-   ringwedding_and = " and "
-   ringwedding_dot = "."
+   ringwedding_one = "  Inscribed with magic runes is the name %q."
+   ringwedding_two = "  Inscribed with magic runes are the names %q and %q."
 
 classvars:
 
@@ -38,8 +39,6 @@ classvars:
    viWeight = 3
    
    viValue_average = 100
-
-   viDefense_bonus = 100
 
 properties:
 
@@ -57,22 +56,17 @@ messages:
       {
          if poSecondHeld <> $
          {
-            AppendTempString(ringwedding_two);
+            AddPacket(4,ringwedding_two,6,Send(poFirstHeld,@GetTrueName),
+                      6,Send(poSecondHeld,@GetTrueName));
          }
          else
          {
-            AppendTempString(ringwedding_one);
+            AddPacket(4,ringwedding_one,6,Send(poFirstHeld,@GetTrueName));
          }
-
-         AppendTempString(send(poFirstHeld,@GetTrueName));
-
-         if poSecondHeld <> $
-         {
-            AppendTempString(ringwedding_and);
-            AppendTempString(send(poSecondHeld,@GetTrueName));
-         }
-
-         AppendTempString(ringwedding_dot);
+      }
+      else
+      {
+         AddPacket(4,system_blank_resource);
       }
 
       return;
@@ -80,9 +74,9 @@ messages:
 
    NewUsed(what=$)
    {
-      % First two unique players to use the ring get their name on it.
+      // First two unique players to use the ring get their name on it.
 
-      if what <> $ AND isClass(what,&Player)
+      if what <> $ AND IsClass(what,&Player)
       {
          if poFirstHeld = $
          {
@@ -90,7 +84,7 @@ messages:
 
             propagate;
          }
-         
+
          if poSecondHeld = $
          {
             if what <> poFirstHeld
@@ -98,44 +92,28 @@ messages:
                poSecondHeld = what;
             }
          }
-         else
-         {
-            if what = poFirstHeld
-               OR what = poSecondHeld
-            {
-               send(what,@AddDefenseModifier,#what=self);
-            }
-         }
       }
-      
+
       propagate;
    }
 
    NewUnused(what = $)
    {
-      if what = poFirstHeld
-         OR what = poSecondHeld
-      {
-         Send(what,@RemoveDefenseModifier,#what=self);
-      }
-
       propagate;
+   }
+
+   DefendingHit()
+   {
+      return;
    }
 
    DropOnDeath()
    {
-      % Who was the stupid fuck that let these be dropped on death?
+      // Who was the stupid fuck that let these be dropped on death?
       return FALSE;
    }
 
-   DefendingHit()
-   "Called when the item provides defense."
-   {
-      % Return here so we don't damage the ring!
-      return;
-   }
-
-   % No taking the rings from people in rude ways.
+   // No taking the rings from people in rude ways.
    CanSwap()
    {
       return FALSE;
@@ -157,18 +135,15 @@ messages:
       return FALSE;
    }
 
-   % Negates the ring modifying defense power
    ModifyDefensePower(who = $,what = $,defense_power = 0)
    {
       return defense_power;
    }
 
-   % Negates the ring modifying defense damage
-   ModifyDefenseDamage(who = $,what = $,damage = $,atype = 0,aspell = 0)
+   ModifyDefenseDamage(who = $,what = $,damage = $,atype = 0,stype = 0)
    {
       return damage;
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+////////////////////////////////////////////////////////////////////////////////

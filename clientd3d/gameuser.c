@@ -11,7 +11,7 @@
 
 #include "client.h"
 
-#define ATTACK_DELAY 1000  // Minimum number of milliseconds between user attacks
+#define ATTACK_DELAY 200  // Minimum number of milliseconds between user attacks
 
 extern player_info player;
 extern room_type current_room;
@@ -26,7 +26,7 @@ static ID idTarget = INVALID_ID;		//	Target object, or INVALID_ID if no target s
 static void ApplyCallback(ID obj2);
 static void SetDescParamsByRoomObject(room_contents_node *r, HWND hwnd);
 
-extern BOOL		gbMouselook;
+BOOL		gbMouselook;
 extern RECT		gD3DRect;
 /************************************************************************/
 /*
@@ -56,7 +56,7 @@ void UserAttack(int action)
    last_attack_time = now;
 
    /* Get objects at mouse position */
-   object_list = GetObjects3D(x, y, 0, OF_ATTACKABLE, 0);
+   object_list = GetObjects3D(x, y, 0, OF_ATTACKABLE, 0, 0, 0);
    if (object_list == NULL)
       return;
 
@@ -64,7 +64,7 @@ void UserAttack(int action)
    
    if (sel_list != NULL)
    {
-      MoveUpdatePosition();   // Send our exact position, so that we try to attack in range
+      //MoveUpdatePosition();   // Send our exact position, so that we try to attack in range
 
       target_obj = (room_contents_node *) (sel_list->data);
 
@@ -101,7 +101,7 @@ void UserAttackClosest(int action)
 	}
 	
    object_list = GetObjects3D(NO_COORD_CHECK, NO_COORD_CHECK, 
-			      CLOSE_DISTANCE, OF_ATTACKABLE, 0);
+			      CLOSE_DISTANCE, OF_ATTACKABLE, 0, 0, 0);
    if (object_list == NULL)
       return;
 
@@ -115,7 +115,7 @@ void UserPickup(void)
    list_type square_list, sel_list, l;
 
    if ((square_list = GetObjects3D(NO_COORD_CHECK, NO_COORD_CHECK,
-				   CLOSE_DISTANCE, OF_GETTABLE, 0)) == NULL)
+				   CLOSE_DISTANCE, OF_GETTABLE, 0, 0, 0)) == NULL)
        return;
 
    sel_list = DisplayLookList(hMain, GetString(hInst, IDS_GET), 
@@ -163,7 +163,7 @@ void UserLook(void)
    room_contents_node *r;
 
    if ((square_list = GetObjects3D(NO_COORD_CHECK, NO_COORD_CHECK,
-				   0, 0, OF_NOEXAMINE | OF_INVISIBLE)) == NULL)
+				   0, 0, OF_NOEXAMINE, 0, DRAWFX_INVISIBLE)) == NULL)
       return;
    
    sel_list = DisplayLookList(hMain, GetString(hInst, IDS_LOOK), square_list, LD_SINGLEAUTO);
@@ -223,7 +223,7 @@ void UserLookMouseSquare(void)
 //      return;
 //   }
 
-   objects = GetObjects3D(x, y, 0, 0, OF_INVISIBLE);
+   objects = GetObjects3D(x, y, 0, 0, 0, 0, DRAWFX_INVISIBLE);
    if (objects == NULL)
       return;
 
@@ -259,7 +259,7 @@ void UserActivate(void)
    object_node *obj;
 
    if ((square_list = GetObjects3D(NO_COORD_CHECK, NO_COORD_CHECK,
-				   CLOSE_DISTANCE, OF_ACTIVATABLE | OF_CONTAINER, OF_PLAYER)) == NULL)
+				   CLOSE_DISTANCE, OF_ACTIVATABLE | OF_CONTAINER, OF_PLAYER, 0, 0)) == NULL)
       return;
    
    sel_list = DisplayLookList(hMain, GetString(hInst, IDS_ACTIVATE), square_list, LD_SINGLEAUTO);
@@ -290,7 +290,7 @@ void UserActivateMouse(void)
    if (!MouseToRoom(&x, &y))
       return;
 
-   objects = GetObjects3D(x, y, CLOSE_DISTANCE, OF_ACTIVATABLE | OF_CONTAINER, OF_PLAYER);
+   objects = GetObjects3D(x, y, CLOSE_DISTANCE, OF_ACTIVATABLE | OF_CONTAINER, OF_PLAYER, 0, 0);
    if (objects == NULL)
       return;
 
@@ -335,7 +335,7 @@ void UserPut(void)
 
    /* If there are no containers around, don't ask for object to put */
    square_list = GetObjects3D(NO_COORD_CHECK, NO_COORD_CHECK,
-			      CLOSE_DISTANCE, OF_CONTAINER, 0);
+			      CLOSE_DISTANCE, OF_CONTAINER, 0, 0, 0);
    if (square_list == NULL)
       return;
    
@@ -402,9 +402,10 @@ void UserUnuse(void)
  */
 void UserToggleMusic(Bool music_on)
 {
-   if (music_on)
-      MusicStart();
-   else MusicAbort();
+   if (!music_on)
+      MusicStop();
+   else
+      MusicRestart();
 }
 /************************************************************************/
 /*
@@ -439,7 +440,7 @@ void UserMakeOffer(void)
       return;
 
    recipients = GetObjects3D(NO_COORD_CHECK, NO_COORD_CHECK,
-			     CLOSE_DISTANCE, OF_OFFERABLE, OF_INVISIBLE);
+			     CLOSE_DISTANCE, OF_OFFERABLE, 0, 0, DRAWFX_INVISIBLE);
 
    if (recipients == NULL)
    {
@@ -483,7 +484,7 @@ void UserBuy(void)
 
    // Get object to buy from
    sellers = GetObjects3D(NO_COORD_CHECK, NO_COORD_CHECK,
-			  CLOSE_DISTANCE, OF_BUYABLE, 0);
+			  CLOSE_DISTANCE, OF_BUYABLE, 0, 0, 0);
 
    if (sellers == NULL)
    {
@@ -507,6 +508,9 @@ void UserBuy(void)
  */
 void UserDeposit(void)
 {
+#if 0
+   GameMessage("DEPOSIT (not money) not developed yet");
+#else
    list_type sel_list, items, recipients;
    ID recipient;
 
@@ -525,7 +529,7 @@ void UserDeposit(void)
       return;
 
    recipients = GetObjects3D(NO_COORD_CHECK, NO_COORD_CHECK,
-			     CLOSE_DISTANCE, OF_OFFERABLE, 0);
+			     CLOSE_DISTANCE, OF_OFFERABLE, 0, 0, 0);
 
    if (recipients == NULL)
    {
@@ -557,6 +561,7 @@ void UserDeposit(void)
    /* Send offer to server */
    RequestDeposit(recipient, items);
    ObjectListDestroy(items);
+#endif
 }
 /************************************************************************/
 /*
@@ -569,7 +574,7 @@ void UserWithdraw(void)
 
    // Get object to buy from
    bankers = GetObjects3D(NO_COORD_CHECK, NO_COORD_CHECK,
-			  CLOSE_DISTANCE, OF_BUYABLE, 0);
+			  CLOSE_DISTANCE, OF_BUYABLE, 0, 0, 0);
 
    if (bankers == NULL)
    {
@@ -650,17 +655,23 @@ void SetDescParamsByRoomObject(room_contents_node *r, HWND hwnd)
    if (r->distance <= CLOSE_DISTANCE)
    {
       if (r->obj.flags & OF_CONTAINER)
-	 params |= DESC_INSIDE;
-      
+         params |= DESC_INSIDE;
+
       if (r->obj.flags & OF_ACTIVATABLE && !(r->obj.flags & OF_PLAYER))
-	 params |= DESC_ACTIVATE;
+         params |= DESC_ACTIVATE;
 
       if (r->obj.flags & OF_GETTABLE)
       {
-	 params |= DESC_GET;
-	 if (!(r->obj.flags & OF_ACTIVATABLE))
-	    params |= DESC_USE;	 
+         params |= DESC_GET;
+         if (!(r->obj.flags & OF_ACTIVATABLE))
+            params |= DESC_USE;
       }
+      if (r->obj.flags & OF_BUYABLE)
+         params |= DESC_BUY;
+      if ((r->obj.flags & OF_OFFERABLE) && !(r->obj.flags & OF_PLAYER))
+         params |= DESC_OFFER;
+      if (r->obj.flags & OF_NPCQUESTABLE)
+         params |= DESC_QUEST;
    }
    SetDescParams(hwnd, params);
 }
@@ -679,7 +690,7 @@ void UserTargetNextOrPrevious(Bool bTargetNext)
 
 	//	Get list of visible objects.
 	//	xxx use something like OF_ATTACKABLE?
-	object_list = GetObjects3D(NO_COORD_CHECK, NO_COORD_CHECK, 0, OF_ATTACKABLE, OF_INVISIBLE);
+	object_list = GetObjects3D(NO_COORD_CHECK, NO_COORD_CHECK, 0, OF_ATTACKABLE, 0, 0, DRAWFX_INVISIBLE);
 	
 	//	There doesn't seem to be a "list_find_item()"-like proc that returns position of an item in a list,
 	//	so I'll just iterate through the list myself.

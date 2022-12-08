@@ -20,11 +20,19 @@
 
 #define MAX_IGNORE_LIST 1000  /* Max number of player names that can be ignored */
 
+#define CONFIG_MAX_PARTICLES 150  // Max particle density
 #define CONFIG_MAX_VOLUME 100  // Max value of sound / music volume settings
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+// Color the user has selected for target halo/light.
+enum TargetColor {
+   TARGET_COLOR_RED = 0,
+   TARGET_COLOR_BLUE = 1,
+   TARGET_COLOR_GREEN = 2,
+};
 
 // Communication settings
 typedef struct {
@@ -42,7 +50,9 @@ typedef struct {
    Bool save_settings;           /* Save settings on exit? */
    Bool play_music;              /* Does user want to hear music? */
    Bool play_sound;              /* Does user want to hear sound? */
+   Bool large_area;              /* Drawing area size--> 0 = small, nonzero = large */
    int  timeout;                 /* Period of logoff timer */
+   Bool  timeoutenabled;         /* Whether we use the logoff timer */
    char username[MAXUSERNAME+1]; /* User's last login name */
    char password[MAXPASSWORD+1]; /* User's last password (not saved to INI file) */
 
@@ -58,7 +68,10 @@ typedef struct {
    Bool security;                /* Use room security? */
    int  ini_version;             /* INI version number; restore defaults if it doesn't match */
 
-   Bool draw_names;              /* Draw names over players? */
+   Bool draw_player_names;       /* Draw names over players? */
+   Bool draw_npc_names;          /* Draw names over NPCs? */
+   Bool draw_sign_names;         /* Draw names over signs? */
+   Bool target_highlight;        /* Show targeting highlight effect? */
    Bool ignore_all;              /* Ignore EVERYTHING said? */
    Bool no_broadcast;            /* Ignore all broadcasts? */
    char ignore_list[MAX_IGNORE_LIST][MAX_CHARNAME + 1]; /* Usernames to ignore */
@@ -66,23 +79,22 @@ typedef struct {
    Bool scroll_lock;             /* Don't scroll main edit box if scrolled back */
    Bool tooltips;                /* Display tooltips? */
    Bool inventory_num;           /* Display amounts for number items in inventory? */
-   Bool aggressive;              /* Allowed to attack other players? */
+   Bool preferences;             /* Client gameplay preferences. */
    Bool bounce;                  /* Display player "bouncing" animation? */
    Bool toolbar;                 /* Display toolbar? */
 
    Bool pain;                    /* Display pain effect on hits? */
    Bool weather;                 /* Display weather effects? */
+   int particles;                /* How many particles we display in effects */
    Bool technical;               /* Show technical info such as the connected server number? */
    Bool quickstart;              /* Try to answer all questions with defaults until playing. */
    Bool antiprofane;             /* Kill annoying incoming profanity. */
-   Bool guest;                   /* Automatically log in as "guest"? */
-   int  server_low, server_high; /* Closed interval of legal server numbers for guest logins */
-   int	halocolor;					//	0 = red, 1 = blue, 2 = green
+   int  halocolor;               // 0 = red, 1 = blue, 2 = green
+   int  language;                // 0 = English, 1 = German, 2 = Korean
 
    Bool lagbox;                  /* Display lag meter? */
    Bool ignoreprofane;           /* Kill messages including any profanity. */
    Bool extraprofane;            /* Really search hard for possible hidden profanity. */
-   int  server_guest;            /* Server to try first for guest logins */
    Bool play_loop_sounds;
    Bool play_random_sounds;
    Bool showMapBlocking;
@@ -93,22 +105,25 @@ typedef struct {
    int  maxFPS;		 /* Slow machine down for rendering to this frames per second */
    Bool drawmap;
    Bool clearCache;
-
+   Bool xp_display_percent; // Display XP as percent.
+   Bool chat_time_stamps; // Display timestamps in chat window.
    Bool colorcodes;
    int lastPasswordChange;
 
-   int soundLibrary;
-   Bool rosterbmps;         // unused, should be removed
    int CacheBalance;			 /* controls the balance between the object and grid caches */
    int ObjectCacheMin;			 /* minimum size of the object cache */
    int GridCacheMin;			 /* minimum size of the grid cache */
+
+   Bool mipMaps;       // Load multiple levels of textures.
+   Bool dynamicLights; // Lights active/inactive.
+   Bool drawWireframe; // Wireframe drawing in d3d renderer.
+   int aaMode;         // Level of antialiasing.
 
    // stuff for new client
    BOOL	bAlwaysRun;
    BOOL bAttackOnTarget;
    BOOL	bQuickChat;
    BOOL bInvertMouse;
-   BOOL bDynamicLighting;
    int	mouselookXScale;
    int	mouselookYScale;
 
@@ -116,8 +131,6 @@ typedef struct {
 
    int sound_volume;           // 0 - 100
    int music_volume;           // 0 - 100
-
-   int text_area_size;        /* As a percentage of the client height */
 } Config;
 
 void ConfigInit(void);
@@ -142,10 +155,6 @@ M59EXPORT BOOL WriteConfigInt(char *section, char *key, int value, char *fname);
 
 void ConfigSetServerNameByNumber(int num);
 void ConfigSetSocketPortByNumber(int num);
-
-#define LIBRARY_NIL 0
-#define LIBRARY_MSS 1
-#define LIBRARY_MIX 2
 
 #ifdef __cplusplus
 }

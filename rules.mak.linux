@@ -2,16 +2,9 @@
 #
 # to be included at the end of each makefile
 
-
-$(OUTDIR)/%.obj : %.c
-	$(CC) $(CFLAGS) -o $@ -c $< 
-
-$(OUTDIR)/%.obj : $(OUTDIR)/%.c
-	$(CC) $(CFLAGS) -I $(SOURCEDIR) -o $@ -c $< 
-
 makedirs:
-	-@mkdir -p $(OUTDIR)
+		-@mkdir $(OUTDIR) 2>&1
 
-clean:
-	@$(RM) $(OUTDIR)/*
-	@$(RMDIR) $(OUTDIR)
+clean :
+		@$(RM) $(OUTDIR)/* 2>&1
+		@$(RMDIR) $(OUTDIR) 2>&1

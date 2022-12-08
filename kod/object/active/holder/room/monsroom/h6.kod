@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 OutdoorsH6 is MonsterRoom
 
 constants:
@@ -16,9 +16,11 @@ constants:
 
 resources:
 
+   include h6.lkod
+
    room_OutdoorsH6 = h6.roo
    room_name_OutdoorsH6 ="Main gate to the city of Tos"
-   OutdoorsH6_music = walk1.mid
+   OutdoorsH6_music = walk1.ogg
 
 classvars:
 
@@ -34,6 +36,8 @@ classvars:
    viFlag_row = 24
    viFlag_col = 31
 
+   viWeatherZone = WEATHER_ZONE_TOS
+
 properties:
 
    prRoom = room_OutdoorsH6
@@ -45,45 +49,53 @@ properties:
 
    piDirectional_percent = DIRECTIONAL_PERCENT_OUTDOORS
 
-%   piGen_time = 45000
-   piGen_time = 25000 % temporarily increased from 25000
+   pbSnowGroundTexture = TRUE
+
+//   piGen_time = 45000
+   piGen_time = 20000 // temporarily increased from 25000
    piGen_percent = 80
 
-%% modified for press day
-%   piInit_count_min = 0
-%   piInit_count_max = 3
+/// modified for press day
+//   piInit_count_min = 0
+//   piInit_count_max = 3
 
-   piInit_count_min = 5  % minimum # of monsters loaded by first_user_enters
-   piInit_count_max = 7  % maximum # of monsters loaded by initial load
+   piInit_count_min = 5  // minimum # of monsters loaded by first_user_enters
+   piInit_count_max = 7  // maximum # of monsters loaded by initial load
 
-   piMonster_count_max = 7 % temporarily reduced from 13
-
+   piMonster_count_max = 12 // temporarily reduced from 13
 
 messages:
 
    Constructed()
    {
       plMonsters = [ [&GiantRat, 70], [&Centipede, 30] ];
-      plGenerators = [ [8, 8], [9, 14], [5, 25], [10, 30], [18, 18], 
-		      [25, 19], [20, 3], [25, 9], [42, 5], [45, 12],
-		      [41, 22], [35, 30], [47, 34] ];
+
       propagate;
+   }
+
+   SetMonsterGenPoints()
+   {
+      plGenerators = [ [8, 8], [9, 14], [5, 25], [10, 30], [18, 18], 
+                       [25, 19], [20, 3], [25, 9], [42, 5], [45, 12],
+                       [41, 22], [35, 30], [47, 34] ];
+
+      return;
    }
 
    CreateStandardExits()
    {
       plExits = $;
 
-  %% TO TOWN
+      /// TO TOWN
       plExits = Cons([ 27, 41, RID_TOS, 58, 4, ROTATE_NONE ],plExits);
 
       plEdge_Exits = $;
       plEdge_Exits = Cons([LEAVE_EAST, RID_I6, 8, 2, ROTATE_NONE], plEdge_exits);
       plEdge_Exits = Cons([LEAVE_NORTH, RID_H5, 45, 11, ROTATE_NONE], plEdge_exits);
       plEdge_Exits = Cons([LEAVE_WEST, RID_H7, 8, 66, ROTATE_NONE], plEdge_exits);
- 
+
       propagate;
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

@@ -62,8 +62,7 @@ void CharSpellsInit(HWND hDlg)
    for (l = spells; l != NULL; l = l->next)
    {
       Spell *s = (Spell *) (l->data);
-      
-      index = ListBox_AddString(hList1, LookupNameRsc(s->name_res));
+      index = ListBox_AddString(hList1, s->list_str);
       ListBox_SetItemData(hList1, index, s);
    }
 
@@ -76,8 +75,9 @@ void CharSpellsInit(HWND hDlg)
  */
 void CharSpellsCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 {
-   int index1, index2;
+   int index1, index2, i, iCount, school;
    Spell *s;
+
    char temp[MAXAMOUNT + 1];
 
    UserDidSomething();
@@ -96,8 +96,8 @@ void CharSpellsCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
          break;
       spell_points -= s->cost;
       SendMessage(hPoints, GRPH_POSSET, 0, spell_points);
-      
-      index2 = ListBox_AddString(hList2, LookupNameRsc(s->name_res));
+
+      index2 = ListBox_AddString(hList2, s->list_str);
       ListBox_SetItemData(hList2, index2, s);
       s->chosen = True;
       ListBox_DeleteString(hList1, index1);
@@ -110,13 +110,13 @@ void CharSpellsCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
       index2 = ListBox_GetCurSel(hList2);
       if (index2 == LB_ERR)
          break;
-      
+
       s = (Spell *) ListBox_GetItemData(hList2, index2);
 
       spell_points += s->cost;
       SendMessage(hPoints, GRPH_POSSET, 0, spell_points);
 
-      index1 = ListBox_AddString(hList1, LookupNameRsc(s->name_res));
+      index1 = ListBox_AddString(hList1, s->list_str);
       ListBox_SetItemData(hList1, index1, s);
       s->chosen = False;
       ListBox_DeleteString(hList2, index2);
@@ -124,7 +124,47 @@ void CharSpellsCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
       ListBox_SetCurSel(hList2, min(index2, ListBox_GetCount(hList2) - 1));
       FORWARD_WM_COMMAND(hwnd, IDC_SPELLIST2, hList2, LBN_SELCHANGE, CharSpellsDialogProc);
 
+      // Removal of this spell may result in the removal of dependent spells.
+      if (s->cost == 10)
+      {
+         school = s->spell_school;
+
+         // Let's see how many rank 1 spells of this school are left.
+         iCount = 0;
+
+         for (i = 0; i < ListBox_GetCount(hList2); ++i)
+         {
+            s = (Spell *) ListBox_GetItemData(hList2, i);
+
+            if (school == s->spell_school && s->cost == 10)
+               ++iCount;
+         }
+
+         // Uh oh, we can't support those rank 2 spells anymore.
+         if (iCount < 2)
+         {
+            for (i = 0; i < ListBox_GetCount(hList2); ++i)
+            {
+               s = (Spell *) ListBox_GetItemData(hList2, i);
+
+               if (school == s->spell_school && s->cost == 25)
+               {
+                  spell_points += s->cost;
+                  SendMessage(hPoints, GRPH_POSSET, 0, spell_points);
+                  index1 = ListBox_AddString(hList1, s->list_str);
+                  ListBox_SetItemData(hList1, index1, s);
+                  s->chosen = False;
+                  ListBox_DeleteString(hList2, i);
+                  ListBox_SetCurSel(hList2, min(i, ListBox_GetCount(hList2) - 1));
+                  --i;
+                  FORWARD_WM_COMMAND(hwnd, IDC_SPELLIST2, hList2, LBN_SELCHANGE, CharSpellsDialogProc);
+               }
+            }
+         }
+      }
+
       MaybeEnableAddButton(hwnd);
+
       break;
 
    case IDC_SPELLIST1:
@@ -162,6 +202,7 @@ void CharSpellsCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
       return;
    }
 }
+
 /********************************************************************/
 /*
  * MaybeEnableAddButton: Enable/disable the "add spell" button
@@ -171,25 +212,35 @@ void CharSpellsCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 void MaybeEnableAddButton(HWND hDlg)
 {
    int i;
+   int iCount = 0;
    int school = 0;
    Spell *s;
+   Spell *t;
    BOOL enable = TRUE;
    int index = ListBox_GetCurSel(hList1);
+
    if (index != LB_ERR)
    {
+      s = (Spell *) ListBox_GetItemData(hList1, index);
+
       // First find any chosen Qor/Shallile spells
+      // Also count how many level 1 spells we have of this school.
       for (i = 0; i < ListBox_GetCount(hList2); ++i)
       {
-         s = (Spell *) ListBox_GetItemData(hList2, i);
-         if (s->school == SS_QOR || s->school == SS_SHALILLE)
-            school = s->school;
+         t = (Spell *) ListBox_GetItemData(hList2, i);
+
+         if (t->spell_school == SS_QOR || t->spell_school == SS_SHALILLE)
+            school = t->spell_school;
+
+         if (t->spell_school == s->spell_school && t->cost == 10)
+            ++iCount;
       }
-      
-      // If school of selected spell conflicts, disable button
-      s = (Spell *) ListBox_GetItemData(hList1, index);
-      
-      if (school == SS_QOR && s->school == SS_SHALILLE ||
-          school == SS_SHALILLE && s->school == SS_QOR)
+
+      // If school of selected spell conflicts or we don't have the required
+      // level 1 spells, disable button
+      if (school == SS_QOR && s->spell_school == SS_SHALILLE ||
+         school == SS_SHALILLE && s->spell_school == SS_QOR ||
+         s->cost == 25 && iCount < 2)
          enable = FALSE;
    }
 

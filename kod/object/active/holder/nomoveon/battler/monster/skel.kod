@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Skeleton is Monster
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include skel.lkod
 
    skeleton_koc_name_rsc = "chaleoc"
    skeleton_name_rsc = "skeleton"
@@ -28,9 +30,9 @@ resources:
    skeleton_dead_icon_rsc = skelX.bgf
    skeleton_dead_name_rsc = "pile of bones"
 
-   skeleton_sound_miss = skl_atkm.wav
-   skeleton_sound_death = skl_dth.wav
-   skeleton_sound_aware = skl_awr.wav
+   skeleton_sound_miss = skl_atkm.ogg
+   skeleton_sound_death = skl_dth.ogg
+   skeleton_sound_aware = skl_awr.ogg
 
 classvars:
 
@@ -40,14 +42,23 @@ classvars:
    vrDesc = skeleton_desc_rsc
    vrDead_icon = skeleton_dead_icon_rsc
    vrDead_name = skeleton_dead_name_rsc
-
+   
+   viCashmin = 50
+   viCashmax = 400
    viTreasure_type = TID_TOUGH
    viSpeed = SPEED_AVERAGE
-   viAttack_type = ATCK_WEAP_THRUST
+   viAttack_type = ATK_TYPE_THRUST
    viAttributes = 0
    viLevel = 75
    viDifficulty = 5
+   viVisionDistance = 10
+   viSocial = 1
+   vbCanPoison = FALSE
+   vbCanBleed = FALSE
+   vbCanSiphon = FALSE
+   vbCanFatigue = FALSE
    viKarma = -50
+   vbIsUndead = TRUE
    viDefault_behavior = AI_FIGHT_AGGRESSIVE | AI_FIGHT_SWITCHALOT \
                         | AI_MOVE_FLEE_FRIGHTENERS
 
@@ -57,59 +68,54 @@ classvars:
 
    vrHeadIcon = skeleton_head
 
+   viBleedChance = 10
+   viBleedStrength = 1000
+   viBleedDuration = 7000
+
+   // Undead, doesn't even have eyeballs.
+   viNightVision = 255
+
 properties:
 
    piAnimation = ANIM_NONE
-   
+
+   piReputationGroup = REP_UNDEAD
+
 messages:
 
    Constructed()
    {
-      send(self,@SetResistances);
+      Send(self,@SetResistances);
+
+      plReputationEnemies = [REP_FAROL];
 
       propagate;
    }
 
    SetResistances()
    {
-      plResistances = [ [ 70, ATCK_WEAP_PIERCE ],
-                        [ 70, ATCK_WEAP_THRUST ],
-                        [ 70, -ATCK_SPELL_UNHOLY ],
-                        [ 70, -ATCK_SPELL_SHOCK ],
-                        [ 70, -ATCK_SPELL_COLD ],
-                        [ -10, -ATCK_SPELL_FIRE ],
-                        [ -20, -ATCK_SPELL_HOLY ],
-                        [ -20, ATCK_WEAP_BLUDGEON ]
+      plResistances = [ [ATK_TYPE_PIERCE, 70 ],
+                        [ATK_TYPE_THRUST, 20 ],
+                        [-SPL_TYPE_UNHOLY, 70 ],
+                        [-SPL_TYPE_SHOCK, 70 ],
+                        [-SPL_TYPE_COLD, 70 ],
+                        [-SPL_TYPE_FIRE, -10 ],
+                        [-SPL_TYPE_HOLY, -20 ],
+                        [ATK_TYPE_BLUDGEON, -20 ]
                       ];
 
       return;
    }
 
-   % Used for defense messages
+   // Used for defense messages
    GetParryAbility(stroke_obj=$)
    {
       if stroke_obj <> $ AND NOT Send(stroke_obj,@CanParry)
       {
          return 0;
       }
-      
+
       return (viDifficulty*10)/2;
-   }
-
-   MonsterAttack(what = $)
-   {
-      Send(self,@DoSlash);
-      
-      return;
-   }
-
-   DoSlash()
-   {
-      piAnimation = ANIM_ATTACK;
-      Send(poOwner,@SomethingChanged,#what=self);
-      piAnimation = ANIM_NONE;
-      
-      return;
    }
 
    SendMoveAnimation()
@@ -118,7 +124,7 @@ messages:
       {
          AddPacket(1,ANIMATE_TRANSLATION, 1,piColor_Translation);
       }
-      
+
       AddPacket(1,ANIMATE_CYCLE, 4,100, 2,2, 2,7);
 
       return;
@@ -126,20 +132,20 @@ messages:
 
    SendMoveOverlays()
    {
-      % 1 overlay: the head.
+      // 1 overlay: the head.
       AddPacket(1,1);
       AddPacket(4,vrHeadIcon, 1,HS_HEAD, 1,ANIMATE_CYCLE, 4,100, 2,2, 2,7);
-      
+
       return;
    }
 
    SendOverlays()
    {
-      % 1 overlay: the head.
+      // 1 overlay: the head.
       AddPacket(1,1);
 
       if piAnimation = ANIM_ATTACK
-      {	 
+      {
          AddPacket(4,vrHeadIcon, 1,HS_HEAD, 1,ANIMATE_ONCE, 4,100, 2,8, 2,13,
                    2,1);
       }
@@ -157,7 +163,7 @@ messages:
       {
          AddPacket(1,ANIMATE_TRANSLATION, 1,piColor_Translation);
       }
-      
+
       if piAnimation = ANIM_ATTACK
       {
          AddPacket(1,ANIMATE_ONCE, 4,100, 2,8, 2,13, 2,1);
@@ -166,53 +172,36 @@ messages:
       {
          AddPacket(1,ANIMATE_NONE,2,1);
       }
-      
-      return;
-   }
 
-   CreateTreasure(who=$,corpse=$)
-   {
-      local oTreasure, iHits;
-      
-      oTreasure = Create(&LongSword,#corpse=corpse);
-      iHits = Bound(Send(oTreasure,@GetHits)/Random(2,4),1,$);
-      Send(oTreasure,@SetHits,#number=iHits);
-              
-      if Send(poOwner,@ReqNewHold,#what=oTreasure,#new_row=piRow,#new_col=piCol)
-         AND Send(poOwner,@ReqSomethingMoved,#what=oTreasure,
-                  #new_row=piRow,#new_col=piCol)
-      {
-         Send(poOwner,@NewHold,#what=oTreasure,#new_row=piRow,#new_col=piCol);
-      }
-      else
-      {
-         Send(oTreasure,@Delete);
-      }
-      
-      propagate;
+      return;
    }
 
    CreateDeadBody(killer=$)
    {
       local oBody;
-      
+
       oBody = $;
       if vrDead_icon <> $
       {
-         oBody = Create(&DeadBody,#icon=vrDead_icon,#name=vrDead_name,
-                        #mob=TRUE,#playername=Send(killer,@GetTrueName),
-                        #monstername=vrName,#drawfx=viDead_drawfx,
+         oBody = Create(&DeadBody,
+                        #victim=self,
+                        #killer=killer,
+                        #drawfx=viDead_drawfx,
                         #PlayerBodyOverlay=vrHeadIcon);
       }
-      
+
       return oBody;
    }
 
-   IsUndead()
+   IsAlliedClass(what=$)
    {
-      return TRUE;
+      if Send(what,@IsUndead)
+      {
+         return TRUE;
+      }
+
+      propagate;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

@@ -43,7 +43,6 @@
 	#include <owl\color.h>
 #endif
 
-#include <math.h>
 #include <dos.h>
 
 /* the global variables */
@@ -80,7 +79,7 @@ void AdjustScale ()
 	{
 		assert (Scale < 1.0);
 
-		Scale = 1.0 / ((1.0 / Scale) - 1.0);
+		Scale = 1.0f / ((1.0f / Scale) - 1.0f);
 	}
 
 	// Set ScaleNum and ScaleDen
@@ -135,9 +134,9 @@ void SetScale (float _Scale)
 void DecScale()
 {
 	if (Scale <= 1.0)
-		Scale = 1.0 / ((1.0 / Scale) + 1.0);
+		Scale = 1.0f / ((1.0f / Scale) + 1.0f);
 	else
-		Scale = Scale - 1.0;
+		Scale = Scale - 1.0f;
 
 	// Check scale is not too small
 	AdjustScale();
@@ -149,9 +148,9 @@ void DecScale()
 void IncScale()
 {
 	if ( Scale < 1.0)
-		Scale = 1.0 / ((1.0 / Scale) - 1.0);
+		Scale = 1.0f / ((1.0f / Scale) - 1.0f);
 	else
-		Scale = Scale + 1.0;
+		Scale = Scale + 1.0f;
 
 	// Check Scale is not too big
 	AdjustScale();
@@ -177,11 +176,19 @@ USHORT ComputeAngle (SHORT dx, SHORT dy)
 
 USHORT ComputeDist (SHORT dx, SHORT dy)
 {
-   return (USHORT) (hypot( (double) dx, (double) dy) + 0.5);
+   return (USHORT) round((hypot( (double) dx, (double) dy)));
    /* Yes, I know this function could be in another file, but */
    /* this is the only source file that includes <math.h>...  */
 }
 
+/*
+   compute the distance from (0, 0) to (dx, dy)
+*/
+
+double ComputeDistDouble(double dx, double dy)
+{
+   return hypot(dx, dy);
+}
 
 
 /*
@@ -190,16 +197,23 @@ USHORT ComputeDist (SHORT dx, SHORT dy)
 
 void InsertPolygonVertices (SHORT centerx, SHORT centery, SHORT sides, SHORT radius)
 {
-   SHORT n;
+   double theta = PIX2 / (double)sides;
+   double tangetial_factor = tan(theta);
+   double radial_factor = cos(theta);
+   double x = radius;
+   double y = 0;
 
-   for (n = 0; n < sides; n++)
-	  InsertObject( OBJ_VERTEXES, -1,
-					centerx + (SHORT) ((double) radius * cos( 6.28 * (double) n / (double) sides)),
-					centery + (SHORT) ((double) radius * sin( 6.2832 * (double) n / (double) sides)));
-   /* Yes, I know... etc. */
+   for (SHORT n = 0; n < sides; n++)
+   {
+      InsertObject(OBJ_VERTEXES, -1, centerx + (SHORT)round(x), centery + (SHORT)round(y));
+      double tx = -y;
+      double ty = x;
+      x += tx * tangetial_factor;
+      y += ty * tangetial_factor;
+      x *= radial_factor;
+      y *= radial_factor;
+   }
 }
-
-
 
 /*
    move (x, y) to a new position: rotate and scale around (0, 0)
@@ -211,8 +225,8 @@ void RotateAndScaleCoords (SHORT *x, SHORT *y, double angle, double scale)
 
    r = hypot( (double) *x, (double) *y);
    theta = atan2( (double) *y, (double) *x);
-   *x = (SHORT) (r * scale * cos( theta + angle) + 0.5);
-   *y = (SHORT) (r * scale * sin( theta + angle) + 0.5);
+   *x = (SHORT) round(r * scale * cos( theta + angle));
+   *y = (SHORT) round(r * scale * sin( theta + angle));
    /* Yes, I know... etc. */
 }
 

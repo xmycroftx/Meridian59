@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Flash is Spell
 
 constants:
@@ -16,14 +16,14 @@ constants:
 
 resources:
 
+   include flash.lkod
+
    Flash_name_rsc = "flash"
    Flash_icon_rsc = iflash.bgf
    Flash_desc_rsc = \
       "Causes a bright flash, likely to interrupt the concentration of any "
-      "spellcasters in the area or confuse monsters temporarily.  "
-      "Requires the eyes of a dragonfly to cast."
-
-   flash_sound = rflash.wav
+      "spellcasters in the area or confuse monsters temporarily."
+   flash_sound = rflash.ogg
 
 classvars:
 
@@ -37,15 +37,18 @@ classvars:
    viSchool = SS_RIIJA
    viSpell_level = 1
    viMana = 15
-   viSpellExertion=3
+   viSpellExertion = 1
    viChance_To_Increase = 15
+   viMeditate_ratio = 20
 
    viOutlaw = TRUE
    viHarmful = TRUE
    viNoNewbieOffense = TRUE
 
+   vbIsAreaEffect = TRUE
+
 properties:
-   
+
 messages:
 
    ResetReagents()
@@ -66,64 +69,67 @@ messages:
    {
       local oRoom, i, each_obj, lFinalTargets;
 
-      lFinalTargets = $;
-
-      oRoom = send(who,@GetOwner);
-      for i in send(oRoom,@GetHolderActive)
+      oRoom = Send(who,@GetOwner);
+      foreach i in Send(oRoom,@GetHolderActive)
       {
-         each_obj = send(oRoom,@HolderExtractObject,#data=i);
+         each_obj = Send(oRoom,@HolderExtractObject,#data=i);
          if IsClass(each_obj,&Battler)
          {
-            lFinalTargets = cons(each_obj,lFinalTargets);
+            lFinalTargets = Cons(each_obj,lFinalTargets);
          }
       }
 
       return lFinalTargets;
    }
 
-   CastSpell(who=$, lTargets = $, iSpellPower=0)
+   DoSpellEffects(who=$, lTargets = $, iSpellPower=0)
    {
       local oRoom, i, iChance, oHold;
-      
-      oRoom = send(who,@GetOwner);
 
-      % What's our chance to affect the target?
+      oRoom = Send(who,@GetOwner);
+
+      // What's our chance to affect the target?
       iChance = 33 + ((2 * iSpellPower) / 3);
 
-      % Find the hold spell to temporarily hold monsters
-      oHold = send(SYS,@FindSpellByNum,#num=SID_HOLD);
+      // Find the hold spell to temporarily hold monsters
+      oHold = Send(SYS,@FindSpellByNum,#num=SID_HOLD);
 
       if IsClass(who,&Player)
       {
          Send(who,@EffectSendUserDuration,#effect=EFFECT_WHITEOUT,#duration=750);
       }
 
-      for i in lTargets
+      foreach i in lTargets
       {
-         if random(1,100) > iChance
+         if Random(1,100) > iChance
          {
             continue;
          }
-         
-         if IsClass(i,&Player) 
+
+         if IsClass(i,&Player)
          {
-            if send(i,@CheckPlayerFlag,#flag=PFLAG_TRANCE)
-            { 
-               send(i,@BreakTrance,#event=EVENT_DISRUPT); 
- 	         }
- 	         
+            if Send(i,@CheckPlayerFlag,#flag=PFLAG_TRANCE)
+            {
+               Send(i,@BreakTrance,#event=EVENT_DISRUPT);
+            }
+
             Send(i,@EffectSendUserDuration,#effect=EFFECT_WHITEOUT,#duration=750);
          }
          else
          {
-            % Is a monster, stun it.
-            send(oHold,@DoHold,#what=who,#otarget=i,#iDurationSecs=1,#bAllowFreeAction=FALSE);
+            // Is a monster, stun it.
+            Send(oHold,@DoSpellEffects,#who=who,#lTargets=[i],#iDuration=1000,
+                  #report=FALSE,#bAllowFreeAction=FALSE);
          }
       }
-      
-      propagate;
+
+      return TRUE;
    }
 
+   GetScrollClass()
+   {
+      return &FlashScroll;
+   }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

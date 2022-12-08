@@ -34,23 +34,23 @@
 #include "lineedit.h"
 #include "levels.h"
 
-#ifndef __OWL_LISTBOX_H
+#ifndef OWL_LISTBOX_H
 #include <owl\listbox.h>
 #endif
 
-#ifndef __OWL_EDIT_H
+#ifndef OWL_EDIT_H
 #include <owl\edit.h>
 #endif
 
-#ifndef __OWL_RADIOBUT_H
+#ifndef OWL_RADIOBUT_H
 #include <owl\radiobut.h>
 #endif
 
-#ifndef __OWL_CHECKBOX_H
+#ifndef OWL_CHECKBOX_H
 #include <owl\checkbox.h>
 #endif
 
-#ifndef __OWL_VALIDATE_H
+#ifndef OWL_VALIDATE_H
 #include <owl\validate.h>
 #endif
 
@@ -855,7 +855,7 @@ void TLineDefEditDialog::GetSideDef (int sdnum)
    ConfirmData.pSpeedCheck[sdnum] = (CurSD[sdnum].animate_speed != (SHORT)atoi (str));
    // May already be true (new SideDef), so use |=
    ConfirmData.pSDCheck[sdnum] |= ConfirmData.pSpeedCheck[sdnum];
-   CurSD[sdnum].animate_speed = (SHORT)atoi (str);
+   CurSD[sdnum].animate_speed = (BYTE)atoi (str);
 
    pIDNumEdit[sdnum]->GetText (str, 6);
    ConfirmData.pIDNumCheck[sdnum] = (CurSD[sdnum].user_id != (SHORT)atoi (str));
@@ -1781,7 +1781,7 @@ void TLineDefEditDialog::EvLButtonDown (UINT modKeys, const TPoint& point)
    TDialog::EvLButtonDown(modKeys, point);
    
    // Retreive object for handle
-   TStatic *pStatic = GetPointedStatic ((TPoint &) point);
+   TStatic *pStatic = GetPointedStatic ((TPoint&)point);
    if ( pStatic == NULL )
       return;
    
@@ -1807,7 +1807,7 @@ void TLineDefEditDialog::EvLButtonDblClk (UINT modKeys, const TPoint& point)
    TDialog::EvLButtonDblClk(modKeys, point);
    
    // Retreive object for handle
-   TStatic *pStatic = GetPointedStatic ((TPoint &) point);
+   TStatic *pStatic = GetPointedStatic ((TPoint&)point);
    if ( pStatic == NULL )
       return;
    

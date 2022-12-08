@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Fireball is BoltSpell
 
 constants:
@@ -15,16 +15,14 @@ constants:
 
 resources:
 
+   include fireball.lkod
+
    fireball_name_rsc = "fireball"
    fireball_icon_rsc = fireball.bgf
    fireball_look_icon = ifirebal.bgf
-   fireball_desc_rsc = \
-      "Sends a ball of flames at the target.  "
-      "Requires red mushrooms and orc teeth to cast."
-
+   fireball_desc_rsc = "Sends a ball of flames at the target."
    fireball_hit_rsc = "A ball of fire strikes %s%s!"
-
-   fireball_sound = ffirebal.wav
+   fireball_sound = ffirebal.ogg
 
 classvars:
 
@@ -35,7 +33,7 @@ classvars:
 
    viSpell_num = SID_FIREBALL
 
-   viAttack_spell = ATCK_SPELL_ALL+ATCK_SPELL_FIRE
+   viSpell_type = SPL_TYPE_ALL+SPL_TYPE_FIRE
 
    viMana = 7
    viSchool = SS_FAREN
@@ -43,13 +41,13 @@ classvars:
 
    vrSucceed_wav = fireball_sound
    
-   viPostCast_time = 2        % in seconds, since it works off gettime()
+   viPostCast_time = 2        // in seconds, since it works off gettime()
 
-   % Projectile lighting information.
+   // Projectile lighting information.
    viProjectileLightFlags = LIGHT_FLAG_ON | LIGHT_FLAG_DYNAMIC
-   % Medium light range, out of 255.
+   // Medium light range, out of 255.
    viProjectileLightIntensity = 100
-   % Color is orange.
+   // Color is orange.
    viProjectileLightColor = LIGHT_BORANGE
 
 properties:
@@ -62,7 +60,7 @@ messages:
 
    ResetReagents()
    {
-      % separate message so can change, then set from admin mode
+      // separate message so can change, then set from admin mode
 
       plReagents = $;
       plReagents = Cons([&RedMushroom,2],plReagents);
@@ -78,14 +76,14 @@ messages:
 
    SendLookAnimation()
    {
-      AddPacket(1,ANIMATE_NONE, 2,1);
+      AddPacket(1,ANIMATE_NONE, 2,2);
 
       return;
    }
 
    SendProjectileAnimation()
    {
-      % 40ms between animations, between frames 1-2
+      // 40ms between animations, between frames 1-2
       AddPacket(1,ANIMATE_CYCLE, 4,40, 2,1, 2,2);   
 
       return;
@@ -93,4 +91,4 @@ messages:
 
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

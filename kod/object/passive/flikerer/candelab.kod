@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Candelabra is Flickerer
 
 constants:
@@ -18,14 +18,16 @@ constants:
 
 resources:
 
+   include candelab.lkod
+
    candelabra_name_rsc = "candelabra"
    candelabra_icon_rsc = candelab.bgf
    candelabra_desc_on = \
       "An ornate brass five-candle stand.  The candles are flickering softly."
    candelabra_desc_off = \
       "An ornate brass five-candle stand.  The candles are unlit."
-
-   candelabra_not_in_range = "You are not close enough to the candelabra to use it."
+   candelabra_not_in_range = \
+      "You are not close enough to the candelabra to use it."
 
 classvars:
 
@@ -33,23 +35,23 @@ classvars:
    vrIcon = candelabra_icon_rsc
    vrDesc = candelabra_desc_on
 
-   viObject_flags = ACTIVATE_YES
+   viObject_flags = OF_ACTIVATABLE
 
    viOff_frame = 1
    viStart_frame = 2
    viEnd_frame = 4
 
-   % Lighting flags.  Default "on" and wavering flags
+   // Lighting flags.  Default "on" and wavering flags
    viLightFlags = LIGHT_FLAG_ON | LIGHT_FLAG_WAVERING
 
-   % Light color.
+   // Light color.
    viLightColor = LIGHT_FIRE
 
 properties:
 
    piAnim_speed  = 75
 
-   % Intensity, from 0-255.
+   // Intensity, from 0-255.
    piLightIntensity = 30
 
 messages:
@@ -76,16 +78,16 @@ messages:
    TryActivate(who=$)
    "Return False only if you want user.kod to send its own error message to user."
    {
-      if abs(send(who,@GetRow)-send(self,@GetRow)) > USE_RANGE
-         OR abs(send(who,@GetCol)-send(self,@GetCol)) > USE_RANGE
+      if Abs(Send(who,@GetRow) - Send(self,@GetRow)) > USE_RANGE
+         OR Abs(Send(who,@GetCol) - Send(self,@GetCol)) > USE_RANGE
       {
          Send(who,@MsgSendUser,#message_rsc=candelabra_not_in_range);
 
          return TRUE;
-      }                                                                     
+      }
 
-      % Change the flame state.
-      send(self,@SetFlame,#has_flame=(NOT pbIsLit));
+      // Change the flame state.
+      Send(self,@SetFlame,#has_flame=(NOT pbIsLit));
 
       return TRUE;
    }
@@ -98,6 +100,5 @@ messages:
       return;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

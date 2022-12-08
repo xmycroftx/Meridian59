@@ -13,7 +13,7 @@
 #ifndef _VERSION_H
 #define _VERSION_H
 
-const char * BlakServLongVersionString(void);
-const char * BlakServNameString(void);
+const char* BlakServLongVersionString(void);
+const char* BlakServNameString(void);
 
 #endif

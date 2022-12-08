@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 AxeProficiency is Proficiency
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include profaxe.lkod
 
    axeproficiency_name_rsc = "axe wielding"
    axeproficiency_icon_rsc = axeico.bgf
@@ -26,7 +28,7 @@ classvars:
    vrIcon = axeproficiency_icon_rsc
    vrDesc = axeproficiency_desc_rsc
 
-   viSchool = SKS_FENCING
+   viSchool = SKS_WEAPONCRAFT
    viSkill_num = SKID_PROFICIENCY_AXE
    viSkill_level = 3
    viChance_to_increase = 20
@@ -37,8 +39,8 @@ messages:
 
    GetRequisiteStat(who=$)
    {
-     return send(who,@getmight);
+     return Send(Who,@GetAgility);
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

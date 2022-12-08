@@ -17,7 +17,7 @@
 	them seem to be required in them, and since some of the include
 	filenames clash with that of most compilers */
 
-#define BLAKSERV_VERSION "2.4"
+#define BLAKSERV_VERSION "2.1"
 
 #define MAX_LOGIN_NAME 50
 #define MAX_LOGIN_PASSWORD 32
@@ -32,7 +32,12 @@
 #define INVALID_DSTR -1
 #define NO_SUPERCLASS 0
 
-#define MAX_DEPTH 2000
+#define MAX_DEPTH 800
+
+#define BOF_VERSION 11
+
+// enable constants such as M_PI from math.h
+#define _USE_MATH_DEFINES
 
 enum
 {
@@ -46,37 +51,45 @@ enum
    GARBAGE_MSG = 8,
    LOADED_GAME_MSG = 9,
    CONSTRUCTOR_MSG = 10,
+   FIND_USER_BY_STRING_MSG = 11,
    NUMBER_STUFF_PARM = 12,
    GARBAGE_DONE_MSG = 13,
    STRING_PARM = 14,
    SYSTEM_STRING_MSG = 15,
    USER_NAME_MSG = 16,
-   USER_ICON_MSG = 17,
-   SEND_CHAR_INFO_MSG = 18,
+   IS_FIRST_TIME_MSG = 17,
+   DELETE_MSG = 18,
    NEW_HOUR_MSG = 19,
-   GUEST_CLASS = 20,
+   SYSTEM_ENTER_GAME_MSG = 20,
    NAME_PARM = 21,
-   ICON_PARM = 22,
-   ADMIN_CLASS = 23,
-   SYSTEM_ENTER_GAME_MSG = 24,
-   FIND_USER_BY_INTERNET_NAME_MSG = 25,
-   RECEIVE_INTERNET_MAIL_MSG = 26,
-   PERM_STRING_PARM = 27,
-   IS_FIRST_TIME_MSG = 28,
-   DELETE_MSG = 29,
-   TIMER_PARM = 30,
-   TYPE_PARM = 31,
-   DM_CLASS = 32,
-   FIND_USER_BY_STRING_MSG = 33,
-   CREATOR_CLASS = 34,
-   RECYCLED_MSG = 35,
-   OLD_PARM = 36
+   ADMIN_CLASS = 22,
+   TIMER_PARM = 23,
+   TYPE_PARM = 24,
+   DM_CLASS = 25,
+   CREATOR_CLASS = 26,
+   SETTINGS_CLASS = 27,
+   REALTIME_CLASS = 28,
+   EVENTENGINE_CLASS = 29,
+   ESCAPED_CONVICT_CLASS = 30,
+   TEST_CLASS = 31,
+   MAX_BUILTIN_CLASS = 31
 
    // To add other C-accessible KOD identifiers,
    // see the BLAKCOMP's table of BuiltinIds[].
    //
    // The compiler assumes those builtins before
    // it reads any KODBASE.TXT.
+};
+
+// Enum for object constants blakod can use to call built-in objects.
+enum
+{
+   SYSTEM_OBJECT = 0,
+   SETTINGS_OBJECT = 1,
+   REALTIME_OBJECT = 2,
+   EVENTENGINE_OBJECT = 3,
+   MAX_BUILTIN_OBJECT = 3,
+   NUM_BUILTIN_OBJECTS = 4
 };
 
 #define MAX_PROC_TIME 5000
@@ -108,25 +121,34 @@ enum
 #define NOTE_FILE "admnote.txt"
 #define PROFANE_FILE "profane.txt"
 
-#define DEBUG_FILE_BASE "debug"
-#define ERROR_FILE_BASE "error"
-#define LOG_FILE_BASE "log"
+#define DEBUG_FILE "debug.txt"
+#define ERROR_FILE "error.txt"
+#define LOG_FILE "log.txt"
+#define GOD_FILE "god.txt"
+#define ADMIN_FILE "admin.txt"
 
 #define KODBASE_FILE "kodbase.txt"
 
 #define PACKAGE_FILE "packages.txt"
 #define SPROCKET_FILE "sprocket.dll"
 
-#include <string>
-#include <vector>
-typedef std::vector<std::string> StringVector;
-
 #ifdef BLAK_PLATFORM_WINDOWS
-#include "osd_windows.h"
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
+#include <winsock2.h>
+#include <Ws2tcpip.h>
+#include "resource.h"
+#include <crtdbg.h>
+#include <io.h>
+#include <process.h>
+#include "mutex_windows.h"
+#include "thdmsgqueue_windows.h"
+#include "main_windows.h"
 #endif  // BLAK_PLATFORM_WINDOWS
 
 #ifdef BLAK_PLATFORM_LINUX
-#include "osd_linux.h"
+#include "linux-types.h"
 #endif  // BLAK_PLATFORM_LINUX
 
 #include <algorithm>
@@ -134,46 +156,30 @@ typedef std::vector<std::string> StringVector;
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <malloc.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <time.h>
 #include <math.h>
-#include <inttypes.h>
+#include <ppl.h>
 
 #include "btime.h"
 
 #include "bool.h"
 #include "rscload.h"
-#include "roomtype.h"
 #include "bkod.h"
 #include "crc.h"
 #include "md5.h"
-
-// Originally, we stored Bkod values in a 32-bit int, but due to the function
-// GetTime(), which stored millisecond-resolution times in 28-bit Bkod values,
-// the time values would roll over every 8 years or so.  The workaround is
-// to store Bkod values in 64-bit ints at runtime, although they are still
-// 32 bits in the bof files and in client communication.  This effectively
-// expands the range of Bkod values to 32 bits, delaying time rollover visible to
-// to clients to 8*16 > 100 years.
-typedef INT64 blak_int;
-
-typedef struct
-{
-   INT64 data:60;
-   UINT64 tag:4;
-} server_constant_type;
-
 typedef union 
 {
-   blak_int int_val;
-   server_constant_type v;
+   int int_val;
+   constant_type v;
 } val_type;
 
 typedef struct
 {
-   blak_int value;
+   int value;
    int name_id; /* for call-by-name parm list only */
    char type; /* for normal c parms (not call by name) only */
 } parm_node;
@@ -187,20 +193,32 @@ typedef struct
    char data[LEN_MAX_CLIENT_MSG];
 } client_msg;
 
+typedef struct
+{
+   int object_id;
+   int message_id;
+   int year, month, day, hour, minute, second;
+   val_type parm1, parm2, parm3, parm4;
+} blakod_reg_callback;
+
 /* in main.c */
 extern DWORD main_thread_id;
+void MainReloadGameData();
+char * GetLastErrorStr();
 #define WM_BLAK_MAIN_READ           (WM_APP + 4000)
 #define WM_BLAK_MAIN_RECALIBRATE    (WM_APP + 4001)
 #define WM_BLAK_MAIN_DELETE_ACCOUNT (WM_APP + 4002)
 #define WM_BLAK_MAIN_VERIFIED_LOGIN (WM_APP + 4003)
+#define WM_BLAK_MAIN_LOAD_GAME      (WM_APP + 4004)
 
 #include "bof.h"
 
 #include "config.h"
 
-// these hashes pre-date the use of C++
 #include "stringinthash.h"
 #include "intstringhash.h"
+
+#include "geometry.h"
 
 #include "blakres.h"
 #include "channel.h"
@@ -218,8 +236,10 @@ extern DWORD main_thread_id;
 #include "system.h"
 #include "loadrsc.h"
 #include "loadgame.h"
-#include "roomdata.h"
+#include "astar.h"
 #include "roofile.h"
+#include "roomdata.h"
+#include "files.h"
 
 #include "bufpool.h"
 #include "admin.h"
@@ -256,7 +276,12 @@ extern DWORD main_thread_id;
 #include "systimer.h"
 #include "memory.h"
 
-#include "interface.h"
+#ifdef BLAK_PLATFORM_WINDOWS
+#include "interface_windows.h"
+#else
+#include "interface_linux.h"
+#endif
+
 #include "intrlock.h"
 #include "chanbuf.h"
 
@@ -268,6 +293,13 @@ extern DWORD main_thread_id;
 #include "adminfn.h"
 
 #include "async.h"
+
+#ifdef BLAK_PLATFORM_WINDOWS
+#include "async_windows.h"
+#else
+#include "async_linux.h"
+#endif
+
 #include "debug.h"
 
 #include "admincons.h"
@@ -276,6 +308,12 @@ extern DWORD main_thread_id;
 
 #include "maintenance.h"
 #include "block.h"
+
+#ifdef BLAK_PLATFORM_WINDOWS
+#include "database.h"
+#endif
+
+#include "jansson.h"
 
 #endif
 

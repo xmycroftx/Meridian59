@@ -17,7 +17,7 @@ void *SafeMalloc(long bytes)
    void *temp = (void *) malloc(bytes);
    if (temp == NULL)
    {
-      fprintf(stderr, "Out of memory!\n");
+      printf("Out of memory!\n");
       exit(1);
    }
 
@@ -28,7 +28,7 @@ void SafeFree(void *ptr)
 {
    if (ptr == NULL)
    {
-      fprintf(stderr, "Attempt to free null pointer!\n");
+      printf("Attempt to free null pointer!\n");
       return;
    }
    free(ptr);
@@ -187,6 +187,32 @@ list_type list_delete_first(list_type l)
 }
 /************************************************************************/
 /*
+* list_destroy_first: delete the first node from the given list; return
+*    the newly modified list. Frees data associated with the list node.
+*/
+list_type list_destroy_first(list_type l)
+{
+   if (l == NULL)
+   {
+      return NULL;
+   }
+
+   if (l->next == NULL)
+   {
+      SafeFree(l->data);
+      SafeFree(l);
+      return NULL;
+   }
+
+   list_type next = l->next;
+   l->next->last = l->last;
+   SafeFree(l->data);
+   SafeFree(l);
+
+   return next;
+}
+/************************************************************************/
+/*
  * list_first_item: Return the first item in the given list.
  */
 void *list_first_item(list_type l)
@@ -272,7 +298,41 @@ list_type list_destroy(list_type l)
    }
    return NULL;
 }
+/************************************************************************/
+/* list_get_nth: Returns the (1-based) nth list node.
+*/
+list_type list_get_nth(list_type l, int count)
+{
+   list_type temp = NULL;
 
+   if (l == NULL)
+      return NULL;
+
+   if (count < 0)
+   {
+      simple_warning("Called list_get_nth with invalid count %i.\n", count);
+
+      return NULL;
+   }
+
+   if (count == 1)
+      return l;
+
+   --count;
+   temp = l;
+
+   do
+   {
+      temp = temp->next;
+   } while (temp != NULL && --count > 0);
+
+   if (temp == NULL)
+   {
+      simple_warning("list_get_nth tried to read past end of list, %i reads remaining.\n", count);
+   }
+
+   return temp;
+}
 /************************************************************************/
 /*
  * get_statement_line:  Return line number that should be associated with given statement.
@@ -288,11 +348,22 @@ int get_statement_line(stmt_type s, int curline)
    case S_IF:
       return s->value.if_stmt_val->condition->lineno - 1;
 
+   case S_FOREACH:
+      return s->value.foreach_stmt_val->condition->lineno - 1;
+
    case S_FOR:
       return s->value.for_stmt_val->condition->lineno - 1;
 
    case S_WHILE:
+   case S_DOWHILE:
       return s->value.while_stmt_val->condition->lineno - 1;
+
+   case S_CASE:
+   case S_DEFAULTCASE:
+      return s->value.case_stmt_val->condition->lineno - 1;
+
+   case S_SWITCH:
+      return s->value.switch_stmt_val->condition->lineno - 1;
 
    default:
       return curline;

@@ -1,23 +1,25 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 RebelShield is SoldierShield
 
-% Stats affected: Might and Aim
-% Special bonus: This shield protects you from 2 more points of damage than normal.
+// Stats affected: Might and Aim
+// Special bonus: This shield protects you from 2 more points of damage than normal.
 
 constants:
 
    include blakston.khd
 
 resources:
+
+   include reblshld.lkod
 
    RebelShield_name_rsc = "shield of the rebel militia"
 
@@ -73,12 +75,12 @@ classvars:
    prShield_emblem_drop = RebelShield_emblem_drop
    prShield_emblem_back = RebelShield_emblem_back
 
-   viDamage_base = 2                % This is the default value for piDamage_reduce
+   viDamage_base = 2                // This is the default value for piDamage_reduce
 
    viFaction = FACTION_REBEL
    viColor = XLAT_TO_RED
 
-   % Stuff for rank
+   // Stuff for rank
    vrArmyName = RebelShield_ArmyName
 
    vrWelcomeMessage = RebelShield_welcome_mail
@@ -93,11 +95,11 @@ messages:
    RemoveStats()
    {
       if poOwner <> $
-         AND IsClass(poOwner,&Player)
+         AND IsClass(poOwner,&User)
       {
-         % Reset owner's stats
-         send(poOwner,@AddMight,#points=-piMightChange);
-         send(poOwner,@AddAim,#points=-piAimChange);
+         // Reset owner's stats
+         Send(poOwner,@AddMight,#points=-piMightChange);
+         Send(poOwner,@AddAim,#points=-piAimChange);
          piMightChange = 0;
          piAimChange = 0;
       }
@@ -111,7 +113,7 @@ messages:
       local iStatAdjustment, iNewAdjustment;
 
       if poOwner = $
-         OR NOT IsClass(poOwner,&Player)
+         OR NOT IsClass(poOwner,&User)
       {
          return;
       }
@@ -120,45 +122,46 @@ messages:
       {
          iStatAdjustment = 0;
       }
+      else if piFactionRank <= 6
+      {
+         iStatAdjustment = 3;
+      }
       else
       {
-         if piFactionRank <= 6
-         {
-            iStatAdjustment = 3;
-         }
-         else
-         {
-            iStatAdjustment = 5;
-         }
+         iStatAdjustment = 5;
       }
 
-      % In the following:
-      %  iNewAdjustment is how much the stat changed this time around.
-      %  pi(stat)Change is the cumulative change to that stat.
+      // In the following:
+      //  iNewAdjustment is how much the stat changed this time around.
+      //  pi(stat)Change is the cumulative change to that stat.
       if iStatAdjustment <> piMightChange
       {
-         iNewAdjustment = send(poOwner,@AddMight,#points=(iStatAdjustment-piMightChange));
-         piMightChange = piMightChange + iNewAdjustment;
+         iNewAdjustment = Send(poOwner,@AddMight,
+                                 #points=(iStatAdjustment-piMightChange));
+         piMightChange += iNewAdjustment;
       }
 
       if iStatAdjustment <> piAimChange
       {
-         iNewAdjustment = send(poOwner,@AddAim,#points=(iStatAdjustment-piAimChange));
-         piAimChange = piAimChange + iNewAdjustment;
+         iNewAdjustment = Send(poOwner,@AddAim,
+                                 #points=(iStatAdjustment-piAimChange));
+         piAimChange += iNewAdjustment;
       }
+
+      // Might need to redraw armor.
+      Send(poOwner,@DrawArmor);
 
       return;
    }
 
-   ModifyDefenseDamage(who = $,what = $,damage = $,atype = 0,aspell = 0)
+   ModifyDefenseDamage(who = $,what = $,damage = $,atype = 0,stype = 0)
    "Sets piDamage_reduce for damage reduction in the superclass."
    {
-      % This ranges from 2-4.  At low end, we absorb 0-2 damage.  At high end, 1-4.
-      piDamage_reduce = viDamage_base + ((piFactionRank/3) - 1);
+      // This ranges from 2-4.  At low end, we absorb 0-2 damage.  At high end, 1-4.
+      piDamage_reduce = viDamage_base + ((piFactionRank / 3) - 1);
 
       propagate;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 PlateArmor is Armor
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include plate.lkod
 
    platearmor_name_rsc = "plate armor"
    platearmor_icon_rsc = plateamr.bgf
@@ -58,17 +60,18 @@ messages:
 
    GetResistanceModifiers()
    {
-      return [ [-ATCK_SPELL_FIRE,-10],
-               [-ATCK_SPELL_SHOCK,-15]
+      return [ [ATK_TYPE_THRUST,15],
+               [ATK_TYPE_SLASH,10],
+               [-SPL_TYPE_FIRE,-10],
+               [-SPL_TYPE_SHOCK,-15]
              ];
    }
 
    GetHeatDamage()
    {
-      return 4;
+      return 5;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 

@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 EvilTwin is Monster
 
 constants:
@@ -15,7 +15,8 @@ constants:
    include blakston.khd
 
 resources:
- 
+
+   include eviltwin.lkod
 
    EvilTwin_name_rsc = "evil twin"
 
@@ -24,40 +25,55 @@ resources:
 
    EvilTwin_dead_icon_rsc = amoebaX.bgf
    EvilTwin_dead_name_rsc = "dead evil twin"
-   EvilTwin_weapon_rsc = scimov.bgf
 
-   EvilTwin_sound_hit = orc_atkh.wav
-   EvilTwin_sound_miss = orc_atkm.wav
-   EvilTwin_sound_death = orc_dth.wav
-   EvilTwin_sound_aware = orc_awr.wav
+   EvilTwin_sound_hit = orc_atkh.ogg
+   EvilTwin_sound_miss = orc_atkm.ogg
+   EvilTwin_sound_death = orc_dth.ogg
+   EvilTwin_sound_aware = orc_awr.ogg
 
    EvilTwin_delete =  "%s%s disappears into a puff of smoke."
 
-   EvilTwin_trouble = "You sense that a evil twin you summoned has gotten you into some trouble..."
+   EvilTwin_trouble = \
+      "You sense that a evil twin you summoned has gotten you "
+      "into some trouble..."
 
 classvars:
 
-   viIndefinite = ARTICLE_NONE
-   viDefinite = ARTICLE_NONE
+   // Defaults if we don't have an original.
+   viIndefinite = ARTICLE_AN
+   viDefinite = ARTICLE_THE
+   viGender = GENDER_NEUTER
 
    vrDead_icon = EvilTwin_dead_icon_rsc
    vrDead_name = EvilTwin_dead_name_rsc
 
    viTreasure_type = TID_NONE
 
-   viSpeed = SPEED_AVERAGE
-   viAttack_type = ATCK_WEAP_SLASH
+   viSpeed = SPEED_FAST
+   viAttack_type = ATK_TYPE_SLASH
    viAttributes = 0
-   viLevel = 1
-   viDifficulty = 9
-   viKarma = 0
+   viLevel = 20
+   viDifficulty = 8
+   viDamagePercent = 75
 
+   // Can't escape this monster's vision range.
+   viVisionDistance = 100
+   viKarma = 0
+   viCashmin = 0
+   viCashmax = 0
    vrSound_hit = EvilTwin_sound_hit
    vrSound_miss = EvilTwin_sound_miss
    vrSound_aware = EvilTwin_sound_aware
    vrSound_death = EvilTwin_sound_death
+   vrMinion_trouble = EvilTwin_trouble
 
-   viDefault_behavior = AI_FIGHT_SINGLEMINDED | AI_FIGHT_MONSTERS | AI_FIGHT_NEWBIESAFE | AI_FIGHT_AGGRESSIVE
+   viDefault_behavior = AI_FIGHT_SINGLEMINDED | AI_FIGHT_NEWBIESAFE | AI_FIGHT_AGGRESSIVE
+
+   vbCanPoison = FALSE
+   vbCanBleed = FALSE
+   vbCanSiphon = FALSE
+   vbCanFatigue = FALSE
+   vbCanBurn = FALSE
 
 properties:
 
@@ -66,355 +82,813 @@ properties:
    vrIcon = EvilTwin_male_icon_rsc
    piAnimation = PANM_NONE
    poCaster = $
-   poOriginal = $         % Who the EvilTwin is of.
+   poOriginal = $         // Who the EvilTwin is of.
    piGender = GENDER_MALE
    pbIllusion = TRUE
-
+   piDamagePercent
    piSpellpower = 1
    poArrow = $
 
-   vbSummoned = TRUE
-
 messages:
 
-   Constructor(iSpellPower=1, oMaster = $, oTarget = $)
+   Constructor(iSpellPower=1,oMaster=$,oTarget=$)
    {
-      local i, each_obj, oRoom;
-      
-      oRoom = send(oTarget,@GetOwner);
-      
       if oMaster <> $
       {
          poCaster = oMaster;
+         poMaster = oMaster;
       }
 
       if oTarget <> $
       {
          poOriginal = oTarget;
-         poTarget = oTarget;
-         for i in send(oRoom,@GetHolderActive)
-         {
-            each_obj = Send(oRoom,@HolderExtractObject,#data=i);
-
-            if (IsClass(each_obj,&Reflection) OR IsClass(each_obj,&EvilTwin))
-               AND send(each_obj,@GetIllusionForm) = oTarget
-               AND random(1,2) = 1
-               AND each_obj <> self
-            {
-               poTarget = each_obj;
-            }
-         }
       }
-      
+
+      piDamagePercent = viDamagePercent;
       piSpellpower = iSpellpower;
       poArrow = Create(&Arrow);
-      post(self,@TargetSwitch,#what=oTarget,#iHatred=1000);
-      post(self,@EnterStateChase);
-      
+
       propagate;
    }
 
-   Delete(bMonsterReport=TRUE)
+   Constructed()
    {
-      send(SYS,@RemoveReflection,#oReflection=self);
+      Post(self,@SomethingChanged,#what=poOriginal);
 
-      % Let the caster take care of the appropriate bookkeeping
+      propagate;
+   }
+
+   PlaceEvilTwin(who=$)
+   "Places the ET at the location of 'who'."
+   {
+      local oTarget, oDestObj, oRoom, i, each_obj;
+
+      if (who = $)
+      {
+         return;
+      }
+
+      Send(self,@SetOriginal,#who=who);
+
+      // Placement can have an edge case - if ET is seduced and the original
+      // logs off/on, the ET should teleport to the current master instead of
+      // to the original. This accounts for original being the new master.
+      if (poMaster <> poCaster)
+      {
+         oRoom = Send(poMaster,@GetOwner);
+         oDestObj = poMaster;
+      }
+      else
+      {
+         oRoom = Send(who,@GetOwner);
+         oDestObj = who;
+      }
+
+      // Attempt to place the ET near but not on top of the target/master.
+      if (NOT Send(SYS,@UtilGoRandomNear,#what=self,#where=oRoom,
+            #new_row=Send(oDestObj,@GetRow),#new_col=Send(oDestObj,@GetCol),
+            #fine_row=Send(oDestObj,@GetFineRow),#fine_col=Send(oDestObj,@GetFineCol),
+            #iMinDist=32))
+      {
+         // Random placement failed, place on top of target/master.
+         Send(oRoom,@NewHold,#what=self,#new_row=Send(oDestObj,@GetRow),
+               #new_col=Send(oDestObj,@GetCol),#fine_row=Send(oDestObj,@GetFineRow),
+               #fine_col=Send(oDestObj,@GetFineCol));
+      }
+
+      // Do nothing further if original captured us.
+      if (poMaster = poOriginal)
+      {
+         return;
+      }
+
+      oTarget = who;
+
+      foreach i in Send(oRoom,@GetHolderActive)
+      {
+         each_obj = First(i);
+
+         if (IsClass(each_obj,&Reflection) OR IsClass(each_obj,&EvilTwin))
+            AND Send(each_obj,@GetMaster) = who
+            AND Random(1,2) = 1
+            AND each_obj <> self
+         {
+            oTarget = each_obj;
+         }
+      }
+
+      // Post so it happens last (after entering room).
+      Post(self,@TargetSwitch,#what=oTarget,#iHatred=1000);
+      Post(self,@EnterStateEngage,#actnow=TRUE);
+
+      return;
+   }
+
+   Delete()
+   {
+      if poOriginal <> $
+      {
+         // Clear the original's chasing evil twin property.
+         Send(poOriginal,@ClearEvilTwin);
+      }
+
       if poCaster <> $
       {
-         if IsClass(poCaster,&Monster)
-            AND bMonsterReport
-         {
-            send(poCaster,@SummonDeleted,#what=self);
-         }
+         // Let the caster know to remove us from their list of
+         // created ETs.
+         Send(poCaster,@RemoveCreatedEvilTwin,#what=self);
       }
 
       if (poOwner <> $)
          AND (IsClass(poOriginal,&Monster)
-              OR send(poOriginal,@isLoggedOn))
+            OR Send(poOriginal,@IsLoggedOn))
       {
          Send(poOwner,@SomeoneSaid,#type=SAY_MESSAGE,#string=EvilTwin_delete,
-              #parm1=send(self,@GetDef,#cap=TRUE),#parm2=send(self,@Getname,#cap=FALSE));
+               #what=self,#parm1=Send(self,@GetCapDef),
+               #parm2=Send(self,@GetName,#cap=FALSE));
       }
-      
-      poOriginal = $;
+
+      Post(self,@RemoveOriginal);
       poCaster = $;
+      if poArrow <> $
+      {
+         Send(poArrow,@Delete);
+      }
       poArrow = $;
 
       propagate;
    }
 
-   KilledSomething(what=$, use_weapon=$)
+   RemoveOriginal()
    {
-      if IsClass(poCaster,&Player)
-         AND (NOT send(poCaster,@CheckPlayerFlag,#flag=PFLAG_MURDERER))
-         AND IsClass(what,&Player)
-      {
-         Send(poCaster,@MsgSendUser,#message_rsc=EvilTwin_trouble);
-      }
-      
-      post(self,@Delete);
-      
-      return send(poCaster,@KilledSomething,#what=what,#use_weapon=use_weapon);
+      poOriginal = $;
+
+      // Switch to defaults if we lose original.
+      // Can happen if something posts a MsgSendUser call that gets
+      // executed after this message.
+      piGender = GENDER_NEUTER;
+      vrName = EvilTwin_name_rsc;
+
+      return;
    }
 
-   SomethingKilled(what = $,victim = $)
+   SomethingKilled(what=$,victim=$)
    {
-      % Remove our enchantment if the original died.
+      // Delete the evil twin if the original dies.
       if victim = poOriginal
+         OR (poCaster <> $
+            AND victim = poCaster)
       {
-         if poCaster <> $
-            AND IsClass(poCaster,&Player)
-         {
-            send(poCaster,@RemoveEnchantmentClass,#class=&SummonEvilTwin);
-         }
-         else
-         {
-            post(self,@Delete);
-         }
+         Send(self,@Delete);
       }
-      
-      return ; 
+
+      return;
    }
-   
+
    GetApparentName()
    {
-      return send(poOriginal,@GetApparentName);
+      if (poOriginal <> $)
+      {
+         return Send(poOriginal,@GetApparentName);
+      }
+
+      propagate;
    }
 
    GetName(cap=FALSE)
    {
-      return send(poOriginal,@GetName,#cap=cap);
-   }
-   
-   GetDef(cap=FALSE)
-   {
-      return send(poOriginal,@GetDef,#cap=cap);
+      if (poOriginal <> $)
+      {
+         return Send(poOriginal,@GetName,#cap=cap);
+      }
+
+      propagate;
    }
 
-   GetIndef(cap=FALSE)
+   GetDef()
    {
-      return send(poOriginal,@GetIndef,#cap=cap);
+      if (poOriginal <> $)
+      {
+         return Send(poOriginal,@GetDef);
+      }
+
+      propagate;
+   }
+
+   GetCapDef()
+   {
+      if (poOriginal <> $)
+      {
+         return Send(poOriginal,@GetCapDef);
+      }
+
+      propagate;
+   }
+
+   GetIndef()
+   {
+      if (poOriginal <> $)
+      {
+         return Send(poOriginal,@GetIndef);
+      }
+
+      propagate;
+   }
+
+   GetCapIndef()
+   {
+      if (poOriginal <> $)
+      {
+         return Send(poOriginal,@GetCapIndef);
+      }
+
+      propagate;
    }
 
    GetHisHer(cap=FALSE)
    {
-      return send(poOriginal,@GetHisHer,#cap=cap);
+      if (poOriginal <> $)
+      {
+         return Send(poOriginal,@GetHisHer,#cap=cap);
+      }
+
+      propagate;
    }
 
    GetHeShe(cap=FALSE)
    {
-      return send(poOriginal,@GetHeShe,#cap=cap);
+      if (poOriginal <> $)
+      {
+         return Send(poOriginal,@GetHeShe,#cap=cap);
+      }
+
+      propagate;
    }
 
    GetLordLady(cap=FALSE)
    {
-      return send(poOriginal,@GetLordLady,#cap=cap);
+      if (poOriginal <> $)
+      {
+         return Send(poOriginal,@GetLordLady,#cap=cap);
+      }
+
+      propagate;
    }
 
    GetHisHers(cap=FALSE)
    {
-      return send(poOriginal,@GetHisHers,#cap=cap);
+      if (poOriginal <> $)
+      {
+         return Send(poOriginal,@GetHisHers,#cap=cap);
+      }
+
+      propagate;
    }
 
    GetHimHer(cap=FALSE)
    {
-      return send(poOriginal,@GetHimHer,#cap=cap);
+      if (poOriginal <> $)
+      {
+         return Send(poOriginal,@GetHimHer,#cap=cap);
+      }
+
+      propagate;
    }
 
    ReqSomethingEntered(what=$)
    {
-      if NOT send(poOriginal,@IsLoggedOn)
+      if (poOriginal = $
+         OR (IsClass(poOriginal,&User)
+            AND NOT Send(poOriginal,@IsLoggedOn)))
       {
-         Send(self,@Delete);
+         return TRUE;
       }
-      
+
       propagate;
+   }
+
+   OriginalPhased()
+   "If the original phases out, set the ET to behave like a NPC."
+   {
+      if (poMaster = poCaster)
+      {
+         Send(self,@EnterStateWait,#actnow=TRUE);
+         piBehavior |= AI_NPC | AI_NOMOVE;
+         if (poOwner <> $)
+         {
+            Send(poOwner,@SomethingChangedFlags,#what=self);
+         }
+      }
+
+      return;
+   }
+
+   OriginalUnphased(who = $)
+   "If original phases back in, unset the NPC flag and alert us to their entry."
+   {
+      piBehavior &= ~(AI_NPC | AI_NOMOVE);
+
+      if (poOwner <> $)
+      {
+         Send(poOwner,@SomethingChangedFlags,#what=self);
+      }
+
+      if (poMaster = poCaster)
+      {
+         // Go get original target!
+         Post(self,@GotoOriginal);
+      }
+
+      return;
    }
 
    SomethingLeft(what=$)
    {
-      if poOriginal = $
-	   {
-	      Send(self,@Delete);
-      }
+      local oRoom;
 
-      if IsClass(poOriginal,&Player)
-         AND NOT send(poOriginal,@IsLoggedOn)
-	   {
-	      Send(self,@Delete);
-      }
-
-      if what = poOriginal
+      if (poOriginal = $
+         OR poOwner = $)
       {
-         % If target leaves room, hunt them down.
-         if IsClass(send(poOriginal,@GetOwner),&UnderWorld)
-         {
-            post(self,@Delete);
+         return;
+      }
 
-            propagate;
-         }
-         else
+      oRoom = Send(poOriginal,@GetOwner);
+
+      if (what = poOriginal)
+      {
+         if (oRoom = $
+            OR (IsClass(poOriginal,&User)
+               AND Send(poOriginal,@CheckPlayerFlag,#flag=PFLAG_SPECTATOR)))
          {
-            post(self,@GotoOriginal);
+            // If the original logs off, we go to 'limbo' and await their
+            // return. Check spectator flag here also, since SomethingLeft
+            // can be used to limbo the ET.
+            Send(self,@EnterStateLimbo);
+            Send(self,@NewOwner,#what=$);
+            // Reset our AI flag, in case owner was phased then spectated.
+            piBehavior &= ~(AI_NPC | AI_NOMOVE);
+
+            return;
+         }
+
+         // If target leaves room, hunt them down.
+         if IsClass(oRoom,&UnderWorld)
+         {
+            Send(self,@Delete);
+
+            return;
+         }
+         else if (poMaster = poCaster)
+         {
+            Post(self,@GotoOriginal);
          }
       }
-      
+
+      propagate;
+   }
+
+   ReturnToCommander()
+   {
+      // Don't return to caster.
+      if (poMaster = poCaster)
+      {
+         return FALSE;
+      }
+
       propagate;
    }
 
    GotoOriginal()
    {
-      if poOriginal = $
-      {
-         post(self,@Delete);
+      local oRoom;
 
+      if (poOriginal = $
+         OR poMaster = $
+         OR poCaster = $)
+      {
          return;
       }
-   
-      send(send(poOriginal,@GetOwner),@NewHold,#what=self,
-           #new_row = send(poOriginal,@getRow),#new_col = send(poOriginal,@getcol),
-           #new_angle = send(poOriginal,@GetAngle));
-      post(self,@TargetSwitch,#what=poOriginal,#iHatred=1000);
-      post(self,@EnterStateChase);
-      
-      return;
 
+      oRoom = Send(poOriginal,@GetOwner);
+      if (oRoom = $)
+      {
+         return;
+      }
+
+      // Don't teleport if already close.
+      if (oRoom <> poOwner
+         OR Send(self,@SquaredDistanceTo,#what=poOriginal) > 25)
+      {
+         Send(SYS,@UtilGoNearSquare,#what=self,#where=oRoom,
+               #new_row=Send(poOriginal,@GetRow),
+               #new_col=Send(poOriginal,@GetCol));
+      }
+
+      // Edge case where the ET is seduced and the original target phases out
+      // after the ET is captured (ET won't phase) and then returns to attack
+      // the original target. ET should phase out near target.
+      if (poMaster = poCaster
+         AND IsClass(poOriginal,&User)
+         AND Send(poOriginal,@IsInCannotInteractMode))
+      {
+         Post(self,@OriginalPhased);
+      }
+      else if poOriginal <> poMaster
+      {
+         Send(self,@AttackOriginal);
+      }
+
+      return;
+   }
+
+   AttackOriginal()
+   {
+      if poOriginal <> poMaster
+      {
+         Post(self,@TargetSwitch,#what=poOriginal,#iHatred=1000);
+         Post(self,@EnterStateEngage,#actnow=TRUE);
+      }
+
+      return;
+   }
+
+   SetMaster(oMaster=$)
+   {
+      // Remove minion from old master.
+      if (poMaster <> $)
+      {
+         Send(poMaster,@RemoveControlledMinion,#what=self);
+      }
+
+      // If there's no caster object, we likely just died.
+      if (poCaster = $)
+      {
+         return;
+      }
+
+      if (oMaster = $)
+      {
+         // Evil twins will go after the original target.
+         poMaster = poCaster;
+         Send(self,@GoToOriginal);
+      }
+      else
+      {
+         poMaster = oMaster;
+
+         if poMaster <> poCaster
+         {
+            // We've been captured, break target in case the new master
+            // doesn't want to attack them.
+            Send(oMaster,@NewControlledMinion,#minion=self);
+            Send(self,@EnterStateWait);
+         }
+         else
+         {
+            // Original caster captured us back. Go kill the original target.
+            if poTarget <> poOriginal
+            {
+               Send(self,@EnterStateWait);
+               Send(self,@GoToOriginal);
+            }
+         }
+      }
+
+      Send(self,@ResetBehaviorFlags);
+
+      if poOwner <> $
+      {
+         Post(poOwner,@SomethingChanged,#what=self);
+      }
+
+      return;
+   }
+
+   TweakBehavior()
+   {
+      if (poMaster = $
+         OR poCaster = $
+         OR poOriginal = $)
+      {
+         return;
+      }
+
+      // Original might be phased or spectated.
+      if (IsClass(poOriginal,&User)
+         AND poCaster = poMaster
+         AND Send(poOriginal,@IsInCannotInteractMode))
+      {
+         piBehavior |= AI_NPC | AI_NOMOVE;
+         if (poOwner <> $)
+         {
+            Send(poOwner,@SomethingChangedFlags,#what=self);
+         }
+      }
+
+      return;
    }
 
    GetOriginalInfo()
    {
-      vrIcon = send(poOriginal,@GetPlayerIcon);
-      vrName = send(poOriginal,@GetTrueName);
-      piGender = send(poOriginal,@GetGender);
-      piDrawfx = send(poOriginal,@GetPlayerDrawfx);
-      
+      if poOriginal = $
+      {
+         return;
+      }
+
+      if IsClass(poOriginal,&Player)
+      {
+         vrIcon = Send(poOriginal,@GetPlayerIcon);
+         piDrawfx = Send(self,@GetDrawingEffects);
+         vrName = Send(poOriginal,@GetTrueName);
+      }
+      else
+      {
+         vrIcon = Send(poOriginal,@GetIcon);
+         piDrawfx = Send(self,@GetDrawingEffects);
+         vrName = Send(poOriginal,@GetName);
+      }
+
+      piGender = Send(poOriginal,@GetGender);
+
       return;
    }
 
-   GetObjectFlags()
+   GetMoveOnType()
    {
-      local iFlags;
-      
-      iFlags = send(poOriginal,@GetObjectFlags);
-      if (iFlags & USER_YES) {  iFlags = (iFlags | FALSEPLAYER_YES);  }
-      
-      return iFlags;
+      if (piBehavior & AI_NPC)
+      {
+         return MOVEON_YES;
+      }
+
+      propagate;
    }
 
+   GetObjectFlags(what = $)
+   {
+      if poOriginal = $
+      {
+         return 0;
+      }
+
+      // Special case if target is phased and ET is not owned by caster.
+      // ET shouldn't display the phased object flags since it will
+      // still be active.
+      if (poCaster <> poMaster
+         AND poMaster <> poOriginal
+         AND IsClass(poOriginal,&User)
+         AND Send(poOriginal,@IsInCannotInteractMode))
+      {
+         return Send(poOriginal,@GetObjectFlagsNoPhase);
+      }
+
+      return Send(poOriginal,@GetObjectFlags,#what=what);
+   }
+
+   GetDrawingEffects()
+   {
+      if poOriginal = $
+      {
+         return 0;
+      }
+
+      // Special case if target is phased and ET is not owned by caster.
+      // ET shouldn't display the phased drawing flags since it will
+      // still be active. If the original has captured the ET, it should
+      // display the phased effect.
+      if (poCaster <> poMaster
+         AND poMaster <> poOriginal
+         AND IsClass(poOriginal,&User)
+         AND Send(poOriginal,@IsInCannotInteractMode))
+      {
+         return Send(poOriginal,@GetDrawingEffectsNoPhase);
+      }
+
+      return Send(poOriginal,@GetDrawingEffects);
+   }
+
+   GetPlayerNameColor()
+   {
+      if poOriginal = $
+      {
+         return 0;
+      }
+
+      return Send(poOriginal,@GetPlayerNameColor);
+   }
+
+   GetClientObjectType()
+   {
+      if poOriginal = $
+      {
+         return 0;
+      }
+
+      return Send(poOriginal,@GetClientObjectType);
+   }
+
+   GetOptimalRange()
+   {
+      return Send(self,@GetAttackRange);
+   }
 
    GetAttackRange()
    {
       local iWeapon;
-      
-      iWeapon = send(poOriginal,@LookupPlayerWeapon);
-      if iWeapon <> $
-      {  
-         return send(iWeapon,@GetRange);  
+
+      if poOriginal = $
+      {
+         return 0;
       }
-      
-      return 1;
+
+      if IsClass(poOriginal,&User)
+      {
+         iWeapon = Send(poOriginal,@GetWeapon);
+
+         if iWeapon <> $
+         {
+            return Send(iWeapon,@GetRange);
+         }
+      }
+      else
+      {
+         return Send(poOriginal,@GetAttackRange);
+      }
+
+      return 64;
    }
 
-   % This returns the battler's ability to-hit.  Ranges from 1 to 1000
+   // This returns the battler's ability to-hit.
    GetOffense(what = $, stroke_obj=$)
    {
       return Send(poOriginal,@GetOffense,#what=what,#stroke_obj=stroke_obj);
    }
 
-   % This returns the battler's ability to avoid being hit.  Ranges from 1 to 1000.
+   // This returns the battler's ability to avoid being hit.
    GetDefense(what = $, stroke_obj=$)
    {
       return Send(poOriginal,@GetDefense,#what=what,#stroke_obj=stroke_obj);
    }
 
-   GetDamage(what = $, stroke_obj=$)
+   GetDamage(what=$,stroke_obj=$)
    {
-      local oStroke;
+      local oStroke, iDamage;
+
+      if poOriginal = $
+      {
+         return 0;
+      }
 
       oStroke = stroke_obj;
       if IsClass(poOriginal,&Player)
       {
          oStroke = $;
       }
-      
-      return Send(poOriginal,@GetDamage,#what=what,#stroke_obj=oStroke);
+      iDamage = Send(poOriginal,@GetDamage,#what=what,#stroke_obj=oStroke);
+
+      return iDamage * piDamagePercent / 100;
+   }
+
+   GetAttackType(what=$,use_weapon=$)
+   {
+      if poOriginal = $
+      {
+         return viAttack_type;
+      }
+
+      return Send(poOriginal,@GetAttackType,#what=what,#use_weapon=use_weapon);
+   }
+
+   GetSpellType(what=$,use_weapon=$)
+   {
+      if poOriginal = $
+      {
+         return viSpell_type;
+      }
+
+      return Send(poOriginal,@GetSpellType,#what=what,#use_weapon=use_weapon);
    }
 
    GetKarma(detect=FALSE)
    {
       if detect
       {
-         return send(poOriginal,@GetKarma);
+         return Send(poOriginal,@GetKarma);
       }
-      
+
+      propagate;
+   }
+
+   SomethingChangedFlags(what=$)
+   {
+      if (what = poOriginal)
+      {
+         piDrawfx = Send(self,@GetDrawingEffects);
+
+         if poOwner <> $
+         {
+            Send(poOwner,@SomethingChangedFlags,#what=self);
+         }
+      }
+
       propagate;
    }
 
    SomethingChanged(what=$)
    {
+      local oWeapon, iRange, i;
+
       if what = poOriginal
       {
-         if Send(what,@GetAnimation) = PANM_WAVE
+         piDrawfx = Send(self,@GetDrawingEffects);
+
+         // Reset plActions.
+         plActions = [[SKID_MINIMUM,0,0,MAX_KOD_INT,50,1,99,COMBAT_ACTION_NEUTRAL]];
+
+         // Gotta get the evil twin's correct action list.
+         if IsClass(poOriginal,&User)
          {
-            Send(self,@DoWave);
+            oWeapon = Send(poOriginal,@GetWeapon);
+
+            if oWeapon <> $
+            {
+               iRange = Send(oWeapon,@GetRange);
+               iRange *= iRange;
+
+               if IsClass(oWeapon,&RangedWeapon)
+                  OR IsClass(oWeapon,&ThrownWeapon)
+               {
+                  plActions = Cons([SKID_FIRE,0,0,iRange,100,1,99,COMBAT_ACTION_HARM],plActions);
+               }
+               else
+               {
+                  plActions = Cons([SKID_SLASH,0,0,iRange,100,1,99,COMBAT_ACTION_HARM],plActions);
+               }
+            }
+            else
+            {
+               plActions = Cons([SKID_SLASH,0,0,4096,100,1,99,COMBAT_ACTION_HARM],plActions);
+            }
          }
-         
-         if Send(what,@GetAnimation) = PANM_POINT
+         else
          {
-            Send(self,@DoPoint);
+            iRange = Send(poOriginal,@GetMeleeRange);
+            iRange *= iRange;
+            plActions = Cons([SKID_SLASH,0,0,iRange,100,1,99,COMBAT_ACTION_HARM],plActions);
+
+            iRange = Send(poOriginal,@GetFireRange);
+            iRange *= iRange;
+            plActions = Cons([SKID_FIRE,0,0,iRange,100,1,99,COMBAT_ACTION_HARM],plActions);
          }
-         
-         if Send(what,@GetAnimation) = PANM_DANCE
+
+         if poOwner <> $
          {
-            Send(self,@DoDance);
+            Send(poOwner,@SomethingChanged,#what=self);
          }
-         
-         piDrawfx = send(poOriginal,@GetPlayerDrawfx);
       }
-      
+
       propagate;
    }
 
    DoWave()
    "Causes the EvilTwin to wave."
    {
-      send(self,@GetOriginalInfo);
+      Send(self,@GetOriginalInfo);
       piAnimation = PANM_WAVE;
       Send(poOwner,@SomethingChanged,#what=self);
       piAnimation = PANM_NONE;
-      
+
       return;
    }
 
    DoPoint()
    {
-      send(self,@GetOriginalInfo);
+      Send(self,@GetOriginalInfo);
       piAnimation = PANM_POINT;
       Send(poOwner,@SomethingChanged,#what=self);
       piAnimation = PANM_NONE;
-      
+
       return;
    }
 
    DoDance()
    {
-      send(self,@GetOriginalInfo);
+      Send(self,@GetOriginalInfo);
       piAnimation = PANM_DANCE;
       Send(poOwner,@SomethingChanged,#what=self);
       piAnimation = PANM_NONE;
-      
+
       return;
-    }
+   }
 
    SetOriginal(who=$)
    {
       if who = $
       {
-         post(self,@Delete);
+         Post(self,@Delete);
 
          return;
       }
-      
+
       poOriginal = who;
       Send(self,@GetOriginalInfo);
 
@@ -423,47 +897,154 @@ messages:
 
    GetIcon()
    {
-      return send(poOriginal,@GetIcon);
+      return Send(poOriginal,@GetIcon);
    }
-   
-   TryAttack(what=$,stroke_obj=$)
+
+   DoMeleeAnimation()
+   "Handles melee attack animation."
    {
-      local bWasBad;
+      local oWeapon, oAmmo, i;
 
-      if IsClass(poCaster,&Player)
-         AND NOT Send(poOwner,@IsArena)
+      Send(self,@GetOriginalInfo);
+
+      if IsClass(poOriginal,&User)
       {
-         %Is the caster bad to start with?
-         bWasBad = (send(poCaster,@CheckPlayerFlag,#flag=PFLAG_OUTLAW)
-                    OR send(poCaster,@CheckPlayerFlag,#flag=PFLAG_MURDERER));
-   
-         if NOT send(poCaster,@AllowPlayerAttack,#victim=what)
-         {
-            return FALSE;
-         }
+         oWeapon = Send(poOriginal,@GetWeapon);
 
-         % If they weren't bad and become bad, let them know.
-         if NOT bWasBad
-            AND (send(poCaster,@CheckPlayerFlag,#flag=PFLAG_OUTLAW)
-                 OR send(poCaster,@CheckPlayerFlag,#flag=PFLAG_MURDERER))
+         if oWeapon <> $
          {
-            Send(poCaster,@MsgSendUser,#message_rsc=EvilTwin_trouble);
+            if IsClass(oWeapon,&TouchAttackSpell)
+            {
+               piAnimation = PANM_CAST;
+            }
+            else
+            {
+               piAnimation = PANM_WEAPON_ATTACK;
+            }
+         }
+         else
+         {
+            piAnimation = PANM_FIST_ATTACK;
          }
       }
+      else
+      {
+         piAnimation = Send(poOriginal,@GetMeleeAnimation);
+      }
 
-      propagate;
-   }
+      Send(poOwner,@SomethingChanged,#what=self);
 
-   MonsterAttack(what=$)
-   {
-      % Do the animation!
-      send(self,@DoAttack);
+      if IsClass(poOriginal,&User)
+      {
+         piAnimation = PANM_NONE;
+      }
+      else
+      {
+         piAnimation = ANIM_NONE;
+      }
 
       return;
    }
 
-   % The next three messages deal with the three defense skills.  These messages return the relative values of the three
-   % skills.  Used in player for defense, used in battler for defense messages.
+   DoMissileAnimation()
+   "Handles ranged attack animation. Default is same as melee."
+   {
+      local oWeapon, oAmmo, i;
+
+      Send(self,@GetOriginalInfo);
+
+      if IsClass(poOriginal,&User)
+      {
+         oWeapon = Send(poOriginal,@GetWeapon);
+
+         // Default.
+         oAmmo = poArrow;
+
+         if IsClass(oWeapon,&Bow)
+         {
+            piAnimation = PANM_BOW_FIRE;
+
+            foreach i in Send(poOriginal,@GetPlayerUsing)
+            {
+               if Send(i,@GetItemUseType) = ITEM_USE_QUIVER
+               {
+                  oAmmo = i;
+               }
+            }
+
+            Send(poOwner,@SomethingShot,#who=self,#target=poTarget,
+                  #projectile=oAmmo,#flags=PROJ_FLAG_LIGHT_SOURCE);
+         }
+         else if IsClass(oWeapon,&ThrownWeapon)
+         {
+            piAnimation = PANM_WEAPON_ATTACK;
+            Send(poOwner,@SomethingShot,#who=self,#target=poTarget,
+                  #projectile=oWeapon,#flags=PROJ_FLAG_LIGHT_SOURCE);
+         }
+         else
+         {
+            piAnimation = PANM_FIST_ATTACK;
+         }
+      }
+      else
+      {
+         piAnimation = Send(poOriginal,@GetFireAnimation);
+
+         // If original fires a projectile, we send one too.
+         if Send(poOriginal,@GetProjectileIcon) <> $
+         {
+            Send(poOwner,@SomethingShot,#who=self,#target=poTarget,
+                  #projectile=poOriginal,#flags=PROJ_FLAG_LIGHT_SOURCE);
+         }
+      }
+
+      Send(poOwner,@SomethingChanged,#what=self);
+
+      if IsClass(poOriginal,&User)
+      {
+         piAnimation = PANM_NONE;
+      }
+      else
+      {
+         piAnimation = ANIM_NONE;
+      }
+
+      return;
+   }
+
+   MonsterCastAnimation(iSpellNum=$)
+   "If a monster has a special cast animation, call this."
+   {
+      local oWeapon, oAmmo, i;
+
+      Send(self,@GetOriginalInfo);
+
+      if IsClass(poOriginal,&User)
+      {
+         piAnimation = PANM_CAST;
+      }
+      else
+      {
+         piAnimation = Send(poOriginal,@GetCastAnimation);
+      }
+
+      Send(poOwner,@SomethingChanged,#what=self);
+
+      if IsClass(poOriginal,&User)
+      {
+         piAnimation = PANM_NONE;
+      }
+      else
+      {
+         piAnimation = ANIM_NONE;
+      }
+
+      return;
+   }
+
+   // The next three messages deal with the three defense skills.
+   // These messages return the relative values of the three
+   // skills.  Used in player for defense, used in battler for defense messages.
    GetParryAbility(stroke_obj=$)
    {
       return Send(poOriginal,@GetParryAbility,#stroke_obj=stroke_obj);
@@ -479,110 +1060,100 @@ messages:
       return Send(poOriginal,@GetDodgeAbility,#stroke_obj=stroke_obj);
    }
 
-   DoAttack()
-   {
-      local Weapon, ammotype, i;
-      
-      Weapon = send(poOriginal,@LookupPlayerWeapon);
-      ammotype = poArrow;
-      Send(self,@GetOriginalInfo);
-
-      if Weapon <> $   %IsClass(Weapon,&Weapon)
-      {
-         if IsClass(Weapon,&Bow)
-         {
-            piAnimation = PANM_BOW_FIRE;
-
-            for i in send(poOriginal,@GetPlayerUsing)
-            {
-               if send(i,@GetItemUseType) = ITEM_USE_QUIVER
-               {
-                  AmmoType = i;
-               }
-            }
-            
-            send(poOwner,@SomethingShot,#who=self,#target=poTarget,#projectile = AmmoType);
-         }
-         else
-         {
-            piAnimation = PANM_WEAPON_ATTACK;
-         }
-      }
-      else
-      {
-         piAnimation = PANM_FIST_ATTACK;
-      }
-      
-      Send(poOwner,@SomethingChanged,#what=self);
-      piAnimation = PANM_NONE;
-      
-      return;
-   }
-   
    ShowDesc()
    {
-      send(poOriginal,@ShowDesc);
-      
+      Send(poOriginal,@ShowDesc);
+
       return;
    }
 
    SendMoveAnimation()
    {
-      % Make it look like EvilTwin is walking
+      // Make it look like EvilTwin is walking
 
       Send(poOriginal,@SendMoveAnimation);
-      
+
       return;
    }
 
    SendMoveOverlays()
    {
-      send(poOriginal,@SendMoveOverlays);
-      
+      Send(poOriginal,@SendMoveOverlays);
+
       return;
    }
 
    SendAnimation()
    {
-       send(poOriginal,@SendAnimation,#iAnimation=piAnimation);
-       
-       return;
+      Send(poOriginal,@SendAnimation,#iAnimation=piAnimation);
+
+      return;
    }
 
    SendOverlays()
    {
-       Send(poOriginal,@SendOverlays,#iAnimation=piAnimation);
-       
-       return;
-   }
+      Send(poOriginal,@SendOverlays,#iAnimation=piAnimation);
 
+      return;
+   }
 
    GetIllusionForm()
    {
       return poOriginal;
-   }  
+   }
 
-   TryLook(what = $)
+   TryLook(what=$)
    {
+      if what = $
+      {
+         return;
+      }
+
       if poOriginal = $
       {
-         post(self,@Delete);
+         return;
+      }
 
-         return;
-      }
-   
-      if IsClass(poOriginal,&Player)
-         AND send(poOriginal,@CheckPlayerFlag,#flag=PFLAG_INVISIBLE)
-         AND what <> poOriginal
+      if IsClass(poOriginal,&User)
       {
-         return;
+         if Send(poOriginal,@CheckPlayerFlag,#flag=PFLAG_INVISIBLE)
+            AND (what <> poOriginal)
+         {
+            return;
+         }
+
+         Send(what,@SendLookPlayer,#what=poOriginal);
       }
-      
-      Send(what,@SendLookPlayer,#what=poOriginal);
-      
+      else
+      {
+         Send(poOriginal,@TryLook,#what=what);
+      }
+
       return;
    }
 
+   SpecialHatredBehavior(what=$)
+   {
+      // Trying to reduce the tendency of reflections to turn on themselves
+      //  or their master.
+      if IsClass(what,&Revenant)
+         OR IsClass(what,&EvilTwin)
+      {
+         return -20000;
+      }
+
+      return 0;
+   }
+
+   GetCaster()
+   {
+      return poCaster;
+   }
+
+   CanEvilTwin()
+   {
+      return FALSE;
+   }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

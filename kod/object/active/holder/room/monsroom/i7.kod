@@ -1,24 +1,26 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 OutdoorsI7 is MonsterRoom
 
 constants:
 
-   include blakston.khd                                
+   include blakston.khd
 
 resources:
 
+   include i7.lkod
+
    room_OutdoorsI7 = i7.roo
    room_name_OutdoorsI7 ="The Twisted Wood"
-   OutdoorsI7_music = walk7.mid
+   OutdoorsI7_music = walk7.ogg
 
 classvars:
 
@@ -32,6 +34,8 @@ classvars:
    viFlag_row = 36
    viFlag_col = 38
 
+   viWeatherZone = WEATHER_ZONE_TOS
+
 properties:
 
    prRoom = room_OutdoorsI7
@@ -43,7 +47,9 @@ properties:
 
    piDirectional_percent = DIRECTIONAL_PERCENT_OUTDOORS
 
-   piGen_time = 45000
+   pbSnowGroundTexture = TRUE
+
+   piGen_time = 25000
    piGen_percent = 80
 
    piInit_count_min = 8
@@ -57,10 +63,16 @@ messages:
    {
       plMonsters = [ [&Spider, 55], [&Troll, 45] ];
 
-      plGenerators = [ [9, 8], [4, 19], [18, 9], [18, 4], [20, 19],
-		      [7, 25], [5, 39], [26, 31], [35, 35], [40, 30], 
-		      [32, 19], [40, 14], [41, 43], [44, 47], [33, 51] ];
       propagate;
+   }
+
+   SetMonsterGenPoints()
+   {
+      plGenerators = [ [9, 8], [4, 19], [18, 9], [18, 4], [20, 19],
+                       [7, 25], [5, 39], [26, 31], [35, 35], [40, 30], 
+                       [32, 19], [40, 14], [41, 43], [44, 47], [33, 51] ];
+
+      return;
    }
 
    CreateStandardExits()
@@ -79,4 +91,4 @@ messages:
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

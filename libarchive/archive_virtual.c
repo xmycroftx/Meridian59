@@ -55,14 +55,6 @@ archive_filter_bytes(struct archive *a, int n)
 }
 
 int
-archive_free(struct archive *a)
-{
-	if (a == NULL)
-		return (ARCHIVE_OK);
-	return ((a->vtable->archive_free)(a));
-}
-
-int
 archive_write_close(struct archive *a)
 {
 	return ((a->vtable->archive_close)(a));
@@ -84,7 +76,9 @@ archive_write_fail(struct archive *a)
 int
 archive_write_free(struct archive *a)
 {
-	return archive_free(a);
+	if (a == NULL)
+		return (ARCHIVE_OK);
+	return ((a->vtable->archive_free)(a));
 }
 
 #if ARCHIVE_VERSION_NUMBER < 4000000
@@ -99,7 +93,9 @@ archive_write_finish(struct archive *a)
 int
 archive_read_free(struct archive *a)
 {
-	return archive_free(a);
+	if (a == NULL)
+		return (ARCHIVE_OK);
+	return ((a->vtable->archive_free)(a));
 }
 
 #if ARCHIVE_VERSION_NUMBER < 4000000

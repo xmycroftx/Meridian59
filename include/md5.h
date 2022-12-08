@@ -27,7 +27,6 @@ These notices must be retained in any copies of any part of this
 documentation and/or software.
  */
 
-#include <stdint.h>
 
 #define ENCRYPT_LEN 16  // # of bytes in encrypted password
 
@@ -35,11 +34,13 @@ documentation and/or software.
 typedef unsigned char *POINTER;
 
 /* UINT2 defines a two byte word */
-typedef uint16_t UINT2;
+typedef unsigned short int UINT2;
 
 /* UINT4 defines a four byte word */
-typedef uint32_t UINT4;
+typedef unsigned long int UINT4;
 
 void MDString (char *string, unsigned char *digest);
+void MDFileHash(char *string, char *filehash, unsigned int bytes);
+void MDStringBytes(char *string, unsigned char *digest, unsigned int bytes);
 
 #endif /* #ifndef _MD5_H */

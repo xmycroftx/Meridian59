@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 OutdoorsKC4 is KCForest
 
 constants:
@@ -16,9 +16,11 @@ constants:
 
 resources:
 
-   room_name_OutdoorsKC4 ="Origin of the Kriipa"
-   room_OutdoorsKC4 = KC4.roo
-   OutdoorsKC4_music = orcbeg.mid
+   include kc4.lkod
+
+   room_name_OutdoorsKC4 = "Origin of the Kriipa"
+   room_OutdoorsKC4 = kc4.roo
+   OutdoorsKC4_music = orcbeg.ogg
 
 classvars:
 
@@ -27,6 +29,9 @@ classvars:
    viTeleport_row = 49
    viTeleport_col = 4
    viTerrain_type = TERRAIN_JUNGLE
+
+   viWeatherZone = WEATHER_ZONE_KOC_OUTP
+   viWeatherMask = WEATHER_MASK_JUNGLE
 
 properties:
 
@@ -45,31 +50,48 @@ properties:
    piInit_count_min = 7
    piInit_count_max = 13
 
-   piMonster_count_max = 13
+   piMonster_count_max = 15
+
+   pbSnowGroundTexture = TRUE
+
 
 messages:
 
    Constructed()
    {
       plMonsters = [[ &DragonFly,30], [&Avar, 70] ];
-      plGenerators = [ [35,12], [47,7], [51,24], [26,38], [18,23], [24,9] ];
 
       propagate;
    }
 
-   CreateJungleItemCoords()
-   {      
-      plItem_coords = [ [&RainbowFern,50,4], [&RainbowFern,24,6], [&RainbowFern,35,38] ];
+   SetMonsterGenPoints(bRandomGen = TRUE)
+   {
+      if (bRandomGen)
+      {
+         return;
+      }
 
-      % Do not propagate
+      plGenerators = [ [35,12], [47,7], [51,24], [26,38], [18,23], [24,9] ];
+
+      return;
+   }
+
+   CreateJungleItemCoords()
+   {
+      plItem_coords = [ [&RainbowFern,50,4], [&RainbowFern,24,6],
+                        [&RainbowFern,35,38] ];
+
+      // Do not propagate
       return;
    }
 
    CreateStandardExits()
    {
       plEdge_Exits = $;
-      plEdge_Exits = Cons([LEAVE_NORTH, RID_KC3, 69, 38, ROTATE_NONE], plEdge_exits);
-      plEdge_Exits = Cons([LEAVE_SOUTH, RID_KC5, 1, 23, ROTATE_NONE], plEdge_exits);
+      plEdge_Exits = Cons([LEAVE_NORTH, RID_KC3, 69, 38, ROTATE_NONE],
+                           plEdge_exits);
+      plEdge_Exits = Cons([LEAVE_SOUTH, RID_KC5, 1, 23, ROTATE_NONE],
+                           plEdge_exits);
 
       propagate;
    }
@@ -107,30 +129,16 @@ messages:
 
       propagate;
    }
-  
+
    GetClan()
    {
-      if random(1,2) = 1
+      if Random(1,2) = 1
       {
          return AVARCLAN_PROMAGIC;
       }
-      
+
       return AVARCLAN_ANTIMAGIC;
    }
 
-   ModifyChanceToImprove(who=$,oSpellSkill=$,chance=0)
-   "This takes a spell/skill that who is trying to advance and modifies the improve_chance."
-   {
-      % Penalize skills because there's an obvious chokepoint here.
-      if oSpellSkill <> $
-         AND IsClass(oSpellSkill,&Skill)
-      {
-         return (chance / 10);
-      }
-      
-      return chance;
-   }
-
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

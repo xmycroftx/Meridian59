@@ -1,23 +1,25 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Priestess is Monster
 
-% This class exists so the Illusionary Form spell has a class to call to
-% give players the illusion of looking like a priestess.
+// This class exists so the Illusionary Form spell has a class to call to
+// give players the illusion of looking like a priestess.
 
 constants:
 
    include blakston.khd
 
 resources:
+
+   include priestes.lkod
 
    priestess_name_rsc = "priestess"
    priestess_icon_rsc = priestes.bgf
@@ -46,8 +48,8 @@ messages:
    {
       if piAnimation = ANIM_ATTACK
       {
-	 AddPacket(1,ANIMATE_ONCE,4,800,2,4,2,4,2,1);
-	 return;
+         AddPacket(1,ANIMATE_ONCE,4,800,2,4,2,4,2,1);
+         return;
       }
 
       AddPacket(1,ANIMATE_NONE,2,1);
@@ -60,5 +62,5 @@ messages:
    }      
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 

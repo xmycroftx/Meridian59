@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 FaceMask is Helmet
 
 constants:
@@ -16,11 +16,12 @@ constants:
 
 resources:
 
+   include mask.lkod
+
    FaceMask_name_rsc = "mask"
    FaceMask_icon_male_rsc = mmskl.bgf
    FaceMask_icon_female_rsc = mfskl.bgf
-   FaceMask_desc_rsc = \
-      "This mask can be used as a disguise."   
+   FaceMask_desc_rsc = "This mask can be used as a disguise."
 
 classvars:
 
@@ -44,22 +45,25 @@ messages:
 
    DefendingHit(who = $,what = $)
    {
-      % Return here to avoid damage.
+      // Return here to avoid damage.
       return;
    }
 
    GetOverlay(animation = $)
    {
-      if send(poOwner,@GetGender) = GENDER_FEMALE
+      if Send(poOwner,@GetGender) = GENDER_FEMALE
       {
          return vrFemaleIcon;
       }
-      
-      return vrMaleIcon; 
+
+      return vrMaleIcon;
    }
 
+   GetMinimapDotFlags()
+   {
+      // Special item, add minimap dot.
+      return MM_RARE_ITEM;
+   }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
+////////////////////////////////////////////////////////////////////////////////

@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 OutdoorsKB3 is KCForest
 
 constants:
@@ -16,9 +16,11 @@ constants:
 
 resources:
 
-   room_name_OutdoorsKB3 ="Camp of the Warrior Avars"
-   room_OutdoorsKB3 = KB3.roo
-   OutdoorsKB3_music = avarwar.mid
+   include kb3.lkod
+
+   room_name_OutdoorsKB3 = "Camp of the Warrior Avars"
+   room_OutdoorsKB3 = kb3.roo
+   OutdoorsKB3_music = avarwar.ogg
 
 classvars:
 
@@ -28,6 +30,9 @@ classvars:
    viTeleport_row = 15
    viTeleport_col = 8
    viTerrain_type = TERRAIN_JUNGLE
+
+   viWeatherZone = WEATHER_ZONE_KOC_TOWN
+   viWeatherMask = WEATHER_MASK_JUNGLE
 
 properties:
 
@@ -40,31 +45,46 @@ properties:
 
    piDirectional_percent = DIRECTIONAL_PERCENT_OUTDOORS
 
-   piGen_time = 90000
+   pbSnowGroundTexture = TRUE
+
+   piGen_time = 25000
    piGen_percent = 70
 
    piInit_count_min = 5
    piInit_count_max = 9
 
-   piMonster_count_max = 12
+   piMonster_count_max = 15
 
 messages:
 
    Constructed()
    {
-      plMonsters = [ [&Avar, 50], [&AvarShaman, 18], [&AvarChieftain, 5],[&Kriipa,27] ];
-      plGenerators = [ [14,8], [15,23], [17,44], [29,47], [36,24], 
-                       [36,16], [27,24]
-                     ];
+      plMonsters = [ [&Avar, 50], [&AvarShaman, 18],
+                     [&AvarChieftain, 5],[&Kriipa,27] ];
 
       propagate;
    }
 
-   CreateJungleItemCoords()
-   {      
-      plItem_coords = [ [&RainbowFern,15,6], [&RainbowFern,39,15], [&RainbowFern,34,34] ];
+   SetMonsterGenPoints(bRandomGen = TRUE)
+   {
+      if (bRandomGen)
+      {
+         return;
+      }
 
-      % Do not propagate
+      plGenerators = [ [14,8], [15,23], [17,44], [29,47], [36,24],
+                       [36,16], [27,24]
+                     ];
+
+      return;
+   }
+
+   CreateJungleItemCoords()
+   {
+      plItem_coords = [ [&RainbowFern,15,6], [&RainbowFern,39,15],
+                        [&RainbowFern,34,34] ];
+
+      // Do not propagate
       return;
    }
 
@@ -103,14 +123,17 @@ messages:
    CreateStandardExits()
    {
       plEdge_Exits = $;
-      plEdge_Exits = Cons([LEAVE_NORTH, RID_KB2, 74, 20, ROTATE_NONE], plEdge_exits);
-      plEdge_Exits = Cons([LEAVE_EAST, RID_KC2, 44, 1, ROTATE_NONE, ROW_IS_LESS_THAN, 20], plEdge_exits);
-      plEdge_Exits = Cons([LEAVE_EAST, RID_KC3, 20, 1, ROTATE_NONE, ROW_IS_GREATER_THAN,20], plEdge_exits);
-      plEdge_Exits = Cons([LEAVE_SOUTH, RID_KB4, 1, 24, ROTATE_NONE], plEdge_exits);      
+      plEdge_Exits = Cons([LEAVE_NORTH, RID_KB2, 74, 20, ROTATE_NONE],
+                           plEdge_exits);
+      plEdge_Exits = Cons([LEAVE_EAST, RID_KC2, 44, 1, ROTATE_NONE,
+                           ROW_IS_LESS_THAN, 20], plEdge_exits);
+      plEdge_Exits = Cons([LEAVE_EAST, RID_KC3, 20, 1, ROTATE_NONE,
+                           ROW_IS_GREATER_THAN,20], plEdge_exits);
+      plEdge_Exits = Cons([LEAVE_SOUTH, RID_KB4, 1, 24, ROTATE_NONE],
+                           plEdge_exits);
 
       propagate;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 ExplosiveFrost is AttackSpell
 
 constants:
@@ -16,15 +16,14 @@ constants:
 
 resources:
 
+   include exfrost.lkod
+
    ExplosiveFrost_name_rsc = "explosive frost"
-
    ExplosiveFrost_icon_rsc = iexfrost.bgf
-
    ExplosiveFrost_desc_rsc = \
-      "Creates a small exploision of frost which damages a target at short range.  "
-      "Requires red mushrooms and elderberries to cast."
-
-   ExplosiveFrost_sound = ficefing.wav
+      "Creates a small explosion of frost which damages a target "
+      "at short range."
+   ExplosiveFrost_sound = ficefing.ogg
 
 classvars:
 
@@ -34,7 +33,7 @@ classvars:
    
    viSpell_num = SID_EXPLOSIVE_FROST
 
-   viAttack_spell = ATCK_SPELL_ALL + ATCK_SPELL_COLD
+   viSpell_type = SPL_TYPE_ALL + SPL_TYPE_COLD
 
    viSchool = SS_FAREN
    viSpell_level = 4
@@ -42,30 +41,29 @@ classvars:
 
    vrSucceed_wav = ExplosiveFrost_sound
 
-   % In seconds, since it works off GetTime().
+   // In seconds, since it works off GetTime().
    viPostCast_time = 2
 
-   viChance_To_Increase = 5
+   viChance_To_Increase = 15
 
 properties:
 
    piDamageMin = 13
    piDamageMax = 25
-   piRange = 4
-   
+   piRange = 4 * FINENESS
+
 messages:
 
    ResetReagents()
    {
-      % separate message so can change, then set from admin mode
+      // separate message so can change, then set from admin mode
 
       plReagents = $;
-      plReagents = cons([&RedMushroom,2],plReagents);
+      plReagents = Cons([&RedMushroom,2],plReagents);
       plReagents = Cons([&Elderberry,1],plReagents);
 
       return;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

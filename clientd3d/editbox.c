@@ -19,9 +19,14 @@ static WNDPROC lpfnDefEditProc; /* Default edit box message handler */
 /* Position & size of edit box */
 static AREA edit_area;
 
-// When adding text, keep track of whether the player has scrolled back, so that
-// we shouldn't scroll the added text into view.
-static Bool scrolled_back;  
+// When adding text, keep track of whether the player has scrolled back, so
+// that we shouldn't scroll the added text into view.
+static Bool scrolled_back;
+
+// Buffer for editbox contents.
+static char edit_contents[MAX_TEXT];
+// Keep track of whether edit_contents has been filled.
+static Bool edit_readd;
 
 static keymap editbox_key_table[] = {
 { VK_TAB,         KEY_NONE,             A_TABFWD,   (void *) IDC_MAINTEXT },
@@ -53,6 +58,22 @@ void EditBoxCreate(HWND hParent)
 
    lpfnDefEditProc = SubclassWindow(hwndText, EditProc);
    SetWindowFont(hwndText, GetFont(FONT_EDIT), FALSE);
+
+   // For capturing link click notifications.
+   //LRESULT mask = SendMessage(hwndText, EM_GETEVENTMASK, 0, 0);
+   //SendMessage(hwndText, EM_SETEVENTMASK, 0, mask | ENM_LINK);
+   //SendMessage(hwndText, EM_AUTOURLDETECT, TRUE, NULL);
+
+   // If edit_contents has been filled, edit_readd will be true.
+   // Add the contents back to the edit box with no color/style.
+   if (edit_readd)
+   {
+      EditBoxStartAdd();
+      EditBoxAddText(edit_contents, 0, 0);
+      EditBoxEndAdd();
+      edit_readd = 0;
+      edit_contents[0] = 0;
+   }
 }
 /************************************************************************/
 /*
@@ -60,6 +81,15 @@ void EditBoxCreate(HWND hParent)
  */
 void EditBoxDestroy(void)
 {
+   // Save contents of edit box into buffer in case we're reconnecting.
+   int textlen = Edit_GetText(hwndText, edit_contents, MAX_TEXT);
+   if (textlen > MAX_TEXT - 1)
+      edit_contents[MAX_TEXT - 1] = 0;
+   else
+      edit_contents[textlen] = 0;
+
+   edit_readd = TRUE;
+
    DestroyWindow(hwndText);
    hwndText = NULL;
 }
@@ -168,7 +198,7 @@ void EditBoxStartAdd(void)
    Edit_SetSel(hwndText, txtlen, txtlen);
    memset(&cformat, 0, sizeof(cformat));
    cformat.cbSize = sizeof(cformat);
-   cformat.dwMask    |= CFM_BOLD | CFM_ITALIC | CFM_UNDERLINE;  // Turn these off
+   cformat.dwMask    |= CFM_BOLD | CFM_ITALIC | CFM_UNDERLINE | CFM_STRIKEOUT | CFM_LINK;  // Turn these off
    SendMessage(hwndText, EM_SETCHARFORMAT, SCF_SELECTION, (LPARAM) &cformat);
 }
 /************************************************************************/
@@ -218,26 +248,19 @@ void EditBoxAddText(char *message, int color, int style)
       cformat.dwMask = CFM_COLOR;
       cformat.crTextColor = color;
 
-      if (style == STYLE_NORMAL)
-	 cformat.dwMask    |= CFM_BOLD | CFM_ITALIC | CFM_UNDERLINE;
+      cformat.dwMask    |= CFM_BOLD | CFM_ITALIC | CFM_UNDERLINE | CFM_STRIKEOUT | CFM_LINK;
 
       if (style & STYLE_BOLD)
-      {
-	 cformat.dwMask    |= CFM_BOLD;
-	 cformat.dwEffects |= CFE_BOLD;
-      }
-
+         cformat.dwEffects |= CFE_BOLD;
       if (style & STYLE_ITALIC)
-      {
-	 cformat.dwMask    |= CFM_ITALIC;
-	 cformat.dwEffects |= CFE_ITALIC;
-      }
-
+         cformat.dwEffects |= CFE_ITALIC;
       if (style & STYLE_UNDERLINE)
-      {
-	 cformat.dwMask    |= CFM_UNDERLINE;
-	 cformat.dwEffects |= CFE_UNDERLINE;
-      }
+         cformat.dwEffects |= CFE_UNDERLINE;
+      if (style & STYLE_STRIKEOUT)
+         cformat.dwEffects |= CFE_STRIKEOUT;
+      if (style & STYLE_LINK)
+         cformat.dwEffects |= CFE_LINK;
+
 
       SendMessage(hwndText, EM_SETCHARFORMAT, SCF_SELECTION, (LPARAM) &cformat);
    }
@@ -256,7 +279,7 @@ void EditBoxSetNormalFormat()
    memset(&cformat, 0, sizeof(cformat));
    cformat.cbSize = sizeof(cformat);
    cformat.crTextColor = RGB(0,0,0);
-   cformat.dwMask |= CFM_COLOR | CFM_BOLD | CFM_ITALIC | CFM_UNDERLINE;
+   cformat.dwMask |= CFM_COLOR | CFM_BOLD | CFM_ITALIC | CFM_UNDERLINE | CFM_STRIKEOUT | CFM_LINK;
 
    SendMessage(hwndText, EM_SETCHARFORMAT, SCF_SELECTION, (LPARAM) &cformat);
 }

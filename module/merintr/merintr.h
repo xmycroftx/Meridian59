@@ -15,6 +15,7 @@
 #include "merintrc.h"
 #include "mermain.h"
 #include "spells.h"
+#include "skills.h"
 #include "command.h"
 #include "groups.h"
 #include "userarea.h"
@@ -31,12 +32,15 @@
 #include "actions.h"
 #include "drawint.h"
 #include "groupdlg.h"
+#include "language.h"
 
 #define MODULE_ID 100    // Unique module id #
 
 #define A_CAST          (A_MODULE + 200)
 #define A_CASTSPELL     (A_MODULE + 201)
 #define A_LOOKINVENTORY (A_MODULE + 202)    // Examine item in inventory
+#define A_PERFORM       (A_MODULE + 203)
+#define A_PERFORMSKILL  (A_MODULE + 204)
 
 // Window messages
 #define BK_CREATED      (WM_USER + 100)
@@ -51,7 +55,7 @@
 #define RequestRest()              ToServer(BP_USERCOMMAND, user_msg_table, UC_REST)
 #define RequestStand()             ToServer(BP_USERCOMMAND, user_msg_table, UC_STAND)
 #define RequestSuicide()           ToServer(BP_USERCOMMAND, user_msg_table, UC_SUICIDE)
-#define SendSafety(val)            ToServer(BP_USERCOMMAND, user_msg_table, UC_SAFETY, val)
+#define SendPreferences(val)       ToServer(BP_USERCOMMAND, user_msg_table, UC_SEND_PREFERENCES, val)
 #define RequestGuildInfo()         ToServer(BP_USERCOMMAND, user_msg_table, UC_REQ_GUILDINFO)
 #define RequestInvite(obj)         ToServer(BP_USERCOMMAND, user_msg_table, UC_INVITE, obj)
 #define RequestRenounce()          ToServer(BP_USERCOMMAND, user_msg_table, UC_RENOUNCE)
@@ -89,6 +93,7 @@
 #define RequestDepositMoney(amount)     ToServer(BP_USERCOMMAND, user_msg_table, UC_DEPOSIT, amount)
 #define RequestBalance()           ToServer(BP_USERCOMMAND, user_msg_table, UC_BALANCE)
 #define RequestAppeal(s)           ToServer(BP_USERCOMMAND, user_msg_table, UC_APPEAL, s)
+#define RequestPreferences()       ToServer(BP_USERCOMMAND, user_msg_table, UC_REQ_PREFERENCES)
 
 extern client_message msg_table[];
 extern client_message user_msg_table[];

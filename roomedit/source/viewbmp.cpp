@@ -369,7 +369,8 @@ void TViewBitmapListDialog::SetupWindow ()
 //
 int TViewBitmapListDialog::SetSelection (const char *str)
 {
-	int SelIndex = pBitmapList->FindStringExact (str, -1);
+	int SelIndex = pBitmapList->FindStringExact(str, -1);
+
 	if ( SelIndex >= 0 )
 	{
 		pBitmapList->SetSelIndex (SelIndex);

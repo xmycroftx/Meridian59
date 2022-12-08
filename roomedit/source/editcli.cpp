@@ -34,11 +34,11 @@
 	#include "editcli.h"
 #endif
 
-#ifndef __OWL_LAYOUTWI_H
+#ifndef OWL_LAYOUTWI_H
 	#include <owl\layoutwi.h>
 #endif
 
-#ifndef __OWL_STATUSBA_H
+#ifndef OWL_STATUSBA_H
 	#include <owl\statusba.h>
 #endif
 
@@ -46,15 +46,15 @@
 	#include <editscro.h>
 #endif
 
-#ifndef __OWL_OPENSAVE_H
+#ifndef OWL_OPENSAVE_H
 	#include <owl\opensave.h>
 #endif
 
-#ifndef __OWL_INPUTDIA_H
+#ifndef OWL_INPUTDIA_H
 	#include <owl\inputdia.h>
 #endif
 
-#ifndef __OWL_VALIDATE_H
+#ifndef OWL_VALIDATE_H
 	#include <owl\validate.h>
 #endif
 
@@ -92,6 +92,10 @@
 
 #ifndef __vertdlg_h
 	#include "vertdlg.h"
+#endif
+
+#ifndef __inpt1dlg_h
+	#include "inpt1dlg.h"
 #endif
 
 #ifndef __inpt2dlg_h
@@ -177,6 +181,8 @@ DEFINE_RESPONSE_TABLE1(TEditorClient, TWindow)
 	EV_COMMAND(CM_SEARCH_PREVOBJ, CmSearchPrev),
 	EV_COMMAND(CM_SEARCH_NEXTOBJ, CmSearchNext),
 	EV_COMMAND(CM_SEARCH_JUMPOBJ, CmSearchJump),
+	EV_COMMAND(CM_OBJECTS_TORCH, CmObjectsTorch),
+	EV_COMMAND(CM_OBJECTS_CIRCLE, CmObjectsCircle),
 	EV_COMMAND(CM_OBJECTS_RECTANGLE, CmObjectsRectangle),
 	EV_COMMAND(CM_OBJECTS_POLYGON, CmObjectsPolygon),
 	EV_COMMAND(CM_EDIT_DELETEOBJ, CmEditDelete),
@@ -210,6 +216,12 @@ DEFINE_RESPONSE_TABLE1(TEditorClient, TWindow)
 	EV_COMMAND(CM_MISCL_AX_SD2_NORMAL, CmAlignXSD2Normal),
 	EV_COMMAND(CM_MISCL_AX_SD2_UPPER, CmAlignXSD2Upper),
 	EV_COMMAND(CM_MISCL_AX_SD2_LOWER, CmAlignXSD2Lower),
+   EV_COMMAND(CM_MISCL_AX_SD1_CIRCLE_UPPER, CmAlignXCircleSD1Upper),
+   EV_COMMAND(CM_MISCL_AX_SD1_CIRCLE_LOWER, CmAlignXCircleSD1Lower),
+   EV_COMMAND(CM_MISCL_AX_SD1_CIRCLE_NORMAL, CmAlignXCircleSD1Normal),
+   EV_COMMAND(CM_MISCL_AX_SD2_CIRCLE_UPPER, CmAlignXCircleSD2Upper),
+   EV_COMMAND(CM_MISCL_AX_SD2_CIRCLE_LOWER, CmAlignXCircleSD2Lower),
+   EV_COMMAND(CM_MISCL_AX_SD2_CIRCLE_NORMAL, CmAlignXCircleSD2Normal),
 	EV_COMMAND(CM_MISCV_DELETE, CmMiscVDelete),
 	EV_COMMAND(CM_MISCV_MERGE, CmMiscVMerge),
 	EV_COMMAND(CM_MISCV_ADD, CmMiscVAddLineDef),
@@ -277,8 +289,8 @@ END_RESPONSE_TABLE;
 // -------------
 //  Constructor
 //
-TEditorClient::TEditorClient (TWindow* parent, char *_levelName,
-							  BOOL newLevel, const char far* title,
+TEditorClient::TEditorClient (TWindow* parent, char *_levelName, char *_saveLevelName,
+							  BOOL newLevel, const char* title,
 							  TModule* module):
 	TLayoutWindow(parent, title, module)
 {
@@ -393,6 +405,14 @@ TEditorClient::TEditorClient (TWindow* parent, char *_levelName,
 		InitialScale = 20;
 	SetScale ((float) (1.0 / InitialScale));
 	CenterMapAroundCoords( (MapMinX + MapMaxX) / 2, (MapMinY + MapMaxY) / 2);
+
+   // If operating in nodebuilder mode, save the map straight away and exit.
+   if (NodeBuilderMode() && _saveLevelName[0] != 0)
+   {
+      SaveLevelData(_saveLevelName);
+      CleanupWindeu();
+      exit(0);
+   }
 }
 
 
@@ -423,7 +443,7 @@ TEditorClient::~TEditorClient ()
 // TEditorClient
 // -------------
 //
-char far* TEditorClient::GetClassName ()
+char* TEditorClient::GetClassName ()
 {
 	return "WinDEUEditor";
 }
@@ -1155,8 +1175,8 @@ void TEditorClient::EvMouseMove (UINT modKeys, const TPoint& point)
 		DrawMouseCoord (dc);
 	}
 
-	PointerX = point.x;
-	PointerY = point.y;
+   PointerX = (SHORT)point.x;
+   PointerY = (SHORT)point.y;
 
 	// If Inserting object, don't do anything
 	if ( InsertingObject )
@@ -1322,8 +1342,8 @@ void TEditorClient::EvMouseMove (UINT modKeys, const TPoint& point)
 //
 void TEditorClient::EvLButtonDown (UINT modKeys, const TPoint& point)
 {
-	PointerX = point.x;
-	PointerY = point.y;
+   PointerX = (SHORT)point.x;
+   PointerY = (SHORT)point.y;
 
 	// Ignore if "insert object" mode
 	if ( InsertingObject )
@@ -1411,8 +1431,8 @@ void TEditorClient::EvLButtonDown (UINT modKeys, const TPoint& point)
 //
 void TEditorClient::EvLButtonUp (UINT modKeys, const TPoint& point)
 {
-	PointerX = point.x;
-	PointerY = point.y;
+   PointerX = (SHORT)point.x;
+   PointerY = (SHORT)point.y;
 
 	// Ignore if "insert object" mode
 	if ( InsertingObject )
@@ -1538,8 +1558,8 @@ void TEditorClient::EvLButtonUp (UINT modKeys, const TPoint& point)
 //
 void TEditorClient::EvLButtonDblClk (UINT modKeys, const TPoint& point)
 {
-	PointerX = point.x;
-	PointerY = point.y;
+	PointerX = (SHORT)point.x;
+   PointerY = (SHORT)point.y;
 
 	// Ignore if "insert object" mode
 	if ( InsertingObject )
@@ -1636,7 +1656,7 @@ void TEditorClient::EvRButtonDown (UINT modKeys, const TPoint& point)
 	TPopupMenu PopupMenu (TrackMenu.GetSubMenu (0));
 	if ( TrackMenu.IsOK() && PopupMenu.IsOK() )
 	{
-		ClientToScreen ((TPoint &) point);
+		ClientToScreen ((TPoint&)point);
 		PopupMenu.TrackPopupMenu (TPM_LEFTALIGN | TPM_RIGHTBUTTON,
 								  point, 0 /* reserved */, *Parent);
 	}
@@ -1729,7 +1749,7 @@ void TEditorClient::EvChar (UINT key, UINT repeatCount, UINT flags)
 		else if (key == '0')
 			SetScale (0.1f);
 		else
-			SetScale (1.0 / (float)(key - '0'));
+			SetScale (1.0f / (float)(key - '0'));
 		OrigX -= (SHORT) ((PointerX - ScrCenterX) * DIV_SCALE);
 		OrigY -= (SHORT) ((ScrCenterY - PointerY) * DIV_SCALE);
 
@@ -1775,11 +1795,15 @@ void TEditorClient::EvChar (UINT key, UINT repeatCount, UINT flags)
 void TEditorClient::AdjustScroller ()
 {
 	SHORT step = SlowScroll ? 50 : 20;
-	SHORT XUnit = MAP_X_SIZE / (20 * step * (SHORT)MUL_SCALE);
-	SHORT YUnit = MAP_Y_SIZE / (20 * step * (SHORT)MUL_SCALE);
-	// int XUnit = MAP_X_SIZE / 40;
-	// int YUnit = MAP_Y_SIZE / 40;
-	Scroller->SetUnits (XUnit, YUnit);
+	SHORT val = (20 * step * (SHORT)MUL_SCALE);
+
+	if (val == 0)
+		val = 1;
+
+	SHORT XUnit = MAP_X_SIZE / val;
+	SHORT YUnit = MAP_Y_SIZE / val;
+
+	Scroller->SetUnits(XUnit, YUnit);
 
 	//
 	// Note: In this routine, we calc. the legal values of OrigX, OrigY,
@@ -1797,11 +1821,22 @@ void TEditorClient::AdjustScroller ()
 	// Compute the max and min value for OrigX and OrigY
 	SHORT OrigXMin = MAP_MIN_X + (SHORT)(ScrCenterX * DIV_SCALE);
 	SHORT OrigXMax = MAP_MAX_X - (SHORT)(ScrCenterX * DIV_SCALE);
-	assert (OrigXMin <= OrigXMax);
+	if (OrigXMin > OrigXMax)
+	{
+		// If we go outside the valid map, center it back over
+		// the middle at the starting scale. This used to be
+		// checked using *assert*!
+		SetScale((float)(1.0 / 20.0));
+		CenterMapAroundCoords((MapMinX + MapMaxX) / 2, (MapMinY + MapMaxY) / 2);
+	}
 
 	SHORT OrigYMin = MAP_MIN_Y + (SHORT)(ScrCenterY * DIV_SCALE);
 	SHORT OrigYMax = MAP_MAX_Y - (SHORT)(ScrCenterY * DIV_SCALE);
-	assert (OrigYMin <= OrigYMax);
+	if (OrigYMin > OrigYMax)
+	{
+		SetScale((float)(1.0 / 20.0));
+		CenterMapAroundCoords((MapMinX + MapMaxX) / 2, (MapMinY + MapMaxY) / 2);
+	}
 
 	// Check that OrigX and OrigY are in their legal value
 	if ( OrigX < OrigXMin )     OrigX = OrigXMin ;
@@ -2500,7 +2535,8 @@ void TEditorClient::DrawStatusBar()
 {
 	if (InfoShown)
 	{
-		char msg[MAX_PATH + 80];
+		// 500 is from LevelName size, 20 from 'Editing %s..' below, 20 for EditMode
+		char msg[500 + 20 + 20];
 		int len;
 
 		// OK to print stats without level now
@@ -2508,29 +2544,35 @@ void TEditorClient::DrawStatusBar()
 		// We must be editing a level
 		assert (Level != NULL);
 #endif
-
-		// Draw the mode info in the first text gadget of status bar
-		len = wsprintf (msg, "Editing %s on %s",
+		if (pStatusBar && pStatusBar->GadgetCount() >= 1)
+		{
+			// Draw the mode info in the first text gadget of status bar
+			len = wsprintf(msg, "Editing %s on %s",
 				GetEditModeName(EditMode), LevelName);
 
-		if (MadeMapChanges == TRUE)
-			strcpy (&msg[len], " *+");
+			if (MadeMapChanges == TRUE)
+				strcpy(&msg[len], " *+");
 
-		else if (MadeChanges == TRUE)
-			strcpy (&msg[len], " *");
-		((TTextGadget *)pStatusBar->FirstGadget())->SetText (msg);
+			else if (MadeChanges == TRUE)
+				strcpy(&msg[len], " *");
 
-		// Draw the scale info in the third text gadget of status bar
-		len = wsprintf (msg, "Scale: %d/%d  Grid: %d",
-							 ScaleNum, ScaleDen, GridScale);
-		if ( SnapToGrid )
-			strcpy (&msg[len], "*");
+			((TTextGadget *)pStatusBar->FirstGadget())->SetText(msg);
+		}
 
-		((TTextGadget *)pStatusBar->FirstGadget()->NextGadget()->NextGadget())->SetText (msg);
+		if (pStatusBar && pStatusBar->GadgetCount() >= 3)
+		{
+			// Draw the scale info in the third text gadget of status bar
+			len = wsprintf(msg, "Scale: %d/%d  Grid: %d",
+				ScaleNum, ScaleDen, GridScale);
+			if (SnapToGrid)
+				strcpy(&msg[len], "*");
+
+			((TTextGadget *)pStatusBar->FirstGadget()->NextGadget()->NextGadget())->SetText(msg);
+		}
 
 		// Draw the memory info
 		TMainFrame *mainFrame =
-			TYPESAFE_DOWNCAST (GetApplication()->GetMainWindow(), TMainFrame);
+			TYPESAFE_DOWNCAST(GetApplication()->GetMainWindow(), TMainFrame);
 		mainFrame->DrawFreeMemory();
 	}
 }
@@ -2679,9 +2721,10 @@ BOOL TEditorClient::SaveLevel ()
 	SaveLevelData(filename);
 	strcpy(LevelName, filename);
 
+   // Don't delete this data on saving.
 	// Forget all UNDO datas
-	CleanupUndo();
-	InitUndo();
+	//CleanupUndo();
+	//InitUndo();
 
 	return TRUE;
 }
@@ -2831,8 +2874,8 @@ void TEditorClient::CmObjectsRectangle ()
 	static SHORT Height = 128;
 	char Title[80];
 	char Prompt[80];
-	TRangeValidator *pValid1 = new TRangeValidator(8, 2000);
-	TRangeValidator *pValid2 = new TRangeValidator(8, 2000);
+	TRangeValidator *pValid1 = new TRangeValidator(8, 14000);
+	TRangeValidator *pValid2 = new TRangeValidator(8, 14000);
 	char wBuf[7];
 	char hBuf[7];
 
@@ -2931,8 +2974,8 @@ void TEditorClient::CmObjectsPolygon ()
 	static SHORT Radius = 128;
 	char Title[80];
 	char Prompt[80];
-	TRangeValidator *pValid1 = new TRangeValidator(3, 32);
-	TRangeValidator *pValid2 = new TRangeValidator(8, 2000);
+	TRangeValidator *pValid1 = new TRangeValidator(3, 1024);
+	TRangeValidator *pValid2 = new TRangeValidator(8, 14000);
 	char nBuf[7];
 	char rBuf[7];
 
@@ -3014,6 +3057,189 @@ void TEditorClient::CmObjectsPolygon ()
 	RESTORE_HELP_CONTEXT();
 }
 
+/////////////////////////////////////////////////////////////////////
+// TEditorClient
+// -------------
+//
+void TEditorClient::CmObjectsCircle()
+{
+   // Ignore if "insert object" mode
+   if (InsertingObject)
+      return;
+
+   // Keep in memory between calls
+   static SHORT Radius = 256;
+   char Title[80];
+   char Prompt[80];
+   TRangeValidator *pValid1 = new TRangeValidator(8, 14000);
+   char wBuf[7];
+
+   SET_HELP_CONTEXT(Insert_Circle);
+   wsprintf(Title, "New circle size");
+   wsprintf(Prompt, "Enter radius of circle:");
+   wsprintf(wBuf, "%d", Radius);
+
+   if (TInput1Dialog(this, Title, Prompt, wBuf, 7, pValid1).Execute() == IDOK)
+   {
+      Radius = (SHORT)atoi(wBuf);
+
+      // Hide information windows
+      BOOL OldInfoWinShown = InfoWinShown;
+      InfoWinShown = FALSE;
+      if (OldInfoWinShown != InfoWinShown)
+      {
+         SetupInfoWindows();
+         UpdateWindow();
+      }
+
+      // Clip cursor movements to editor window and get mouse capture
+      TRect editRect;
+      GetWindowRect(editRect);
+      editRect.right++;
+      editRect.bottom++;
+      ClipCursor(&editRect);
+      SetCursor(GetApplication(), IDC_INSERT);
+      SetCapture();
+
+      // Begin insert mode
+      WorkMessage("Click left mouse button to insert circle...");
+      InsertingObject = TRUE;  // don't highlight when mouse move
+
+      // Stops when left button down
+      MSG  loopMsg;
+      loopMsg.message = 0;
+      while (loopMsg.message != WM_LBUTTONDOWN)
+      {
+         if (::PeekMessage(&loopMsg, 0, 0, 0, PM_REMOVE))
+         {
+            // Don't send the WM_LBUTTONDOWN, because we don't
+            // want to select an object!
+            if (loopMsg.message != WM_LBUTTONDOWN)
+            {
+               ::TranslateMessage(&loopMsg);
+               ::DispatchMessage(&loopMsg);
+            }
+         }
+
+         Scroller->AutoScroll();
+      }
+
+      // Restore window and cursor
+      InsertingObject = FALSE;
+      SetCursor(NULL, IDC_ARROW);
+      ReleaseCapture();
+      ClipCursor(NULL);
+      GetApplication()->ResumeThrow();
+
+      // UNDO
+      StartUndoRecording("Insert circle");
+
+      // Insert rectangle a cursor position
+      InsertCircle(MAPX(PointerX), MAPY(PointerY), Radius);
+
+      // UNDO
+      StopUndoRecording();
+
+      // Redraw map, status bar and info windows
+      InfoWinShown = OldInfoWinShown;
+      SetupInfoWindows();
+      DrawStatusBar();
+      Invalidate();
+   }
+   RESTORE_HELP_CONTEXT();
+}
+
+/////////////////////////////////////////////////////////////////////
+// TEditorClient
+// -------------
+//
+void TEditorClient::CmObjectsTorch()
+{
+   // Ignore if "insert object" mode
+   if (InsertingObject)
+      return;
+   // Keep in memory between calls.
+   // 0 is north, 90 is east.
+   static SHORT torchAngle = 0;
+   char Title[80];
+   char Prompt[80];
+   char aBuf[7];
+   TRangeValidator *pValid1 = new TRangeValidator(0, 360);
+   
+   SET_HELP_CONTEXT(Insert_Torch);
+   wsprintf(Title, "New torch angle");
+   wsprintf(Prompt, "Enter the angle for the torch (0 = north, 90 = east):");
+   wsprintf(aBuf, "%d", torchAngle);
+
+   if (TInputDialog(this, Title, Prompt, aBuf, 7, 0, pValid1).Execute() == IDOK)
+   {
+      torchAngle = (SHORT)atoi(aBuf);
+
+      // Hide information windows
+      BOOL OldInfoWinShown = InfoWinShown;
+      InfoWinShown = FALSE;
+      if (OldInfoWinShown != InfoWinShown)
+      {
+         SetupInfoWindows();
+         UpdateWindow();
+      }
+
+      // Clip cursor movements to editor window and get mouse capture
+      TRect editRect;
+      GetWindowRect(editRect);
+      editRect.right++;
+      editRect.bottom++;
+      ClipCursor(&editRect);
+      SetCursor(GetApplication(), IDC_INSERT);
+      SetCapture();
+
+      // Begin insert mode
+      WorkMessage("Click left mouse button to insert torch...");
+      InsertingObject = TRUE;  // don't highlight when mouse move
+
+      // Stops when left button down
+      MSG  loopMsg;
+      loopMsg.message = 0;
+      while (loopMsg.message != WM_LBUTTONDOWN)
+      {
+         if (::PeekMessage(&loopMsg, 0, 0, 0, PM_REMOVE))
+         {
+            // Don't send the WM_LBUTTONDOWN, because we don't
+            // want to select an object!
+            if (loopMsg.message != WM_LBUTTONDOWN)
+            {
+               ::TranslateMessage(&loopMsg);
+               ::DispatchMessage(&loopMsg);
+            }
+         }
+
+         Scroller->AutoScroll();
+      }
+
+      // Restore window and cursor
+      InsertingObject = FALSE;
+      SetCursor(NULL, IDC_ARROW);
+      ReleaseCapture();
+      ClipCursor(NULL);
+      GetApplication()->ResumeThrow();
+
+      // UNDO
+      StartUndoRecording("Insert torch");
+
+      // Insert torch at cursor position
+      InsertTorch(MAPX(PointerX), MAPY(PointerY), torchAngle);
+
+      // UNDO
+      StopUndoRecording();
+
+      // Redraw map, status bar and info windows
+      InfoWinShown = OldInfoWinShown;
+      SetupInfoWindows();
+      DrawStatusBar();
+      Invalidate();
+   }
+   RESTORE_HELP_CONTEXT();
+}
 
 /////////////////////////////////////////////////////////////////////
 // TEditorClient
@@ -3097,7 +3323,7 @@ void TEditorClient::CmModeNext ()
 		case OBJ_LINEDEFS:
 			NewMode = OBJ_SECTORS;
 			break;
-		case OBJ_SECTORS:
+		default: // case OBJ_SECTORS:
 			NewMode = OBJ_THINGS;
 			break;
 	}
@@ -3129,7 +3355,7 @@ void TEditorClient::CmModePrev ()
 		case OBJ_LINEDEFS:
 			NewMode = OBJ_VERTEXES;
 			break;
-		case OBJ_SECTORS:
+		default: //case OBJ_SECTORS:
 			NewMode = OBJ_LINEDEFS;
 			break;
 	}
@@ -3226,7 +3452,7 @@ void TEditorClient::CmMiscRotateScale ()
 		 if (EditMode == OBJ_THINGS)	hc = Rotate_and_scale_Things;
 	else if (EditMode == OBJ_VERTEXES)	hc = Rotate_and_scale_Vertices;
 	else if (EditMode == OBJ_LINEDEFS)	hc = Rotate_and_scale_LineDefs;
-	else if (EditMode == OBJ_SECTORS)	hc = Rotate_and_scale_Sectors;
+	else hc = Rotate_and_scale_Sectors; //  if (EditMode == OBJ_SECTORS)
 	SET_HELP_CONTEXT(hc);
 
 	char Title[80];
@@ -3488,7 +3714,7 @@ void TEditorClient::CmMiscLDDelete ()
 
 	// Check at least one object selected
 	if ( CheckSelection (1, -1) == FALSE )
-		return;
+		goto End;
 
 	// UNDO
 	StartUndoRecording("Delete LineDef");
@@ -3507,6 +3733,7 @@ void TEditorClient::CmMiscLDDelete ()
 	// Redraw map, info windows and status bar
 	RefreshWindows();
 
+End:
 	RESTORE_HELP_CONTEXT();
 }
 
@@ -3865,9 +4092,11 @@ void TEditorClient::CmFileSave ()
 	}
 	SET_HELP_CONTEXT(EDITOR_Save);
 	SaveLevelData(LevelName);
-	// Forget all UNDO datas
-	CleanupUndo();
-	InitUndo();
+	
+   // Don't delete this data on saving.
+   // Forget all UNDO datas
+	//CleanupUndo();
+	//InitUndo();
 
 	DrawStatusBar();
 	RESTORE_HELP_CONTEXT();
@@ -4791,6 +5020,160 @@ void TEditorClient::CmAlignXSD2Lower ()
 	AlignX (2, 2);
 }
 
+/////////////////////////////////////////////////////////////////////
+// TEditorClient
+// -------------
+//
+void TEditorClient::CmAlignXCircleSD1Normal()
+{
+   AlignXCircle(1, 3);
+}
+/////////////////////////////////////////////////////////////////////
+// TEditorClient
+// -------------
+//
+void TEditorClient::CmAlignXCircleSD1Upper()
+{
+   AlignXCircle(1, 1);
+}
+/////////////////////////////////////////////////////////////////////
+// TEditorClient
+// -------------
+//
+void TEditorClient::CmAlignXCircleSD1Lower()
+{
+   AlignXCircle(1, 2);
+}
+/////////////////////////////////////////////////////////////////////
+// TEditorClient
+// -------------
+//
+void TEditorClient::CmAlignXCircleSD2Normal()
+{
+   AlignXCircle(2, 3);
+}
+/////////////////////////////////////////////////////////////////////
+// TEditorClient
+// -------------
+//
+void TEditorClient::CmAlignXCircleSD2Upper()
+{
+   AlignXCircle(2, 1);
+}
+/////////////////////////////////////////////////////////////////////
+// TEditorClient
+// -------------
+//
+void TEditorClient::CmAlignXCircleSD2Lower()
+{
+   AlignXCircle(2, 2);
+}
+
+/////////////////////////////////////////////////////////////////////
+// TEditorClient
+// -------------
+//
+void TEditorClient::AlignXCircle(SHORT sdType, SHORT texType)
+{
+   // Ignore if "insert object" mode
+   if (InsertingObject)
+      return;
+
+   // Check only one object selected
+   if (CheckSelection(1, 1) == FALSE)
+   {
+      Notify("Select only one linedef!");
+      return;
+   }
+
+   SET_HELP_CONTEXT(Align_textures_X_circle);
+
+   // UNDO
+   StartUndoRecording("Align circle X offsets");
+
+   // Step 1. Build up a selection of the circle linedefs, making sure
+   // we actually have a circle. At some point the end of a linedef should
+   // equal the start of the first linedef. If we can't find another linedef
+   // starting from the end point of the previous one, we don't have a
+   // valid circle and can exit.
+   SelPtr ldlist = NULL, sdlist = NULL, cur;
+   SHORT i;
+   LineDef *pCheck = &LineDefs[Selected->objnum];
+   SHORT start_vertex = pCheck->start;
+   SHORT end_vertex = pCheck->end;
+   BOOL bFound;
+   int num_iterations = 0;
+   // Add selected linedef to new list.
+   SelectObject(&ldlist, Selected->objnum);
+
+   while (end_vertex != start_vertex)
+   {
+      bFound = false;
+      // Iterate through the room's linedefs, finding the one that
+      // starts at the end of the previous one.
+      for (i = 0; i < NumLineDefs; ++i)
+      {
+         pCheck = &LineDefs[i];
+         if (pCheck->start == end_vertex)
+         {
+            SelectObject(&ldlist, i);
+            end_vertex = pCheck->end;
+            bFound = true;
+            break;
+         }
+      }
+
+      // If we couldn't find another linedef starting at the end of the
+      // previous one, we likely haven't selected a circle.
+      if (!bFound)
+      {
+         Notify("Selected linedef not part of a valid circle!");
+         goto End;
+      }
+      if (++num_iterations > 1024)
+      {
+         Notify("Too many linedefs in circle!");
+         goto End;
+      }
+   }
+
+   // Step 2: Now have all the linedefs in the circle selected.
+   // Select each sidedef based on which option we were given.
+   for (cur = ldlist; cur; cur = cur->next)
+   {
+      LineDef *pLineDef = &LineDefs[cur->objnum];
+
+      if (sdType == 1 && pLineDef->sidedef1 >= 0)
+         SelectObject(&sdlist, pLineDef->sidedef1);
+      else if (sdType == 2 && pLineDef->sidedef2 >= 0)
+         SelectObject(&sdlist, pLineDef->sidedef2);
+   }
+
+   // If no sidedefs in list, exit.
+   if (!sdlist)
+   {
+      Notify("No sidedefs found in circle!");
+      goto End;
+   }
+
+   // Step 3: Call AlignTexturesX with the given side,
+   // texture type and sidedef list.
+   AlignTexturesX(&sdlist, sdType, 0, 1, texType);
+
+   // Clean up sidedef list separately before end.
+   ForgetSelection(&sdlist);
+
+End:
+   ForgetSelection(&ldlist);
+   // UNDO
+   StopUndoRecording();
+   // SELECTION IS STILL VALID
+   // Restore selection
+   SetupSelection(FALSE);
+   // Redraw map, info windows and status bar
+   RefreshWindows();
+   RESTORE_HELP_CONTEXT();
+}
 
 /////////////////////////////////////////////////////////////////////
 // TEditorClient
@@ -5041,7 +5424,7 @@ void TEditorClient::CmUndoEnable (TCommandEnabler &tce)
 	if ( OriginalName[0] == '\0' )
 	{
 		char ItemString[50];
-      unsigned int i;
+		unsigned int i;
 
 		menu.GetMenuString (CM_EDIT_UNDO, ItemString,
 							sizeof(ItemString), MF_BYCOMMAND);
@@ -5088,7 +5471,7 @@ void TEditorClient::CmRedoEnable (TCommandEnabler &tce)
 	if ( OriginalName[0] == '\0' )
 	{
 		char ItemString[50];
-      unsigned int i;
+		unsigned int i;
 
 		menu.GetMenuString (CM_EDIT_REDO, ItemString,
 							sizeof(ItemString), MF_BYCOMMAND);

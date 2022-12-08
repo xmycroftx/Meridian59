@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Necropolis2 is MonsterRoom
 
 constants:
@@ -16,11 +16,13 @@ constants:
 
 resources:
 
+   include necarea2.lkod
+
    room_name_Necropolis2 = "Ancient Graveyard of Brax"
    room_Necropolis2 = necarea2.roo
-   Necropolis2_music = nec01.mid
+   Necropolis2_music = nec01.ogg
 
-   Necropolis2_loop = necloop1.wav
+   Necropolis2_loop = necloop1.ogg
 
 classvars:
 
@@ -39,13 +41,13 @@ properties:
    piBaseLight = LIGHT_VERY_DARK
    piOutside_factor = 0
 
-   piGen_time = 40000
+   piGen_time = 5000
    piGen_percent = 80
 
    piInit_count_min = 7
    piInit_count_max = 9
 
-   piMonster_count_max = 25
+   piMonster_count_max = 15
 
    prMusic = Necropolis2_music
 
@@ -54,7 +56,6 @@ messages:
    Constructed()
    {
       plMonsters = [ [&DaemonSkeleton, 60], [&NarthylWorm, 40] ];
-      plGenerators = [ [22,31], [2,16], [17,35], [20,27] ];
 
       plLooping_sounds = [ [ Necropolis2_loop, 0, 0, 200, 100 ] ];
 
@@ -203,4 +204,4 @@ messages:
 
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

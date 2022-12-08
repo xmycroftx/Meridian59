@@ -13,7 +13,6 @@
 #ifndef _APNDFILE_H
 #define _APNDFILE_H
 
-void AppendTextFile(session_node *s,const char *filename,
-                    int len,const char *text);
+void AppendTextFile(session_node *s,char *filename,int len,char *text);
 
 #endif

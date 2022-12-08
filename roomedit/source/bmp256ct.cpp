@@ -36,15 +36,15 @@
 	#include "wads.h"		// FindMasterDir(), BasicWadRead(), ...
 #endif
 
-#ifndef __OWL_DC_H
+#ifndef OWL_DC_H
 	#include <owl\dc.h>
 #endif
 
-#ifndef __OWL_CONTROL_H
+#ifndef OWL_CONTROL_H
 	#include <owl\control.h>
 #endif
 
-#ifndef __OWL_SCROLLER_H
+#ifndef OWL_SCROLLER_H
 	#include <owl\scroller.h>
 #endif
 
@@ -95,7 +95,7 @@ END_RESPONSE_TABLE;
 // -----------------
 //
 TBitmap256Control::TBitmap256Control (TWindow* parent, int id,
-									  const char far* title, int x, int y,
+									  const char* title, int x, int y,
 									  int w, int h, TModule* module):
 	TControl(parent, id, title, x, y, w, h, module)
 {
@@ -163,7 +163,7 @@ TBitmap256Control::~TBitmap256Control ()
 // TBitmap256Control
 // -----------------
 //
-char far*
+char*
 TBitmap256Control::GetClassName ()
 {
 	return "Bitmap256Control";
@@ -444,7 +444,7 @@ TBitmap256Control::SetZoomFactor (UINT factor)
 void
 TBitmap256Control::SetGammaLevel (BYTE level)
 {
-	if ( level == GammaLevel )
+	if ( (UINT)level == GammaLevel )
 		return;
 
 	GammaLevel  = level;
@@ -562,7 +562,7 @@ void TBitmap256Control::BuildBitmapPalette (BOOL CreateNewPal)
 	{
 		pBitmapPalette->SetPaletteEntries ((WORD)0, (WORD)NbEntries, Entries);
 	}
-	delete Entries;
+	delete[] Entries;
 }
 
 
@@ -642,7 +642,7 @@ void TBitmap256Control::ConvertBitmapToDib()
 #else
 	// Set the DIB byte from pBitmapData with palette color mapping
 	BYTE *ptrData = pBitmapData;
-	SHORT xBytes       = (BitmapXSize + 3) & ~3;
+	SHORT xBytes  = (BitmapXSize + 3) & ~3;
 
 	for (SHORT y = BitmapYSize - 1 ; y >= 0 ; y--)
 	{
@@ -658,8 +658,8 @@ void TBitmap256Control::ConvertBitmapToDib()
 #endif
 
 	// Set the INDEX of the DIB palette
-	WORD FAR *lpTable;
-	lpTable = (WORD FAR *)((char far *)pDIBInfo + (int)infoHeader.biSize);
+	WORD *lpTable;
+	lpTable = (WORD*)((char*)pDIBInfo + (int)infoHeader.biSize);
 	for (WORD i = 0; i < (WORD)infoHeader.biClrUsed; i++)
 		*lpTable++ = i;
 }
@@ -694,7 +694,7 @@ bool TBitmap256Control::EvEraseBkgnd (HDC dc)
 // TSprite256Control
 // -----------------
 //
-TSprite256Control::TSprite256Control (TWindow* parent, int id, const char far* title, int x, int y, int w, int h, TModule* module):
+TSprite256Control::TSprite256Control (TWindow* parent, int id, const char* title, int x, int y, int w, int h, TModule* module):
 	TBitmap256Control(parent, id, title, x, y, w, h, module)
 {
 }
@@ -787,7 +787,7 @@ void TSprite256Control::LoadPictureData (const char *picname, BYTE **ppData,
 	   this situation before..... I'll keep them huge pointers anyway,
 	   in case something changes later
 	*/
-	lpColumnData = (BYTE *)GetMemory (CD_BUFFER_SIZE);
+	lpColumnData = (BYTE*)GetMemory (CD_BUFFER_SIZE);
 
 	// Initialize columns offsets
 	lpNeededOffsets = (LONG *)GetMemory (nColumns * 4L);
@@ -852,7 +852,7 @@ void TSprite256Control::LoadPictureData (const char *picname, BYTE **ppData,
 // TWallTextureontrol
 // -----------------
 //
-TWallTextureControl::TWallTextureControl (TWindow* parent, int id, const char far* title, int x, int y, int w, int h, TModule* module):
+TWallTextureControl::TWallTextureControl (TWindow* parent, int id, const char* title, int x, int y, int w, int h, TModule* module):
 	TSprite256Control(parent, id, title, x, y, w, h, module)
 {
 }
@@ -921,7 +921,7 @@ TWallTextureControl::BuildBitmapData (const char *texname, SHORT /*remapPlayer*/
 // TFloorTextureontrol
 // -----------------
 //
-TFloorTextureControl::TFloorTextureControl (TWindow* parent, int id, const char far* title, int x, int y, int w, int h, TModule* module):
+TFloorTextureControl::TFloorTextureControl (TWindow* parent, int id, const char* title, int x, int y, int w, int h, TModule* module):
 	TSprite256Control(parent, id, title, x, y, w, h, module)
 {
 }

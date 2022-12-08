@@ -24,9 +24,9 @@ extern int	gD3DEnabled;
 // to flicker identically
 static int flicker_amount;
 
-static Bool AnimateSectors(room_type *room, int dt);
-static Bool AnimateSidedefs(room_type *room, int dt);
-static int  RoomAnimateSingle(RoomAnimate *ra, int dt);
+static Bool AnimateSectors(room_type *room, float dt);
+static Bool AnimateSidedefs(room_type *room, float dt);
+static int  RoomAnimateSingle(RoomAnimate *ra, float dt);
 static void SectorAdjustHeight(room_type *room, Sector *s, BYTE type, int height);
 static void SidedefDoAnimation(room_type *room, Sidedef *s, int return_code);
 static void SectorDoAnimation(room_type *room, Sector *s, int return_code);
@@ -35,7 +35,7 @@ static void SectorDoAnimation(room_type *room, Sector *s, int return_code);
  * AnimateRoom:  Animate wall and floor textures; return True iff any was animated.
  *   dt is number of milliseconds since last time animation timer went off.
  */
-Bool AnimateRoom(room_type *room, int dt)
+Bool AnimateRoom(room_type *room, float dt)
 {
    Bool retval, need_redraw = False;
 
@@ -52,7 +52,7 @@ Bool AnimateRoom(room_type *room, int dt)
  * AnimateSectors:  Animate floor textures; return True iff any was animated.
  *   dt is number of milliseconds since last time animation timer went off.
  */
-Bool AnimateSectors(room_type *room, int dt)
+Bool AnimateSectors(room_type *room, float dt)
 {
    int i, ras_retval;
    Bool need_redraw = False;
@@ -87,7 +87,7 @@ Bool AnimateSectors(room_type *room, int dt)
  * AnimateSidedefs:  Animate wall textures; return True iff any was animated.
  *   dt is number of milliseconds since last time animation timer went off.
  */
-Bool AnimateSidedefs(room_type *room, int dt)
+Bool AnimateSidedefs(room_type *room, float dt)
 {
    int i, ras_retval;
    Bool need_redraw = False;
@@ -284,14 +284,14 @@ void WallChange(WORD wall_num, Animate *a, BYTE action)
 }
 /************************************************************************/
 /*
- * SectorChange:  Animate sector with given ID # in given way.
+ * SectorAnimate:  Animate sector with given ID # in given way.
  */
-void SectorChange(WORD sector_num, Animate *a, BYTE action)
+void SectorAnimate(WORD sector_num, Animate *a, BYTE action)
 {
    int i;
    Sector *s;
 
-   debug(("SectorChange got sector %d\n", (int) sector_num));
+   debug(("SectorAnimate got sector %d\n", (int) sector_num));
 
    // Adjust animation if user has it turned off
    if (!config.animate)
@@ -321,6 +321,61 @@ void SectorChange(WORD sector_num, Animate *a, BYTE action)
 	 RedrawAll();
       }
    }
+}
+/************************************************************************/
+/*
+ * SectorChange:  Change the animation properties and flags of the sector
+ *   with the given id number.
+ */
+void SectorChange(WORD sector_num, BYTE depth, BYTE scroll)
+{
+   int i;
+   Sector *s;
+   BYTE direction, floor, ceiling;
+
+   for (i=0; i < current_room.num_sectors; i++)
+   {
+      s = &current_room.sectors[i];
+      if (s->server_id != sector_num)
+         continue;
+
+      // Remove the current depth value and add the new one.
+      if (depth != CHANGE_OVERRIDE)
+      {
+         s->flags &= ~SectorDepth(s->flags);
+         s->flags |= depth;
+      }
+
+      // If we want to stop scrolling, remove all the scroll data.
+      if (scroll != CHANGE_OVERRIDE)
+      {
+         if (scroll == SCROLL_NONE)
+         {
+            s->flags &= ~0x000001FC;
+         }
+         else
+         {
+            // Save other flag values that occupy the same space. Note that
+            // if we're changing an already changed value, we'll be using those
+            // values here. Client gets redrawn to prevent any issues with this
+            // i.e. if the previous change was to delete them all.
+            direction = SectorScrollDirection(s->flags);
+            floor = s->flags & SF_SCROLL_FLOOR;
+            ceiling = s->flags & SF_SCROLL_CEILING;
+
+            s->flags &= ~0x000001FC;
+            s->flags |= scroll << 2;
+            // Replace the other ones.
+            if (direction != SCROLL_N)
+               s->flags |= direction << 4;
+            if (floor)
+               s->flags |= SF_SCROLL_FLOOR;
+            if (ceiling)
+               s->flags |= SF_SCROLL_CEILING;
+         }
+      }
+   }
+   RedrawAll();
 }
 /************************************************************************/
 /*
@@ -477,8 +532,12 @@ void MoveSector(BYTE type, WORD sector_num, WORD height, BYTE speed)
 	 return;
       }
 
-      lift->increment = (((float) HeightKodToClient(speed)) / 1000.0) /
-	 abs(lift->dest_z - lift->source_z);
+      // this is: / 10000 and *16 and *16
+      // see SECTORMOVEBASECOEFF in OgreClient's GeometryConstants (and server)
+      // additional *16 here because this is 1:1024 not 1:64
+      const float SCALER = 0.0256f;
+
+      lift->increment = ((float)speed * SCALER) / abs(lift->dest_z - lift->source_z);
    }
 }
 /************************************************************************/
@@ -490,7 +549,7 @@ void MoveSector(BYTE type, WORD sector_num, WORD height, BYTE speed)
  *   RAS_ANIMATE if the bitmap group changed, and the animation is continuing.
  *   RAS_DONE    if the bitmap group changed, and the animation is done.
  */
-int RoomAnimateSingle(RoomAnimate *ra, int dt)
+int RoomAnimateSingle(RoomAnimate *ra, float dt)
 {
    RoomLift *lift;
    RoomScroll *scroll;
@@ -512,12 +571,12 @@ int RoomAnimateSingle(RoomAnimate *ra, int dt)
       lift = &ra->u.lift;
       lift->progress += (lift->increment * dt);
       if (lift->progress >= 1.0)
-	 lift->z = lift->dest_z;
+         lift->z = lift->dest_z;
       else
-	 lift->z = FloatToInt (lift->source_z + lift->progress * (lift->dest_z - lift->source_z));
+         lift->z = lift->source_z + lift->progress * (lift->dest_z - lift->source_z);
       
       if (lift->progress >= 1.0)
-	 return RAS_DONE;
+         return RAS_DONE;
       return RAS_CHANGED;
 
    case ANIMATE_SCROLL:

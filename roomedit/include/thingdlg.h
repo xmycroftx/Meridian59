@@ -54,7 +54,7 @@
 #endif
 
 #ifndef OWL_COMBOBOX_H
-   #include <owl\combobox.h>
+	#include <owl\combobox.h>
 #endif
 
 #ifndef __objects_h

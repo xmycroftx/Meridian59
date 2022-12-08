@@ -1,23 +1,25 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 PrincessShield is SoldierShield
 
-% Stats affected: Mysticism and Agility
-% Special bonus: Using a Princess shield makes your spells cost up to 2 less mana.
+// Stats affected: Mysticism and Agility
+// Special bonus: Using a Princess shield makes your spells cost up to 2 less mana.
 
 constants:
 
    include blakston.khd
 
 resources:
+
+   include prinshld.lkod
 
    PrincessShield_name_rsc = "shield of the Princess' army"
 
@@ -38,13 +40,13 @@ resources:
       "Royal army.  You must keep this equipped at all times in order to demonstrate "
       "your position.\n\n"
       "ENEMY SOLDIERS: As agreed, you can be attacked by any enemy soldier in any place "
-      "that is not a haven (such as an inn or hall).  Your attacker will not be "
-      "recognized as a criminal for attacking or killing you.  Likewise, you can attack "
-      "enemies without fear of penalty.  Note that attacking any fellow soldiers will vex "
-      "me greatly, and I will remove you as a soldier and a member of my faction.  Also, "
-      "our righteousness allows you to do additional damage with all your attacks to "
-      "these enemy soldiers.  Please realize that deaths at the hands of enemy soldiers "
-      "are real, and you will suffer the usual penalties.\n\n"
+      "that is not a haven (such as a inn or hall).  Your attacker will not be recognized "
+      "as a criminal for attacking or killing you.  Likewise, you can attack enemies "
+      "without fear of penalty.  Note that attacking any fellow soldiers will vex me "
+      "greatly, and I will remove you as a soldier and a member of my faction.  Also, our "
+      "righteousness allows you to do additional damage with all your attacks to these "
+      "enemy soldiers.  Please realize that deaths at the hands of enemy soldiers are "
+      "real, and you will suffer the usual penalties.\n\n"
       "RANKS: Your position within the army is determined by your actions.  Killing enemy "
       "soldiers will allow you promotion within the ranks of the army.  Being killed or "
       "remaining inactive for long periods of time will show you a decrease in rank.  "
@@ -52,7 +54,7 @@ resources:
       "also lower your rank.\n\n"
       "ABILITIES: With your status as a faction soldier, I will show you additional ways "
       "to increase your power.  I will make you more intelligent and able to comprehend "
-      "all things mystical.  I will also teach you ways to reduce the cost of your "
+      "all things mystical.  I will also teach you ways to reduce the mana cost of your "
       "spells.  The potence of these abilities will increase as you gain ranks.\n\n"
       "THE COUNCILORS: The councilors have declared that the tokens are too delicate to "
       "be entrusted to the hands of soldiers.  Therefore, you are instructed not to pick "
@@ -77,7 +79,7 @@ classvars:
    viFaction = FACTION_PRINCESS
    viColor = XLAT_TO_ORANGE
 
-   % Stuff for rank
+   // Stuff for rank
    vrArmyName = PrincessShield_ArmyName
 
    vrWelcomeMessage = PrincessShield_welcome_mail
@@ -92,11 +94,11 @@ messages:
    RemoveStats()
    {
       if poOwner <> $
-         AND IsClass(poOwner,&Player)
+         AND IsClass(poOwner,&User)
       {
-         % Reset owner's stats
-         send(poOwner,@AddIntellect,#points=-piIntellectChange);
-         send(poOwner,@AddMysticism,#points=-piMysticismChange);
+         // Reset owner's stats
+         Send(poOwner,@AddIntellect,#points=-piIntellectChange);
+         Send(poOwner,@AddMysticism,#points=-piMysticismChange);
          piIntellectChange = 0;
          piMysticismChange = 0;
       }
@@ -110,7 +112,7 @@ messages:
       local iStatAdjustment, iNewAdjustment;
 
       if poOwner = $
-         OR NOT IsClass(poOwner,&Player)
+         OR NOT IsClass(poOwner,&User)
       {
          return;
       }
@@ -119,30 +121,29 @@ messages:
       {
          iStatAdjustment = 0;
       }
+      else if piFactionRank <= 6
+      {
+         iStatAdjustment = 3;
+      }
       else
       {
-         if piFactionRank <= 6
-         {
-            iStatAdjustment = 3;
-         }
-         else
-         {
-            iStatAdjustment = 5;
-         }
+         iStatAdjustment = 5;
       }
 
-      % In the following:
-      %  iNewAdjustment is how much the stat changed this time around.
-      %  pi(stat)Change is the cumulative change to that stat.
+      // In the following:
+      //  iNewAdjustment is how much the stat changed this time around.
+      //  pi(stat)Change is the cumulative change to that stat.
       if iStatAdjustment <> piIntellectChange
       {
-         iNewAdjustment = send(poOwner,@AddIntellect,#points=(iStatAdjustment-piIntellectChange));
+         iNewAdjustment = Send(poOwner,@AddIntellect,
+                                 #points=(iStatAdjustment-piIntellectChange));
          piIntellectChange = piIntellectChange + iNewAdjustment;
       }
 
       if iStatAdjustment <> piMysticismChange
       {
-         iNewAdjustment = send(poOwner,@AddMysticism,#points=(iStatAdjustment-piMysticismChange));
+         iNewAdjustment = Send(poOwner,@AddMysticism,
+                                 #points=(iStatAdjustment-piMysticismChange));
          piMysticismChange = piMysticismChange + iNewAdjustment;
       }
 
@@ -153,11 +154,10 @@ messages:
    {
       local iReduction;
 
-      iReduction = ((piFactionRank/3) - 1);
+      iReduction = ((piFactionRank / 3) - 1);
 
       return iReduction;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 OutdoorsD6 is MonsterRoom
 
 constants:
@@ -16,9 +16,11 @@ constants:
 
 resources:
 
+   include d6.lkod
+
    room_OutdoorsD6 = d6.roo
    room_name_OutdoorsD6 ="Deep in the Forest of Farol"
-   OutdoorsD6_music = walk7.mid
+   OutdoorsD6_music = walk7.ogg
 
 classvars:
 
@@ -32,6 +34,8 @@ classvars:
    viFlag_row = 29
    viFlag_col = 31
 
+   viWeatherZone = WEATHER_ZONE_MARION
+
 properties:
 
    prRoom = room_OutdoorsD6
@@ -43,7 +47,8 @@ properties:
 
    piDirectional_percent = DIRECTIONAL_PERCENT_OUTDOORS
 
-   piGen_time = 100000
+   pbSnowGroundTexture = TRUE
+
    piGen_percent = 80
 
    piInit_count_min = 4
@@ -55,15 +60,21 @@ messages:
 
    Constructed()
    {
-      plMonsters = [ [&MolluskMonster, 30], [&Ent, 70] ];
+      plMonsters = [ [&Ent, 80], [&MolluskMonster, 20] ];
 
-      plGenerators = [ [8, 4], [15, 11], [24, 5], [27, 13], [36, 9],
-		      [5, 14], [9, 22], [6, 30], [19, 19], [17, 35], 
-		      [24, 32], [30, 29], [37, 36], [39, 21], [44, 26]];
       propagate;
    }
 
-    CreateStandardExits()
+   SetMonsterGenPoints()
+   {
+      plGenerators = [ [8, 4], [15, 11], [24, 5], [27, 13], [36, 9],
+                       [5, 14], [9, 22], [6, 30], [19, 19], [17, 35], 
+                       [24, 32], [30, 29], [37, 36], [39, 21], [44, 26]];
+
+      return;
+   }
+
+   CreateStandardExits()
    {
       plEdge_Exits = $;
       plEdge_Exits = Cons([LEAVE_WEST, RID_C6, 13, 46, ROTATE_NONE], plEdge_exits);
@@ -73,5 +84,11 @@ messages:
       propagate;
    }
 
+   // No longer accessible.
+   GetRegion()
+   {
+      return RID_HISTORIC;
+   }
+
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

@@ -1,40 +1,44 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Cow is Monster
 
 constants:
 
    include blakston.khd
 
-%   DUNG_TIME = 6 * 60 * 60  % 6 hours
-   DUNG_TIME = 10  % 10 seconds
+//   DUNG_TIME = 6 * 60 * 60  // 6 hours
+   DUNG_TIME = 10  // 10 seconds
 
 resources:
+
+   include cow.lkod
 
    cow_koc_name_rsc = "nahyijoa"
    cow_name_rsc = "cow"
    cow_icon_rsc = cow.bgf
    cow_desc_rsc = \
-	"Alchemists and farmers endeavored to breed the perfect cow for sweet "
-	"milk and tender meat.  Unfortunately their experiments went too far and " 	
-	"eventually created the utterly useless Pygmy Cow.  Disappointed by their " 
-	"failure, they let loose their entire herd.  The undomesticated pygmy cow "
-	"is rarely seen anymore."
+      "Alchemists and farmers endeavored to breed the perfect cow for sweet "
+      "milk and tender meat.  Unfortunately their experiments went too far "
+      "and eventually created the utterly useless Pygmy Cow.  Disappointed "
+      "by their failure, they let loose their entire herd.  The "
+      "undomesticated pygmy cow is rarely seen any more."
 
    cow_cant_attack = "You can't attack the ~Ipoor~I cow!"
    cow_dead_icon_rsc = cowX.bgf
    cow_dead_name_rsc = "dead cow"
-   
-   cow_dung = "Startled, the poor cow deposits a steaming heap of dung onto the ground."
-   
+
+   cow_dung = \
+      "Startled, the poor cow deposits a steaming heap of dung "
+      "onto the ground."
+
 classvars:
    vrKocName = cow_koc_name_rsc
    vrName = cow_name_rsc
@@ -46,7 +50,9 @@ classvars:
    viAttributes = MOB_NOFIGHT
    viSpeed = 8
    viLevel = 200
-   
+   viCashmin = 0
+   viCashmax = 0
+   vbCanSiphon = FALSE
 
 properties:
 
@@ -58,6 +64,7 @@ messages:
    Constructor()
    {
       piLastDungTime = GetTime();
+
       propagate;
    }
 
@@ -75,17 +82,18 @@ messages:
          piLastDungTime = GetTime();
          if poDung <> $
          {
-            send(poDung,@Delete);
+            Send(poDung,@Delete);
             poDung = $;
          }
-         poDung = create(&OrnamentalObject,#type=OO_DUNG);
-         send(poOwner,@NewHold,#what=poDung,
-                  #new_row = send(self,@GetRow),
-                  #new_col = send(self,@GetCol),
-                  #fine_row = send(self,@GetFineRow),
-                  #fine_col = send(self,@GetFineCol) );
-         Post(poOwner,@SomeoneSaid,#what=self,#string=cow_dung, #type=SAY_MESSAGE);
+         poDung = Create(&OrnamentalObject,#type=OO_DUNG);
+
+         Send(poOwner,@NewHold,#what=poDung,
+               #new_row=piRow,#new_col=piCol,
+               #fine_row=piFine_row,#fine_col=piFine_col);
+         Post(poOwner,@SomeoneSaid,#what=self,
+               #string=cow_dung,#type=SAY_MESSAGE);
       }
+
       return;
    }
 
@@ -93,11 +101,12 @@ messages:
    {
       if poDung <> $
       {
-         send(poDung,@Delete);
+         Send(poDung,@Delete);
          poDung = $;
       }
+
       propagate;
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

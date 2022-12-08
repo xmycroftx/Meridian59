@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 SimpleHelm is Helmet
 
 constants:
@@ -16,16 +16,20 @@ constants:
 
 resources:
 
+   include simphelm.lkod
+
    SimpleHelm_name_rsc = "helm"
-   SimpleHelm_icon_rsc = helm.bgf
+   SimpleHelm_icon_male_rsc = helm.bgf
+   SimpleHelm_icon_female_rsc = helmb.bgf
    SimpleHelm_desc_rsc = \
-      "Steel and chain links give moderate protection to the wearer of this padded helmet."   
+      "Steel and chain links give moderate protection to the wearer of "
+      "this padded helmet."
 
 classvars:
 
    vrName = SimpleHelm_name_rsc
    vrDesc = SimpleHelm_desc_rsc
-   vrIcon = SimpleHelm_icon_rsc
+   vrIcon = SimpleHelm_icon_male_rsc
 
    viHits_init_min = 200
    viHits_init_max = 225
@@ -47,7 +51,6 @@ classvars:
 
 properties:
 
-
 messages:
 
    NewUsed()
@@ -66,10 +69,25 @@ messages:
 
    GetResistanceModifiers()
    {
-      return [ [ATCK_WEAP_BLUDGEON,-10]
+      return [ [ATK_TYPE_BLUDGEON,-10]
              ];
    }
+   
+   // Called by player, for normal 3rd-person overlays on user.
+   GetOverlay(animation = $)
+   {
+      if Send(poOwner,@GetGender) = GENDER_FEMALE
+      {
+         return SimpleHelm_icon_female_rsc;
+      }
 
+      return SimpleHelm_icon_male_rsc;
+   }
+   
+   GetHeatDamage()
+   {
+      return 2;
+   }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

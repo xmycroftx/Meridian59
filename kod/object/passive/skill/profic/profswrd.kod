@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 SwordProficiency is Proficiency
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include profswrd.lkod
 
    Swordproficiency_name_rsc = "fencing"
    Swordproficiency_icon_rsc = fenceico.bgf
@@ -26,10 +28,11 @@ classvars:
    vrIcon = Swordproficiency_icon_rsc
    vrDesc = Swordproficiency_desc_rsc
 
-   viSchool = SKS_FENCING
+   viSchool = SKS_WEAPONCRAFT
    viSkill_num = SKID_PROFICIENCY_SWORD
    viSkill_level = 3
    viChance_to_increase = 30
+   viMeditate_ratio = 30
 
 properties:
 
@@ -44,4 +47,4 @@ messages:
 
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

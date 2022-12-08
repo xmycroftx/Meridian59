@@ -10,14 +10,12 @@
  */
 
 #include "client.h"
-#include <sstream>
-
-using namespace std;
 
 #define MAXSERVERNUM 3      /* Max # of digits in server number */
 
-static int user_type;       /* Tells if user is administrator, guest, etc.. */
+static int user_type;       /* Tells if user is administrator/normal user */
 Bool logged_in;             /* True iff we're past login dialog */
+int session_id;             /* Session-ID in blakserv */
 extern int connection;
 Bool admin_mode;            // True when user wants to go into admin mode
 
@@ -57,21 +55,25 @@ void LoginSendInfo(void)
 
    debug(("Got partner code of %d.\n", (sysinfo.reserved & 0xFF00) >> 8));
 
+   // Load the RSB hash from LoginSendInfo to ensure we have an up-to-date hash.
+   LoadRSBHash();
+
    RequestLogin(MAJOR_REV, MINOR_REV, 
-		sysinfo.platform, sysinfo.platform_major, sysinfo.platform_minor,
-		sysinfo.memory, sysinfo.chip, 
-		sysinfo.screen_width, sysinfo.screen_height, 
-		sysinfo.color_depth, sysinfo.bandwidth, sysinfo.reserved,
-		config.username, buf);
+      sysinfo.platform, sysinfo.platform_major, sysinfo.platform_minor,
+      sysinfo.flags, sysinfo.chip, 
+      sysinfo.screen_width, sysinfo.screen_height, 
+      sysinfo.color_depth, sysinfo.bandwidth, sysinfo.reserved,
+      config.username, buf, GetRSBHash());
 }
 /****************************************************************************/
 /*
  * LoginOk:  Got a message from the server that login worked.
  */
-void LoginOk(BYTE type)
+void LoginOk(BYTE type, int sessionid)
 {
    logged_in = True;
    user_type = type;
+   session_id = sessionid;
 }
 /****************************************************************************/
 void LoginTimeout(void)
@@ -91,7 +93,7 @@ HWND GetMessageBoxParent(void)
 /*
  * LoginErrorMessage:  Bring up an error message box with given login error message.
  */
-void LoginErrorMessage(const char *message, BYTE action)
+void LoginErrorMessage(char *message, BYTE action)
 {
    HWND hParent = GetMessageBoxParent();
    config.quickstart = FALSE;
@@ -115,67 +117,10 @@ void LoginErrorMessage(const char *message, BYTE action)
 void LoginError(int err_string)
 {
    HWND hParent = GetMessageBoxParent();
-   if (err_string == IDS_BADLOGIN)
-   {
-       CheckAccountActivation();
-   }
-   else
-   {
-       ClientError(hInst, hParent, err_string);
-   }
+   ClientError(hInst, hParent, err_string);
    config.quickstart = FALSE;
    LoginReset();
 }
-
-void CheckAccountActivation(void)
-{
-    HWND hParent = GetMessageBoxParent();
-
-    // make web api request.
-    char domain[256];
-    LoadString(hInst, IDS_WEBAPIDOMAIN, domain, sizeof(domain));
-    char resource[256];
-    LoadString(hInst, IDS_VERIFIEDAPI, resource, sizeof(resource));
-    wstring response;
-
-    // Build http post body with user input values.
-    stringstream ss;
-    ss << "submit=1";
-    ss << "&username=" << config.username;
-    ss << "&server=" << config.comm.server_num;
-
-    if (SendHttpsRequest(hParent, domain, resource, ss.str(), response))
-    {
-        string dStr(response.begin(), response.end());
-        char* text = const_cast<char *>(dStr.c_str());
-        debug((text));
-
-        char* pEnd = nullptr;
-        long webResponse = strtol(text, &pEnd, 10);
-
-        if (pEnd)
-        {
-            // successfully parsed web api response, check for unverified account.
-            switch (webResponse)
-            {
-            default:
-                ClientError(hInst, hParent, IDS_BADLOGIN);
-                break;
-            case AccountStatusWebResponse::VERIFY:
-            {
-                if (AreYouSure(hInst, hMain, YES_BUTTON, IDS_UNVERIFIED))
-                {
-                    // request re-send of verification email.
-                    LoadString(hInst, IDS_RESENDAPI, resource, sizeof(resource));
-                    SendHttpsRequest(hParent, domain, resource, ss.str(), response);
-                }
-            }
-            break;
-            }
-        }
-    }
-}
-
 /****************************************************************************/
 /*
  * LoginReset:  We've gotten an error from the server in LOGIN state;
@@ -218,19 +163,7 @@ void EnterGame(void)
 }
 /****************************************************************************/
 
-/****************************************************************************/
-/*
-* UseRetailLoginSystem:  Determine if the retail web api's should be utilized.
-*   Return True iff "retail", official build, is in use (not for the open source version).
-*/
-bool UseRetailLoginSystem()
-{
-#ifdef M59_RETAIL
-    return true;
-#else
-    return false;
-#endif
-}
+
 
 /****************************************************************************/
 /*
@@ -240,10 +173,8 @@ bool UseRetailLoginSystem()
 Bool GetLogin(void)
 {
    admin_mode = False;
-   // Have guests log in automatically
-   if (config.guest)
-      return GuestGetLogin();
-   else if (config.quickstart)
+
+   if (config.quickstart)
    {
       logged_in = False;
    }
@@ -251,27 +182,30 @@ Bool GetLogin(void)
    {
       logged_in = False;
       if (DialogBox(hInst, MAKEINTRESOURCE(IDD_LOGIN), hMain, LoginDialogProc) == IDCANCEL)
-	 return False;
+         return False;
       // Go into admin mode if control key is held down
       admin_mode = (GetKeyState(VK_CONTROL) < 0);
-
-      // See if "guest" typed as account name
-      if (!stricmp(config.username, GetString(hInst, IDS_GUEST)))
-      {
-	 config.guest = True;
-	 return GuestGetLogin();
-      }
    }
-      
+
    return True;
 }
+
+/****************************************************************************/
+/*
+* GetSessionID:  Returns the Session-ID received from server
+*/
+int GetSessionID(void)
+{
+   return session_id;
+}
+
 /****************************************************************************/
 /*
  * LoginDialogProc:  Get login information.
  */
 BOOL CALLBACK LoginDialogProc(HWND hDlg, UINT message, UINT wParam, LONG lParam)
 {
-   static HWND hUser, hPasswd;        /* Edit boxes in dialog */
+   static HWND hUser, hPasswd, hServer;        /* Edit boxes in dialog */
    static HWND hGroupBox, hTryPreviewButton;
    int value;
    BOOL success;
@@ -282,137 +216,110 @@ BOOL CALLBACK LoginDialogProc(HWND hDlg, UINT message, UINT wParam, LONG lParam)
       CenterWindow(hDlg, GetParent(hDlg));
       hUser = GetDlgItem(hDlg, IDC_USERNAME);
       hPasswd = GetDlgItem(hDlg, IDC_PASSWORD);
+      hServer = GetDlgItem(hDlg, IDC_SERVERNUM);
       hGroupBox = GetDlgItem(hDlg, IDC_NEW_TO_MERIDIAN_59);
 
       Edit_LimitText(hUser, MAXUSERNAME);
       Edit_LimitText(hPasswd, MAXPASSWORD);
+      Edit_LimitText(hServer, MAXSERVERNUM);
 
       SetWindowFont(hUser, GetFont(FONT_INPUT), FALSE);
       SetWindowFont(hPasswd, GetFont(FONT_INPUT), FALSE);
+      SetWindowFont(hServer, GetFont(FONT_INPUT), FALSE);
 
       // Set server number, if it's valid
-      if (config.comm.server_num == 101) {
-        CheckDlgButton(hDlg, IDC_SERVER_101, TRUE);
-      } else if (config.comm.server_num == 102) {
-        CheckDlgButton(hDlg, IDC_SERVER_102, TRUE);
-      }
       if (config.comm.server_num != -1)
       {
-        // If already logged in, can't change server number
-        if (connection != CON_NONE) {
-          EnableWindow(GetDlgItem(hDlg, IDC_SERVER_101), FALSE);
-          EnableWindow(GetDlgItem(hDlg, IDC_SERVER_102), FALSE);
-        }
+         SetDlgItemInt(hDlg, IDC_SERVERNUM, config.comm.server_num, FALSE);
+
+         // If already logged in, can't change server number
+         if (connection != CON_NONE)
+            EnableWindow(hServer, FALSE);
       }
 
       /* If we have a default name, go to password edit box */
       Edit_SetText(hUser, config.username);
       Edit_SetSel(hUser, 0, -1);
-      if (config.guest)
+      if (strlen(config.username) > 0)
       {
-	 RECT rc;
-	 int bottom;
-	 Edit_SetText(hUser, "GUEST");
-	 Edit_SetText(hPasswd, "GUEST");
-	 EnableWindow(hUser, FALSE);
-	 EnableWindow(hPasswd, FALSE);
-	 EnableWindow(GetDlgItem(hDlg,IDC_OK), FALSE);
-	 GetWindowRect(hGroupBox, &rc);
-	 bottom = rc.bottom + 5;
-	 GetWindowRect(hDlg, &rc);
-	 MoveWindow(hDlg, rc.left, rc.top, rc.right - rc.left, bottom - rc.top, TRUE);
-      }
-      else if (strlen(config.username) > 0)
-      {
-	 Edit_SetText(hPasswd, config.password);
-	 Edit_SetSel(hPasswd, 0, -1);
-	 SetFocus(hPasswd);
-	 return 0;  /* We have already set focus */
+         Edit_SetText(hPasswd, config.password);
+         Edit_SetSel(hPasswd, 0, -1);
+         SetFocus(hPasswd);
+         return 0;  /* We have already set focus */
       }
       return 1;     /* Set focus to default window */
-      
+
    case BK_DIALOGDONE:
       EndDialog(hDlg, IDOK);
       return TRUE;
 
    case WM_COMMAND:
-      switch(GET_WM_COMMAND_ID(wParam, lParam))
+      switch (GET_WM_COMMAND_ID(wParam, lParam))
       {
-      case IDC_GUEST:
-	 strcpy(config.username, "GUEST");
-	 strcpy(config.password, "GUEST");
-	 ConfigSetServerNameByNumber(config.server_guest);
-	 ConfigSetSocketPortByNumber(config.server_guest);
-	 config.comm.server_num = config.server_guest;
-	 EndDialog(hDlg, IDOK);
-	 return TRUE;
-
-      case IDC_SIGNUP:
+      case IDC_HOMEPAGE:
       {
-          /* Sign up for an account */
-          if (UseRetailLoginSystem())
-          {
-              /* via HTTPs web api for "retail" (official builds) */
-              Signup::GetInstance()->GetSignUp();
-          }
-          else
-          {
-              /* via (classic) HTTP browser web page sign up (open source) */
-              char homepageUrl[256];
-              LoadString(hInst, IDS_HOMEPAGEURL, homepageUrl, sizeof(homepageUrl));
-              WebLaunchBrowser(homepageUrl);
-              EndDialog(hDlg, IDCANCEL);
-              PostMessage(hMain, WM_SYSCOMMAND, SC_CLOSE, 0);
-          }
+         char url[256];
+         LoadString(hInst, IDS_HOMEPAGEURL, url, sizeof(url));
+         if (*url)
+         {
+            WebLaunchBrowser(url);
+            EndDialog(hDlg, IDCANCEL);
+            PostMessage(hMain, WM_SYSCOMMAND, SC_CLOSE, 0);
+         }
       }
-     return TRUE;
-     case IDOK:
-	 /* User has pressed return on one of the edit boxes */
-	 if (GetFocus() == hUser)
-	 {
-	    SetFocus(hPasswd);
-	    return True;
-	 }
-	 
-	 if (GetFocus() == hPasswd)
-	 {
-	    // Go to server edit box if it's empty
-	    value = GetDlgItemInt(hDlg, IDC_SERVERNUM, &success, FALSE);
-	    
-	    if (success)
-	       PostMessage(hDlg, WM_COMMAND, IDC_OK, 0);
-	    else SetFocus(GetDlgItem(hDlg, IDC_SERVER_101));
-	    return True;	    
-	 }
+      return TRUE;
 
-	 if (GetFocus() == GetDlgItem(hDlg, IDC_SERVER_101) ||
-       GetFocus() == GetDlgItem(hDlg, IDC_SERVER_102))
-     PostMessage(hDlg, WM_COMMAND, IDC_OK, 0);
-	 return TRUE;
+      case IDOK:
+         /* User has pressed return on one of the edit boxes */
+         if (GetFocus() == hUser)
+         {
+            SetFocus(hPasswd);
+            return True;
+         }
+
+         if (GetFocus() == hPasswd)
+         {
+            // Go to server edit box if it's empty
+            value = GetDlgItemInt(hDlg, IDC_SERVERNUM, &success, FALSE);
+
+            if (success)
+               PostMessage(hDlg, WM_COMMAND, IDC_OK, 0);
+            else SetFocus(hServer);
+            return True;
+         }
+
+         if (GetFocus() == hServer)
+            PostMessage(hDlg, WM_COMMAND, IDC_OK, 0);
+         return TRUE;
 
       case IDC_OK:
-	 /* Get username & password */
-	 Edit_GetText(hUser, config.username, MAXUSERNAME + 1);
-	 Edit_GetText(hPasswd, config.password, MAXPASSWORD + 1);
+         /* Get username & password */
+         Edit_GetText(hUser, config.username, MAXUSERNAME + 1);
+         Edit_GetText(hPasswd, config.password, MAXPASSWORD + 1);
 
-   value = (IsDlgButtonChecked(hDlg, IDC_SERVER_102)) ? 102 : 101;
-	 
-	 // If value changed, set server name and socketport
-	 if (value != config.comm.server_num)
-	 {
-	    ConfigSetServerNameByNumber(value);
-	    ConfigSetSocketPortByNumber(value);
-	    config.comm.server_num = value;
-	 }
+         value = GetDlgItemInt(hDlg, IDC_SERVERNUM, &success, FALSE);
+         if (!success)
+         {
+            ClientError(hInst, hDlg, IDS_NOSERVERNUM);
+            return TRUE;
+         }
 
-	 /* Kill off dialog */
-	 EndDialog(hDlg, IDOK);
-	 return TRUE;
+         // If value changed, set server name and socketport
+         if (value != config.comm.server_num)
+         {
+            ConfigSetServerNameByNumber(value);
+            ConfigSetSocketPortByNumber(value);
+            config.comm.server_num = value;
+         }
+
+         /* Kill off dialog */
+         EndDialog(hDlg, IDOK);
+         return TRUE;
 
       case IDC_HANGUP:
       case IDCANCEL:
-	 EndDialog(hDlg, IDCANCEL);
-	 return TRUE;
+         EndDialog(hDlg, IDCANCEL);
+         return TRUE;
       }
       break;
    }

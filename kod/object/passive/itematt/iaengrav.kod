@@ -1,57 +1,57 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 ItemAttEngraved is ItemAttribute
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-%  This item has a string engraved onto it with the engrave skill.
-% 
-%  Form is: 
-%
-%   	[IA_ENGRAVED, sMessage_string]
-%	
-%  sMessage_string::the message that is engraved on the item.
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+///////////////////////////////////////////////////////////////////////
+//
+//   This item has a string engraved onto it with the engrave skill.
+//
+//   Form is:
+//
+//      [IA_ENGRAVED, sMessage_string]
+//
+//   sMessage_string::the message that is engraved on the item.
+//
+///////////////////////////////////////////////////////////////////////
 
 constants:
 
-   include blakston.khd   
+   include blakston.khd
 
 resources:
 
-    ItemAtt_Engraved_desc_1 = "  The words '"
-    ItemAtt_Engraved_desc_2 = "' are delicately engraved on the edge."
+   include iaengrav.lkod
+
+    ItemAtt_Engraved_desc = \
+      "  The words '%q' are delicately engraved on the edge."
 
 classvars:
 
-   viItem_Att_Num = IA_ENGRAVED   
-
+   viItem_Att_Num = IA_ENGRAVED
+   vrDesc = ItemAtt_Engraved_desc
    viDifficulty = 2
 
 properties:
-  
-  plDiscarded_Strings = $
+
+   plDiscarded_Strings = $
 
 messages:
 
-   AppendDesc(oItem =$)
+   AppendDesc(oItem=$)
    {
       local lData, oRoom;
-      
-      lData = send(oItem,@GetAttributeData,#ItemAtt=viItem_Att_num);
-      AppendTempString(ItemAtt_Engraved_desc_1);
-      AppendTempString(nth(lData,3));	
-      AppendTempString(ItemAtt_Engraved_desc_2);
-        
+
+      lData = Send(oItem,@GetAttributeData,#ItemAtt=viItem_Att_num);
+      AddPacket(4,vrDesc, 4,Nth(lData,3));
+
       return;
    }
 
@@ -60,10 +60,15 @@ messages:
    {
       local sString;
 
-      if state1 = $ { DEBUG("SetPrimaryState called with nil state!"); return FALSE; }
+      if state1 = $
+      {
+         Debug("SetPrimaryState called with nil state!");
 
-      %% state1 is a temporary string.  Create a new perm string, or recycle
-      %% an existing one.
+         return FALSE;
+      }
+
+      /// state1 is a temporary string.  Create a new perm string, or recycle
+      /// an existing one.
 
       if plDiscarded_Strings = $
       {
@@ -76,25 +81,25 @@ messages:
          plDiscarded_Strings = DelListElem(plDiscarded_Strings,sString);
          SetString(sString,state1);
       }
-      
+
       return sString;
    }
 
    RemoveFromItem(oItem=$)
    {
       local lData, sString, i, bFound;
-		
-      lData = send(oItem,@GetAttributeData,#ItemAtt = viItem_Att_Num);
-      sString = nth(lData,3);
+
+      lData = Send(oItem,@GetAttributeData,#ItemAtt=viItem_Att_Num);
+      sString = Nth(lData,3);
 
       if sString <> $
       {
-         plDiscarded_Strings = cons(sString,plDiscarded_Strings);
+         plDiscarded_Strings = Cons(sString,plDiscarded_Strings);
       }
-      
+
       propagate;
    }
-   
+
    CanBeSpoofed()
    {
       return FALSE;
@@ -106,23 +111,23 @@ messages:
    }
 
    InitiallyIdentified(random_gen=FALSE)
-   {            
+   {
       return TRUE;
-   }   
+   }
 
    AddToTreasureTable()
    {
-      %% do nothing
+      /// do nothing
       return FALSE;
    }
 
    SetItemsToAttribute()
    {
-      % plItems_to_attribute should never be used by this itematt
+      // plItems_to_attribute should never be used by this itematt
       plItems_to_Attribute = $;
-      
+
       return;
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

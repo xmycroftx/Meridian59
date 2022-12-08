@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
  
 ColdRing is ResistRing
 
@@ -16,6 +16,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include coldring.lkod
 
    ColdRing_name_rsc = "ring of cold resistance"
    ColdRing_desc_rsc = \
@@ -35,16 +37,16 @@ classvars:
    vrUseMessage = ColdRing_use_rsc
    vrDeadMessage = ColdRing_dead_rsc
    
-   % Blue inset when identified
+   // Blue inset when identified
    viRevealedColor = PT_ITEM_XLAT_BLUE_TO_BLUE
 
 properties:
 
-   piResistanceType = -ATCK_SPELL_COLD
-   piResistanceChange = 50
+   piResistanceType = -SPL_TYPE_COLD
+   piResistanceChange = 20
 
 messages:
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 

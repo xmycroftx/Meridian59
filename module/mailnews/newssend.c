@@ -73,7 +73,7 @@ BOOL CALLBACK PostNewsDialogProc(HWND hDlg, UINT message, UINT wParam, LONG lPar
       Edit_LimitText(hEdit, MAXARTICLE);
       SetWindowFont(hEdit, GetFont(FONT_MAIL), TRUE);
 
-      Edit_LimitText(hSubject, MAX_SUBJECT - 1);
+      Edit_LimitText(hSubject, MAX_SUBJECT_ENTRY - 1);
       SetWindowFont(hSubject, GetFont(FONT_MAIL), TRUE);
 
       /* Store dialog rectangle in case of resize */
@@ -161,19 +161,28 @@ BOOL CALLBACK PostNewsDialogProc(HWND hDlg, UINT message, UINT wParam, LONG lPar
  */
 void MakeReplySubject(char *subject, int max_chars)
 {
-   char *re_string;
-   int re_len;
+   char *re_string, *en_re_string, *de_re_string;
+   int re_len, en_re_len, de_re_len;
 
-   re_string = GetString(hInst, IDS_RE);
-   re_len = strlen(re_string);
+   // Need to check each of the currently implemented reply strings.
+   en_re_string = "Re: ";
+   de_re_string = "Aw: ";
+   en_re_len = strlen(en_re_string);
+   de_re_len = strlen(de_re_string);
 
    /* Skip stupid case */
-   if (re_len >= max_chars)
+   if (en_re_len >= max_chars || de_re_len >= max_chars)
       return;
    
    /* Add "Re: " to the beginning if appropriate */
-   if (strnicmp(subject, re_string, re_len))
+   if (strnicmp(subject, en_re_string, en_re_len)
+         && strnicmp(subject, de_re_string, de_re_len))
    {
+      // If neither English or German reply string is present, add one.
+      // String added depends on which language the user has enabled.
+      re_string = GetString(hInst, IDS_RE);
+      re_len = strlen(re_string);
+
       memmove(subject + re_len, subject, min((int) strlen(subject) + 1, max_chars - re_len));
       memcpy(subject, re_string, re_len);
       subject[max_chars - 1] = 0;

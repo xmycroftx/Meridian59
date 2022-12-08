@@ -108,21 +108,6 @@ int AllocateObject(int class_id)
    objects[num_objects].p = (prop_type *)AllocateMemory(MALLOC_ID_OBJECT_PROPERTIES,
 							sizeof(prop_type)*(1+c->num_properties));
 
-   if (ConfigBool(DEBUG_INITPROPERTIES))
-   {
-      int i;
-      prop_type p;
-
-      p.id = 0;
-      p.val.v.tag = TAG_INVALID;
-      p.val.v.data = 0;
-
-      for (i = 0; i < (1+c->num_properties); i++)
-      {
-	 objects[num_objects].p[i] = p;
-      }
-   }
-
    return num_objects++;
 }
 
@@ -130,16 +115,8 @@ int AllocateObject(int class_id)
 
 object_node * GetObjectByIDQuietly(int object_id)
 {
-   if (object_id < 0 || object_id >= num_objects)
-   {
+   if (object_id < 0 || object_id >= num_objects || objects[object_id].deleted)
       return NULL;
-   }
-   if (objects[object_id].deleted)
-   {
-      class_node* c;
-      c = GetClassByID(objects[object_id].class_id);
-      return NULL;
-   }
 
    return &objects[object_id];
 }
@@ -153,12 +130,28 @@ object_node * GetObjectByID(int object_id)
    }
    if (objects[object_id].deleted)
    {
-      class_node* c;
-      c = GetClassByID(objects[object_id].class_id);
-      if (c)
-	 eprintf("GetObjectByID can't retrieve deleted OBJECT %i which was CLASS %s\n",object_id,c->class_name);
-      else
-	 eprintf("GetObjectByID can't retrieve deleted OBJECT %i, unknown or invalid class\n",object_id);
+      eprintf("GetObjectByID can't retrieve deleted OBJECT %i which was CLASS %s\n",
+         object_id, GetClassNameByID(objects[object_id].class_id));
+
+      return NULL;
+   }
+
+   return &objects[object_id];
+}
+
+// Skip the class retrieval so it the function can be inlined.
+// Print class ID in the error message for deleted objects instead.
+object_node * GetObjectByIDInterp(int object_id)
+{
+   if (object_id < 0 || object_id >= num_objects)
+   {
+      eprintf("GetObjectByIDInterp can't retrieve invalid object %i\n", object_id);
+      return NULL;
+   }
+   if (objects[object_id].deleted)
+   {
+      eprintf("GetObjectByIDInterp can't retrieve deleted OBJECT %i, class ID %i\n",
+         object_id, objects[object_id].class_id);
       return NULL;
    }
    return &objects[object_id];
@@ -215,15 +208,6 @@ int CreateObject(int class_id,int num_parms,parm_node parms[])
    else
       SendTopLevelBlakodMessage(new_object_id,CONSTRUCTOR_MSG,num_parms,parms);
 
-   if (ConfigBool(DEBUG_UNINITIALIZED))
-   {
-      int i;
-      for (i = 0; i < (1+c->num_properties); i++)
-	 if (objects[new_object_id].p[i].val.v.tag == TAG_INVALID)
-	    eprintf("Uninitialized properties after constructor, class %s\n",
-	       c->class_name);
-   }
-
    return new_object_id;
 }
 
@@ -249,6 +233,11 @@ Bool LoadObject(int object_id,char *class_name)
    objects[object_id].p[0].val.v.tag = TAG_OBJECT; 
    objects[object_id].p[0].val.v.data = object_id;
 
+   // Set any built-in object ID here, in case we're loading an old
+   // save game with a blakod object that needs to be saved as a built-in.
+   if (c->class_id <= MAX_BUILTIN_CLASS)
+      SetBuiltInObjectIDByClass(c->class_id, object_id);
+
    /* if no kod changed, then setting the properties shouldn't be
     * necessary.  however, who knows.
     */
@@ -257,46 +246,123 @@ Bool LoadObject(int object_id,char *class_name)
    return True;
 }
 
-Bool SetObjectPropertyByName(int object_id,char *prop_name,val_type val)
+// List of missing properties encountered during startup.
+// Don't print multiples for the same class.
+typedef struct MissingProperty {
+   bkod_type class_id;
+   char prop_name[256];
+   MissingProperty *next;
+} MissingProperty;
+
+MissingProperty *missing_props;
+
+// Add a missing property encountered during startup.
+void AddStartupMissingProp(bkod_type class_id, char *prop_name)
+{
+   if (!prop_name
+      || strnlen(prop_name, 255) >= 255)
+   {
+      // Cast to int as bkod_type may not always be 32 bit,
+      // but class ID will always be smaller than 2^32.
+      eprintf("Invalid property name sent to AddStartupMissingProp for class %i\n",
+         (int)class_id);
+
+      return;
+   }
+
+   if (!missing_props)
+   {
+      missing_props = (MissingProperty *) AllocateMemory(MALLOC_ID_LOAD_GAME, sizeof(MissingProperty));
+      missing_props->class_id = class_id;
+      strcpy(missing_props->prop_name, prop_name);
+      missing_props->next = NULL;
+   }
+   else
+   {
+      // Double check we don't already have it.
+      MissingProperty *m = missing_props;
+      while (m)
+      {
+         if (m->class_id == class_id
+            && strcmp(m->prop_name, prop_name) == 0)
+         {
+            // Found a match, don't add this one.
+            return;
+         }
+         m = m->next;
+      }
+
+      // No match, add to list (at head).
+      m = (MissingProperty *) AllocateMemory(MALLOC_ID_LOAD_GAME, sizeof(MissingProperty));
+      m->class_id = class_id;
+      strcpy(m->prop_name, prop_name);
+      m->next = missing_props;
+      missing_props = m;
+   }
+}
+
+// Print missing properties, and clear the list.
+void PrintStartupMissingProp()
+{
+   MissingProperty *temp;
+   class_node *c;
+
+   while (missing_props)
+   {
+      temp = missing_props;
+      missing_props = missing_props->next;
+      c = GetClassByID(temp->class_id);
+      if (c)
+      {
+         eprintf("Missing property %s in class %s (%i)\n",
+            temp->prop_name, c->class_name, c->class_id);
+      }
+      FreeMemory(MALLOC_ID_LOAD_GAME, temp, sizeof(MissingProperty));
+   }
+}
+
+// Only called during LoadGame (LoadGameObject). Calling this from elsewhere
+// should take into account the data added to the missing_props list if a
+// property is missing from a class.
+Bool SetObjectPropertyByName(int object_id, char *prop_name, val_type val)
 {
    object_node *o;
    class_node *c;
    int property_id;
-   
+
    o = GetObjectByID(object_id);
    if (o == NULL)
    {
-      eprintf("SetObjectPropertyByName can't find object %i\n",object_id);
+      eprintf("SetObjectPropertyByName can't find object %i\n", object_id);
       return False;
    }
 
    c = GetClassByID(o->class_id);
-   if (c == NULL) 
+   if (c == NULL)
    {
-      eprintf("SetObjectPropertyByName can't find class %i\n",
-	      o->class_id);
+      eprintf("SetObjectPropertyByName can't find class %i\n", o->class_id);
       return False;
    }
 
-   property_id = GetPropertyIDByName(c,prop_name);
+   property_id = GetPropertyIDByName(c, prop_name);
    if (property_id == INVALID_PROPERTY)
    {
-      eprintf("SetObjectPropertyByName can't find property %s in class %s (%i)\n",
-	      prop_name, c->class_name, c->class_id);
+      // In this case, add to a list so we can print it later without duplicates.
+      AddStartupMissingProp(c->class_id, prop_name);
       return False;
    }
 
    if (o->num_props <= property_id)
    {
       eprintf("SetObjectPropertyByName property index/id %i not in object %i class %s (%i)\n",
-	      property_id,object_id,c->class_name,c->class_id);
+         property_id, object_id, c->class_name, c->class_id);
       return False;
    }
-   
+
    if (o->p[property_id].id != property_id)
    {
       eprintf("SetObjectPropertyByName property index/id mismatch %i %i\n",
-	      property_id,o->p[property_id].id);
+         property_id, o->p[property_id].id);
       return False;
    }
 
@@ -392,8 +458,9 @@ void MoveObject(int dest_id,int source_id)
    dest->num_props = source->num_props;
    dest->p = source->p;
 
-   if (source->class_id == SYSTEM_CLASS)
-      SetSystemObjectID(dest_id);
+   // If this is a built-in object, set the new object ID.
+   if (source->class_id <= MAX_BUILTIN_CLASS)
+      SetBuiltInObjectIDByClass(source->class_id, dest_id);
 }
 
 void SetNumObjects(int new_num_objects)

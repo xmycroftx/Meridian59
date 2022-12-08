@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 RedAnt is Monster
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include redant.lkod
 
    redant_koc_name_rsc = "kawilkinich"
    redant_name_rsc = "mutant ant"
@@ -27,10 +29,10 @@ resources:
    redant_dead_icon_rsc = antrX.bgf
    redant_dead_name_rsc = "dead mutant ant"
 
-   redant_sound_hit = ant_atkh.wav
-   redant_sound_miss = ant_atkm.wav
-   redant_sound_death = ant_dth.wav
-   redant_sound_aware = ant_awr.wav
+   redant_sound_hit = ant_atkh.ogg
+   redant_sound_miss = ant_atkm.ogg
+   redant_sound_death = ant_dth.ogg
+   redant_sound_aware = ant_awr.ogg
 
 classvars:
 
@@ -43,17 +45,27 @@ classvars:
 
    viTreasure_type = TID_TOUGH
    viSpeed = SPEED_AVERAGE
-   viAttack_type = ATCK_WEAP_BITE
+   viAttack_type = ATK_TYPE_BITE
    viAttributes = MOB_SPASM
    viLevel = 65
    viDifficulty = 8
+   viVisionDistance = 18
+   // Attack range of 192, or 3 row/col.
+   viMeleeRange = 192
    viKarma = -40
-   viDefault_behavior = AI_FIGHT_AGGRESSIVE | AI_FIGHT_WIZARD_KILLER
-
+   viDefault_behavior = AI_FIGHT_AGGRESSIVE
+   viCashmin = 225
+   viCashmax = 600
    vrSound_hit = redant_sound_hit
    vrSound_miss = redant_sound_miss
    vrSound_aware = redant_sound_aware
    vrSound_death = redant_sound_death
+
+   vbCanBleed = FALSE
+   vbCanSiphon = FALSE
+   viBleedChance = 15
+   viBleedStrength = 1000
+   viBleedDuration = 8000
 
 properties:
 
@@ -63,21 +75,12 @@ messages:
 
    Constructed()
    {
-      plResistances = [ [ 65, -ATCK_SPELL_FIRE ],
-                        [ 65, ATCK_WEAP_BLUDGEON ],
-                        [ -10, ATCK_WEAP_NERUDITE ],
-                        [ -10, ATCK_WEAP_MAGIC] ];
+      plResistances = [ [-SPL_TYPE_FIRE, 65 ],
+                        [ATK_TYPE_BLUDGEON, 65 ],
+                        [ATK_TYPE_NERUDITE, -10 ],
+                        [ATK_TYPE_MAGIC, -10] ];
 
       propagate;
-   }
-
-   MonsterAttack(what = $)
-   {
-      piAnimation = ANIM_ATTACK;
-      Send(poOwner,@SomethingChanged,#what=self);
-      piAnimation = ANIM_NONE;
-      
-      return;
    }
 
    DoSpasm()
@@ -95,18 +98,19 @@ messages:
 
       if roll <= 5
       {
-         Send(poOwner,@SomethingTurned,#what=self,#new_angle=Random(0,MAX_ANGLE-1));
+         Send(poOwner,@SomethingTurned,#what=self,
+               #new_angle=Random(0,MAX_ANGLE-1));
       }
 
       propagate;
    }
-    
+
    DoLegSpasm()
    {
       piAnimation = ANIM_ATTACK;
       Send(poOwner,@SomethingChanged,#what=self);
       piAnimation = ANIM_NONE;
-      
+
       return;
    }
 
@@ -133,13 +137,11 @@ messages:
          return;
       }
 
-      % if no body animation
-      
+      // if no body animation
       AddPacket(1,ANIMATE_NONE,2,1);
 
       return;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

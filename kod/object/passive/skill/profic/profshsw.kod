@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 ShortSwordProficiency is Proficiency
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include profshsw.lkod
 
    Shortswordproficiency_name_rsc = "short sword fighting"
    Shortswordproficiency_icon_rsc = shswdico.bgf
@@ -29,10 +31,11 @@ classvars:
    vrDesc = Shortswordproficiency_desc_rsc
 
    vrSkill_intro = Shortswordproficiency_skill_intro
-   viSchool = SKS_FENCING
+   viSchool = SKS_WEAPONCRAFT
    viSkill_num = SKID_PROFICIENCY_SHORT_SWORD
    viSkill_level = 2
    viChance_to_increase = 60
+   viMeditate_ratio = 20
 
 properties:
 
@@ -47,4 +50,4 @@ messages:
 
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

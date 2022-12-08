@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 KocatanHallA is KocatanRoom
 
 constants:
@@ -17,10 +17,12 @@ constants:
 
 resources:
 
+   include kochoha.lkod
+
    room_KocatanHallA = kochoha.roo
    room_name_KocatanHallA = "The Hall of Heroes West"
 
-   KocatanHallA_music = extra01.mid
+   KocatanHallA_music = extra01.ogg
 
 classvars:
 
@@ -42,8 +44,6 @@ properties:
    piOutside_factor = 3
 
    prMusic = KocatanHallA_music
-   plStatues = $
-   pbEverEntered = FALSE
 
 messages:
 
@@ -51,19 +51,20 @@ messages:
    {
       plExits = $;
 
-      %% to Main hall
+      /// to Main hall
       plExits = Cons([ 3, 3, RID_KOC_HALL_OF_HEROES, 3, 2, ROTATE_NONE ],plExits);
       plExits = Cons([ 2, 3, RID_KOC_HALL_OF_HEROES, 3, 2, ROTATE_NONE ],plExits);
-      
+
       propagate;
    }
 
    CreateStandardObjects()
    {
-      Send(self,@NewHold,#what=Create(&KocatanWeaponsMaster),#new_row=5,#new_col=5,#fine_row=32,#fine_col=32);
+      Send(self,@NewHold,#what=Create(&KocatanWeaponsMaster),
+            #new_row=5,#new_col=5,#fine_row=32,#fine_col=32);
 
       propagate;
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

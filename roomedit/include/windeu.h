@@ -164,7 +164,6 @@ extern BOOL  AdditiveSelBox;/* additive selection box or select in box only? */
 extern int   SplitFactor;   /* factor used by the Nodes builder */
 extern BOOL  Select0;       /* select object 0 by default when switching modes */
 extern char *MainWad;       /* name of the main wad file */
-extern Bool  Use3DControls;	/* Enable CTL3DV2.DLL or CTL3D32.DLL? */
 extern Bool  DrawLineDefsLen;/* Display length of moving LineDefs */
 extern int   BuildPriority;	/* Priority for the nodes builder */
 extern int   RoomID;        /* used in batch file for reseting room contents */
@@ -207,7 +206,8 @@ extern SHORT  DefaultLightLevel;		/* default light level */
 */
 
 /* from windeu.cpp */
-void InitWindeu (int argc, char **argv, char *init_level);
+bool NodeBuilderMode();
+void InitWindeu (int argc, char **argv, char *init_level, char *save_level);
 void CleanupWindeu () ;
 void CenterWindow (TWindow *pWnd);
 void Beep ();
@@ -223,7 +223,7 @@ BOOL Confirm (char*, ...);
 void Notify (char *, ...);
 void FunnyMessage ();
 void Usage ();
-void ParseCommandLineOptions( int argc, char *argv[], char *init_level);
+void ParseCommandLineOptions(int argc, char *argv[], char *init_level, char *save_level);
 void ParseConfigFileOptions (char *filename);
 void AppendItemToList (char ***list, char *item);
 char *FormatNumber(LONG num);
@@ -387,16 +387,16 @@ void BuildCoopExecTab(void);
 // Last time (tick count) Cooperate was called by COOPERATE
 extern ULONG LastCoopCallTick;
 
-#define COOPERATE()                      							\
-{                                        							\
-	if ( BuildPriority > 0 )										\
-	{                                                           	\
-		if ( ::GetTickCount() - LastCoopCallTick >= BuildPriority ) \
-		{                                    						\
-			Cooperate();                                        	\
-			LastCoopCallTick = ::GetTickCount();					\
-		}                                    						\
-	}                                                           	\
+#define COOPERATE()                      									\
+{                                        									\
+	if ( BuildPriority > 0 )												\
+	{                                                           			\
+		if ( ::GetTickCount() - LastCoopCallTick >= (ULONG)BuildPriority )	\
+		{                                    								\
+			Cooperate();                                        			\
+			LastCoopCallTick = ::GetTickCount();							\
+		}                                    								\
+	}                                                           			\
 }
 
 #endif	// COOPERATION_VERSION

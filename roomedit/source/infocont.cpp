@@ -65,7 +65,7 @@ int TInfoControl::NbObjects = 0 ;
 // ------------
 //
 TInfoControl::TInfoControl (TWindow* parent, int id, unsigned _NumLines,
-							const char far* title, int x, int y, int w, int h,
+							const char* title, int x, int y, int w, int h,
 							TModule* module):
 	TControl(parent, id, title, x, y, w, h, module)
 {
@@ -101,7 +101,7 @@ TInfoControl::TInfoControl (TWindow* parent, int id, unsigned _NumLines,
 	curColor = DEF_COLOR;
 	curAlign = DEF_ALIGN;
 
-	SetCursor (GetApplication(), IDC_HANDC);
+	SetCursor(GetApplication(), IDC_HANDC);
 }
 
 
@@ -137,7 +137,7 @@ void TInfoControl::Cleanup()
 	if ( TextLineTab != NULL )
 	{
 		// Free TextLines
-		for (int i = 0 ; i < NumLines ; i++)
+		for (unsigned int i = 0 ; i < NumLines ; i++)
 		{
 			if ( TextLineTab[i] != NULL )
 			{
@@ -208,7 +208,7 @@ void TInfoControl::Paint (TDC& dc, bool erase, TRect& rect)
 	// Draw each text line
 	if ( TextLineTab != NULL )
 	{
-		for (int i = 0 ; i < NumLines ; i++)
+		for (unsigned int i = 0 ; i < NumLines ; i++)
 		{
 			if (TextLineTab[i] != NULL  && TextLineTab[i]->Text != NULL)
 			{
@@ -225,7 +225,7 @@ void TInfoControl::Paint (TDC& dc, bool erase, TRect& rect)
 				case TA_CENTER:
 					x = cRect.Width() / 2;
 					break;
-				case TA_RIGHT:
+				default: //case TA_RIGHT:
 					x = cRect.Width() - 1;
 					break;
 				}
@@ -310,7 +310,7 @@ void TInfoControl::Insert (const char *format, ...)
 	if ( TextLineTab == NULL )
 	{
 		TextLineTab = (TextLine **)GetMemory( NumLines * sizeof (TextLine *));
-		for (int i = 0 ; i < NumLines ; i++)
+		for (unsigned int i = 0 ; i < NumLines ; i++)
 			TextLineTab[i] = NULL;
 	}
 
@@ -357,7 +357,7 @@ void TInfoControl::InsertAt (int linePos, const char *format, ...)
 }
 
 
-char far* TInfoControl::GetClassName ()
+char* TInfoControl::GetClassName ()
 {
 	return "WinDEU_InfoControl";
 }

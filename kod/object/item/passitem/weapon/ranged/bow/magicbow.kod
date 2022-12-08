@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 MagicBow is Bow
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include magicbow.lkod
 
    MagicBow_name_rsc = "magic bow"
    MagicBow_desc_rsc = \
@@ -31,21 +33,24 @@ classvars:
 
 properties:
 
-   viRange = 50
+   viWeaponDamage = 1
+   viRange = 100 * FINENESS
+   viHit_roll_modifier = 100
 
-   % What's the basic color of the wood?
+   // What's the basic color of the wood?
    viBaseXLAT = XLAT_TO_SKIN4
+
+   piAttack_Type = ATK_TYPE_MAGIC + ATK_TYPE_PIERCE
 
 messages:
 
    SetColor(iColor=XLAT_TO_SKIN4)
    {
       viBaseXLAT = iColor;
-      send(self,@UpdateColor);
+      Send(self,@UpdateColor);
 
       return;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

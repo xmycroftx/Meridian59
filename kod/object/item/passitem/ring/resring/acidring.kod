@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 
 AcidRing is ResistRing
 
@@ -16,6 +16,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include acidring.lkod
 
    AcidRing_name_rsc = "ring of acid resistance"
    AcidRing_desc_rsc = \
@@ -35,16 +37,16 @@ classvars:
    vrUseMessage = AcidRing_use_rsc
    vrDeadMessage = AcidRing_dead_rsc
 
-   % Green inset when identified
+   // Green inset when identified
    viRevealedColor = PT_ITEM_XLAT_BLUE_TO_GREEN
    
 properties:
 
-   piResistanceType = -ATCK_SPELL_ACID
-   piResistanceChange = 50
+   piResistanceType = -SPL_TYPE_ACID
+   piResistanceChange = 20
 
 messages:
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 

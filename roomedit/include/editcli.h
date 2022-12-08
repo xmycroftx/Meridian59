@@ -43,7 +43,7 @@
 #endif
 
 #ifndef OWL_STATUSBA_H
-   #include <owl\statusba.h>
+	#include <owl/statusba.h>
 #endif
 
 #ifndef OWL_OPENSAVE_H
@@ -125,7 +125,8 @@ private:
 	void DrawMouseCoord (TDC &dc);
 	void SetupSelection (BOOL SaveSel);
 	BOOL CheckSelection (SHORT min, SHORT max);
-        void AlignX (SHORT sdType, SHORT texType);
+   void AlignX (SHORT sdType, SHORT texType);
+   void AlignXCircle(SHORT sdType, SHORT texType);
 
 	void EditCurObject();
 	void CenterMapAroundCoords (SHORT xpos, SHORT ypos);
@@ -142,8 +143,8 @@ private:
 	const char *AddObjectType(const char *);
 
 public:
-	TEditorClient (TWindow* parent, char *_LevelName, BOOL newLevel,
-				   const char far* title = 0, TModule* module = 0);
+	TEditorClient (TWindow* parent, char *_LevelName, char *_saveLevelName, BOOL newLevel,
+				   const char* title = 0, TModule* module = 0);
 	virtual ~TEditorClient ();
 	BOOL SaveChanges ();
 
@@ -152,7 +153,7 @@ public:
 public:
 	virtual void SetupWindow ();
 	virtual void Paint (TDC& dc, bool erase, TRect& rect);
-	virtual char far* GetClassName ();
+	virtual char* GetClassName ();
 	virtual void GetWindowClass (WNDCLASS& wndClass);
 	virtual void CloseWindow (int retVal = 0);
 	virtual void Destroy (int retVal = 0);
@@ -160,10 +161,10 @@ public:
 
 //{{TEditorClientRSP_TBL_BEGIN}}
 protected:
-	void EvSize (UINT sizeType, const TSize& size);
 	void EvChar (UINT key, UINT repeatCount, UINT flags);
-	void EvKeyDown (UINT key, UINT repeatCount, UINT flags);
-	void EvMouseMove (UINT modKeys, const TPoint& point);
+	void EvKeyDown (UINT key, UINT repeatCount, UINT flags);	
+	void EvSize(UINT sizeType, const TSize& size);
+	void EvMouseMove(UINT modKeys, const TPoint& point);
 	void EvLButtonDown (UINT modKeys, const TPoint& point);
 	void EvLButtonUp (UINT modKeys, const TPoint& point);
 	void EvLButtonDblClk (UINT modKeys, const TPoint& point);
@@ -174,6 +175,8 @@ protected:
 	void CmSearchJump ();
 	void CmObjectsRectangle ();
 	void CmObjectsPolygon ();
+   void CmObjectsCircle();
+   void CmObjectsTorch();
 	void CmModeThings ();
 	void CmModeVertexes ();
 	void CmModeLinedefs ();
@@ -188,12 +191,21 @@ protected:
 	void CmMiscLDFlip ();
 	void CmMiscLDSwap ();
 	void CmMiscLDAlignY ();
+
 	void CmAlignXSD1Normal ();
 	void CmAlignXSD1Upper ();
 	void CmAlignXSD1Lower ();
 	void CmAlignXSD2Normal ();
 	void CmAlignXSD2Upper ();
 	void CmAlignXSD2Lower ();
+
+   void CmAlignXCircleSD1Normal();
+   void CmAlignXCircleSD1Upper();
+   void CmAlignXCircleSD1Lower();
+   void CmAlignXCircleSD2Normal();
+   void CmAlignXCircleSD2Upper();
+   void CmAlignXCircleSD2Lower();
+
 	void CmMiscVDelete ();
 	void CmMiscVMerge ();
 	void CmMiscVAddLineDef ();

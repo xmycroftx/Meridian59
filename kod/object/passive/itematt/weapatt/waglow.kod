@@ -1,32 +1,34 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 WeapAttGlowing is WeaponAttribute
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-%  Causes weapon to glow, similar to a torch.
-%
-%  Form is: 
-%
-%       [ WA_GLOWING, timer, light_intensity ]
-%   
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+//////////////////////////////////////////////////////////////////////
+//
+//  Causes weapon to glow, similar to a torch.
+//
+//  Form is:
+//
+//       [ WA_GLOWING, timer, light_intensity ]
+//
+//////////////////////////////////////////////////////////////////////
 
 constants:
 
-   include blakston.khd   
+   include blakston.khd
 
 resources:
 
-   weapattglowing_desc = "  It glows softly like a torch."
+   include waglow.lkod
+
+   weapattglowing_desc = " It glows softly like a torch."
    weapattglowing_name = "glowing %s"
 
    waglowing_gone = "Your %s stops glowing."
@@ -42,26 +44,27 @@ classvars:
 
 properties:
 
-   % Modify the object's price by 100%
+   // Modify the object's price by percent
    piValue_modifier = 100   
    piValue_power_modifier = -10
 
 messages:
-  
-   %%%  Effect Functions
+
+   //  Effect Functions
 
    DMCreateItemAtt(who=$,string=$,oWeapon=$)
-   {      
-      if who = $ OR string= $ OR oWeapon = $
+   {
+      if who = $ OR string = $ OR oWeapon = $
       {
-         DEBUG("BAD data sent to DMCreateItemAtt!");
+         Debug("BAD data sent to DMCreateItemAtt!");
+
          return FALSE;
       }
 
       if StringContain(string,glowing_dm)
-      {  
-         % If DM created, it's 100 light (more than the spell allows)
-         %  and 35 hours in duration.
+      {
+         // If DM created, it's 100 light (more than the spell allows)
+         //  and 35 hours in duration.
          Send(self,@AddToItem,#oItem=oWeapon,#random_gen=FALSE,
               #timer_duration=(35*60*60*1000),#state1=100);
 
@@ -86,23 +89,17 @@ messages:
    ItemUnused(oItem=$,oPlayer=$)
    "Stops Glowing when unwielded."
    {
-      local iLightStr, i;
+      local iLightStr;
 
       iLightStr = Nth(Send(oItem,@GetAttributeData,#ItemAtt=WA_GLOWING),3);
       Send(oPlayer,@LoseLight,#amount=iLightStr);
 
-      if Send(oPlayer,@FindUsing,#class=&Torch) <> $
-      {
-         % Keep the flicker flag.
-         return;
-      }
-
-      Send(oPlayer,@ClearFlickerFlag);
+      Send(oPlayer,@RecalcFlickerFlag);
 
       return;
    }
 
-   AddSelfToRandomItem(oItem = $)
+   AddSelfToRandomItem(oItem=$)
    {
       local iGlowLevel;
 
@@ -111,15 +108,17 @@ messages:
          return FALSE;
       }
 
-      iGlowLevel = 50 + random(1,50);
+      iGlowLevel = 50 + Random(1,50);
 
       if Send(self,@ReqAddToItem,#state1=iGlowLevel,#oItem=oItem)
       {
          Send(self,@AddToItem,#oItem=oItem,#state1=iGlowLevel,
-              #timer_duration=random(3600000,86400000),#random_gen=TRUE);
+               #timer_duration=random(3600000,86400000),#random_gen=TRUE);
+
+         return TRUE;
       }
-      
-      return;
+
+      return FALSE;
    }
 
    SetPrimaryState(state1=$)
@@ -127,7 +126,7 @@ messages:
       return state1;
    }
 
-   %%%  Timer Functions
+   ////  Timer Functions
 
    HasTimer(lData=$)
    {
@@ -136,19 +135,19 @@ messages:
 
    TimerExpired(oItem=$,lData=$)
    {
-      % Timer is gone, now remove reference
-      SetNth(lData,2,$);   
+      // Timer is gone, now remove reference
+      SetNth(lData,2,$);
       Send(self,@RemoveFromItem,#oItem=oItem,#lData=lData);
-   
+
       return;
    }
 
-   RemoveFromItem(oItem=$, lData=$)
+   RemoveFromItem(oItem=$,lData=$)
    {
       local oPlayer, oRoom;
 
       oPlayer = Send(oItem,@GetOwner);
-      if oPlayer<> $ AND IsClass(oPlayer,&Player)
+      if oPlayer <> $ AND IsClass(oPlayer,&Player)
       {
          Send(oPlayer,@MsgSendUser,#message_rsc=waglowing_gone,
               #parm1=Send(oItem,@GetName));
@@ -166,6 +165,5 @@ messages:
       propagate;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

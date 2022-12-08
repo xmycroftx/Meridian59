@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 OutdoorsKB5 is KCForest
 
 constants:
@@ -16,9 +16,11 @@ constants:
 
 resources:
 
-   room_name_OutdoorsKB5 ="Into the Jungle"
-   room_OutdoorsKB5 = KB5.roo
-   OutdoorsKB5_music = orcbeg.mid
+   include kb5.lkod
+
+   room_name_OutdoorsKB5 = "Into the Jungle"
+   room_OutdoorsKB5 = kb5.roo
+   OutdoorsKB5_music = orcbeg.ogg
 
 classvars:
 
@@ -27,6 +29,9 @@ classvars:
    viTeleport_row = 37
    viTeleport_col = 44
    viTerrain_type = TERRAIN_JUNGLE
+
+   viWeatherZone = WEATHER_ZONE_KOC_TOWN
+   viWeatherMask = WEATHER_MASK_JUNGLE
 
 properties:
 
@@ -39,37 +44,50 @@ properties:
 
    piDirectional_percent = DIRECTIONAL_PERCENT_OUTDOORS
 
-   piGen_time = 90000
+   piGen_time = 25000
    piGen_percent = 70
 
    piInit_count_min = 5
    piInit_count_max = 9
 
-   piMonster_count_max = 12
+   piMonster_count_max = 15
+
+   pbSnowGroundTexture = TRUE
 
 messages:
-
-
-   CreateJungleItemCoords()
-   {      
-      plItem_coords = [ [&RainbowFern,45,6], [&RainbowFern,37,44], [&RainbowFern,11,14] ];
-
-      % Do not propagate
-      return;
-   }
 
    Constructed()
    {
       plMonsters = [ [&Dragonfly, 100] ];
-      plGenerators = [ [34,27], [37,13], [18,23], [25,29], [18,8] ];
 
       propagate;
+   }
+
+   SetMonsterGenPoints(bRandomGen = TRUE)
+   {
+      if (bRandomGen)
+      {
+         return;
+      }
+
+      plGenerators = [ [34,27], [37,13], [18,23], [25,29], [18,8] ];
+
+      return;
+   }
+
+   CreateJungleItemCoords()
+   {
+      plItem_coords = [ [&RainbowFern,45,6], [&RainbowFern,37,44],
+                        [&RainbowFern,11,14] ];
+
+      // Do not propagate
+      return;
    }
 
    CreateStandardExits()
    {
       plEdge_Exits = $;
-      plEdge_Exits = Cons([LEAVE_WEST, RID_KA5, 26, 63, ROTATE_NONE], plEdge_exits);      
+      plEdge_Exits = Cons([LEAVE_WEST, RID_KA5, 26, 63, ROTATE_NONE], plEdge_exits);
       plEdge_Exits = Cons([LEAVE_EAST, RID_KC5, 14, 1, ROTATE_NONE], plEdge_exits);
 
       propagate;
@@ -105,6 +123,5 @@ messages:
       propagate;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

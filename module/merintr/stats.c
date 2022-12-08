@@ -59,7 +59,9 @@ BOOL CALLBACK StatsWindowProc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       return FALSE;
 
    case WM_ERASEBKGND:
-		if( StatsGetCurrentGroup() == STATS_SPELLS || StatsGetCurrentGroup() == STATS_SKILLS )
+      if (StatsGetCurrentGroup() == STATS_SPELLS
+         || StatsGetCurrentGroup() == STATS_SKILLS
+         || StatsGetCurrentGroup() == STATS_QUESTS)
 		{
 			StatsClearArea();
 			InvalidateRect( hStats, NULL, FALSE );
@@ -137,11 +139,12 @@ void StatsResize(int xsize, int ysize, AREA *view)
    int yMiniMap, iHeightAvailableForMapAndStats, iHeightMiniMap;
 
    stats_area.x = view->x + view->cx + LEFT_BORDER + 3 * HIGHLIGHT_THICKNESS;
-   stats_area.cx = xsize - stats_area.x - 3 * HIGHLIGHT_THICKNESS - EDGETREAT_WIDTH;
+   stats_area.cx = min(xsize - stats_area.x - 3 * HIGHLIGHT_THICKNESS - EDGETREAT_WIDTH, INVENTORY_MAX_WIDTH);
 
    yMiniMap = 2 * TOP_BORDER + USERAREA_HEIGHT + EDGETREAT_HEIGHT + MAPTREAT_HEIGHT;
    iHeightAvailableForMapAndStats = ysize - yMiniMap - 2 * HIGHLIGHT_THICKNESS - EDGETREAT_HEIGHT;
    iHeightMiniMap = (int)( iHeightAvailableForMapAndStats * PROPORTION_MINIMAP ) - HIGHLIGHT_THICKNESS - MAPTREAT_HEIGHT;
+   iHeightMiniMap = min( iHeightMiniMap, MINIMAP_MAX_HEIGHT );
    
    stats_area.y = yMiniMap + iHeightMiniMap + 3 * HIGHLIGHT_THICKNESS + MAPTREAT_HEIGHT + MAP_STATS_GAP_HEIGHT;
    stats_area.cy = ysize - EDGETREAT_HEIGHT - HIGHLIGHT_THICKNESS - stats_area.y - STATS_BOTTOM_GAP_HEIGHT;
@@ -246,7 +249,7 @@ void StatsGroupsInfo(BYTE num_groups, ID *names)
 	//	To keep things the way they were apparently intended, I'd have to change the message sent from the server.
 	//	This seems pointless - I'm not sure why the number of stats list groups was being sent at all...
    //StatsSetButtons(num_groups);	ajw
-   StatsSetButtons( 5 );
+   StatsSetButtons(6);
    StatCacheSetSize(num_groups);
    RequestStats(STATS_MAIN);              // Always get main stats
    if( current_group != STATS_INVENTORY )
@@ -315,7 +318,10 @@ void StatsDraw(void)
    switch(group_type)
    {
    case STATS_NUMERIC:
-		if( StatsGetCurrentGroup() != STATS_INVENTORY && StatsGetCurrentGroup() != STATS_SPELLS && StatsGetCurrentGroup() != STATS_SKILLS )
+		if( StatsGetCurrentGroup() != STATS_INVENTORY 
+         && StatsGetCurrentGroup() != STATS_SPELLS 
+         && StatsGetCurrentGroup() != STATS_SKILLS
+         && StatsGetCurrentGroup() != STATS_QUESTS )
 			StatsNumDraw(stats);
       break;
 

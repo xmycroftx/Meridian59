@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Mace is Weapon
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include mace.lkod
 
    mace_name_rsc = "mace"
    mace_icon_rsc = mace.bgf
@@ -32,7 +34,7 @@ classvars:
    vrIcon = mace_icon_rsc
    vrDesc = mace_desc_rsc
 
-   % Maces are low quality bludugeoning weapons
+   // Maces are low quality bludugeoning weapons
    viWeaponType = WEAPON_TYPE_BLUDGEON
    viWeaponQuality = WEAPON_QUALITY_LOW
 
@@ -52,9 +54,9 @@ classvars:
 
 properties:
 
-   piAttack_type = ATCK_WEAP_NONMAGIC+ATCK_WEAP_BLUDGEON
+   piAttack_type = ATK_TYPE_NONMAGIC+ATK_TYPE_BLUDGEON
 
 messages:
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

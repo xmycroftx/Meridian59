@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+//////////////////////////////////////////////////////////////////////////////////
 ForgottenToo is CorNothRoom
 
 constants:
@@ -18,9 +18,11 @@ constants:
 
 resources:
 
+   include forgot2.lkod
+
    room_ForgottenToo = bizmans.roo
    room_name_ForgottenToo = "Chamber of the Forgotten Heroes"
-   ForgottenToo_music = extra01.mid
+   ForgottenToo_music = extra01.ogg
 
    name_psycho   = "Psychochild"
    name_aythya   = "Aythya"
@@ -226,8 +228,8 @@ messages:
    {
       plExits = $;
 
-      %% TO TOWN
-      plExits = Cons([ 26, 7, RID_CASTLE2A, 26, 15, ROTATE_180, DISTANCE_NORMAL ],plExits);
+      /// TO TOWN
+      plExits = Cons([ 26, 7, RID_CASTLE2A, 26, 15, ROTATE_180 ],plExits);
       
       propagate;
    }
@@ -239,8 +241,8 @@ messages:
       oBook = Create(&BookPedestal,#Name=psycho_book,#Text=psycho_text);
       Send(self,@NewHold,#what=oBook,#new_row=4,#new_col=12,#fine_row=32,#fine_col=32,#new_angle=ANGLE_SOUTH);
 
-      % oBook = Create(&BookPedestal,#Name=aythya_book,#Text=aythya_text);
-      % Send(self,@NewHold,#what=oBook,#new_row=4,#new_col=11,#fine_row=32,#fine_col=32,#new_angle=ANGLE_SOUTH);
+      // oBook = Create(&BookPedestal,#Name=aythya_book,#Text=aythya_text);
+      // Send(self,@NewHold,#what=oBook,#new_row=4,#new_col=11,#fine_row=32,#fine_col=32,#new_angle=ANGLE_SOUTH);
       propagate;
    }
 
@@ -252,11 +254,11 @@ messages:
 
    CreateStatues()
    {
-      %% create the statues the first time someone enters.
+      /// create the statues the first time someone enters.
       local oStatue, i;
 
-      %% delete any existing statues
-      for i in plPassive
+      /// delete any existing statues
+      foreach i in plPassive
       {
          if isClass(first(i),&statue)
          {  send(first(i),@delete);  }
@@ -311,4 +313,4 @@ messages:
    }
    
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

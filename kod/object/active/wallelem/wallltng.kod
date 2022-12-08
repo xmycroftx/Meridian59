@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 WallofLightning is ActiveWallElement
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include wallltng.lkod
 
    WallofLightning_name_rsc = "wall of lightning"
    WallofLightning_icon_rsc = wolightn.bgf
@@ -32,167 +34,98 @@ resources:
 
    lightningwall_dissipates = "Part of the lightning wall flickers, and disappears."
 
-   lightningwall_zap_snd = Fzap.wav
-
 classvars:
 
    vrName = WallofLightning_name_rsc
    vrIcon = WallofLightning_icon_rsc
    vrdesc = WallofLightning_desc_rsc
 
-   viObject_flags = LOOK_NO | DRAWFX_TRANSLUCENT_50 | MOVEON_NOTIFY | FLICKERING_YES
+   viObject_flags = OF_NOEXAMINE
 
    vrDissipateMessage = lightningwall_dissipates
    vrUnaffectedMessage = lightningwall_damage0
 
-   viLightBonus = 7
+   // How many ms should the effect last at max spellpower?
+   viEffectDuration = 500
+
+   // How much damage (10^[-3]) should the effect do per second at max spellpower?
+   viEffectDamage = 12000
 
 properties:
 
-   piMaxDamage = 0
-   ptPeriodicEffect = $
+   piDrawEffectFlag = OF_FLICKERING
+   piDrawFx = DRAWFX_TRANSLUCENT_50
 
 messages:
-   
-   Constructor(caster = $, duration=75, MaxDamage = 0)
+
+   DoEffect(what = $)
    {
-      piMaxDamage = MaxDamage;
+      local oEffect, iSpellpower, iStrength, rMessage, bReport;
 
-      propagate;
-   }
+      oEffect = Send(SYS,@FindSpellByNum,#num=SID_ELECTRIFY);
 
-   GetDuration(duration = 0)
-   {
-      local iDuration;
+      iSpellpower = Nth(plSeed,2);
 
-      iDuration = Random(duration-20,duration+20);
-      iDuration = iDuration * 1000;
-      iDuration = bound(iDuration,30000,200000);
+      iStrength = iSpellpower*viEffectDamage/100;
 
-      return iDuration;
-   }
+      bReport = Send(oEffect,@StartElectrify,#who=what,#source=poCaster,
+         #strength=iStrength,#duration=viEffectDuration);
 
-   DoEffect(what = $, periodic=FALSE)
-   {
-      local iDamage, iMaxDamage, oWatcher, rMessage;
-    
-      iDamage = 0;
-      iMaxDamage = piMaxDamage;
-      
-      iDamage = Send(what,@AssessDamage,#what=poCaster,#damage=Random(0,iMaxDamage),
-                     #aspell=ATCK_SPELL_SHOCK,#report=FALSE,#report_resistance=FALSE);
-
-      if iDamage = $
+      if bReport
       {
-         Send(poCaster,@KilledSomething,#what=what);
-      }
+         Send(poOwner,@SomethingAttacked,#what=poCaster,#victim=what,
+               #use_weapon=self,#stroke_obj=self);
 
-      if IsClass(poCaster,&Player)
-      {
-         if iDamage = $
+         if IsClass(poCaster,&Player)
          {
             Send(poCaster,@SetPlayerFlag,#flag=PFLAG_DID_DAMAGE,#value=TRUE);
-
-            return;
          }
-         else
+
+         if IsClass(what,&Player)
          {
-            if piMaxDamage > 0
+            if iSpellpower = 0
             {
-               Send(poCaster,@SetPlayerFlag,#flag=PFLAG_DID_DAMAGE,#value=TRUE);
+               rMessage = lightningwall_damage0;
             }
-         }
-      }
-
-      if IsClass(what,&Player)
-      {
-         if iDamage = 0
-         {
-            rMessage = lightningwall_damage0;
-         }
-         else
-         {
-            % Damage greater than 0
-            Send(what,@WaveSendUser,#wave_rsc=lightningwall_zap_snd);
-
-            if iDamage < 5
+            else if iSpellpower < 25
             {
                rMessage = lightningwall_damage5;
             }
+            else if iSpellpower < 50
+            {
+               rMessage = lightningwall_damage10;
+            }
+            else if iSpellpower < 75
+            {
+               rMessage = lightningwall_damage15;
+            }
             else
             {
-               if iDamage < 10
-               {
-                  rMessage = lightningwall_damage10;
-               }
-               else
-               {
-                  if iDamage < 15
-                  {
-                     rMessage = lightningwall_damage15;
-                  }
-                  else
-                  {
-                     rMessage = lightningwall_damage20;
-                  }
-               }
+               rMessage = lightningwall_damage20;
             }
-         }
 
-         Send(what,@MsgSendUser,#message_rsc=rMessage);
+            Send(what,@MsgSendUser,#message_rsc=rMessage);
+         }
       }
-      
+
       propagate;
    }
 
    SendAnimation()
    {
-      AddPacket(1,ANIMATE_CYCLE, 4,random(100,140), 2,1, 2,5);
+      AddPacket(1,ANIMATE_CYCLE, 4,Random(100,140), 2,1, 2,5);
 
       return;
-   }
-
-   NewOwner(what = $)
-   {
-      % Add a bit of light.  Lightning walls shed some light.
-   
-      % new room
-      if what <> $
-      {
-         Send(what,@AddBaseLight,#amount=viLightBonus);
-      }
-      
-      % old room
-      if poOwner <> $
-      {
-         Send(poOwner,@AddBaseLight,#amount=-viLightBonus);
-      }
-      
-      propagate;
-   }
-
-   Delete()
-   {
-      % Take away the light we added.
-      if poOwner <> $
-      {
-         Send(poOwner,@AddBaseLight,#amount=-viLightBonus);
-      }
-      
-      propagate;
    }
 
    SendLightingInformation()
    {
-      AddPacket(2,(LIGHT_FLAG_ON | LIGHT_FLAG_DYNAMIC));
-      % 5 out of 255 intensity of light
-      AddPacket(1,5);
-      % Lightning color
-      AddPacket(2,LIGHT_LIGHTNING);
+      // Flags, intensity (5 out of 255), color.
+      AddPacket(2,(LIGHT_FLAG_ON | LIGHT_FLAG_DYNAMIC),
+                1,5, 2,LIGHT_LIGHTNING);
 
       return;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

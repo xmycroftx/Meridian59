@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 IvyCirclet is Helmet
 
 constants:
@@ -16,13 +16,16 @@ constants:
 
 resources:
 
+   include ivycircl.lkod
+
    IvyCirclet_name_rsc = "ivy circlet"
    IvyCirclet_icon_rsc = ivycircl.bgf
    IvyCirclet_desc_rsc = \
       "Healthy, green leaves of ivy are wrapped around a wooden wreath.  "
       "This looks like it would be cool and refreshing against your brow."
 
-   ivycirclet_cant = "The ivy circlet stubbornly resists your attempts to place it on your brow."
+   ivycirclet_cant = \
+      "The ivy circlet stubbornly resists your attempts to place it on your brow."
 
    IvyCirclet_overlay_rsc = IvyCirov.bgf
 
@@ -45,36 +48,35 @@ classvars:
    viGround_group = 1
    viInventory_group = 2
 
-   viDefense_base = 10               % This is the default value for piDefense_bonus
+   // This is the default value for piDefense_bonus
+   viDefense_base = 10
+
+   viLayer = 1
 
 properties:
-
-   piMana_change = 0
-   piHealth_change = 0
 
 messages:
 
    GetOverlay(animation = $)
    {
-      % Uses different file for the overlay.
+      // Uses different file for the overlay.
       return IvyCirclet_overlay_rsc;
    }
-   
+
    GetResistanceModifiers()
    {
-      return [ [-ATCK_SPELL_FIRE,-10],
-               [-ATCK_SPELL_SHOCK,20],
-               [-ATCK_SPELL_UNHOLY,20]
+      return [ [-SPL_TYPE_FIRE,-10],
+               [-SPL_TYPE_UNHOLY,-20]
              ];
    }
 
    ReqUse()
    {
-      if send(poOwner,@GetKarma) < 50  
-      { 
-         send(poOwner,@MsgSendUser,#message_rsc=ivycirclet_cant);
+      if Send(poOwner,@GetKarma) < 50
+      {
+         Send(poOwner,@MsgSendUser,#message_rsc=ivycirclet_cant);
 
-         return FALSE; 
+         return FALSE;
       }
 
       propagate;
@@ -82,19 +84,18 @@ messages:
 
    GetBaseSpellModifier(oSpell=$)
    {
-      if send(oSpell,@GetSchool) = SS_SHALILLE
+      if Send(oSpell,@GetSchool) = SS_SHALILLE
       {
          return 15;
       }
 
-      if send(oSpell,@GetSchool) = SS_QOR
+      if Send(oSpell,@GetSchool) = SS_QOR
       {
          return -15;
       }
 
       return 0;
    }
-
-
+   
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

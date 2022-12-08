@@ -22,9 +22,10 @@
 #define DIVUP(a,b) ((a)+(b)-1)/(b)
 
 /* Given a distance x, return palette index to use.  Must have x > 0 */
-/* "v" is strength of light source at viewer; "a" strength of ambient light */
+/* "v" is strength of light source at viewer; "a" strength of ambient light. */
+/* 4194304 is 4*FINENESS*FINENESS */
 #define LIGHT_INDEX(x, v, a) (min(MAX_LIGHT - 1, \
-				  (4*FINENESS*FINENESS) / (x) * (v) / KOD_LIGHT_LEVELS + (a)))
+				  (4194304) / (x) * (v) / KOD_LIGHT_LEVELS + (a)))
 
 #define LIGHT_NEUTRAL 192       // Light level of sector drawn at ambient light level
 
@@ -59,9 +60,8 @@ typedef struct {
 typedef struct
 {
    short leftedge, rightedge;   /* viewable columns of screen (inclusive) */
-   // These need to be 64 bit to avoid overflow in some multiplications
-   int64 top_a, top_b, top_d;
-   int64 bot_a, bot_b, bot_d;     /* see comments in drawbsp.c */
+   long top_a,top_b,top_d;
+   long bot_a,bot_b,bot_d;     /* see comments in drawbsp.c */
 } ViewCone;
 
 /* Parameters to be passed to DrawRoom3D */
@@ -87,8 +87,13 @@ typedef struct {
    int  group;                 /* Bitmap group to use to display object */
    list_type overlays;         /* Bitmaps to draw over object */
    BYTE light;                 /* Strength of sector light at object */
-   int  flags;                 /* Object flags, including moveon type */
-   int  height;                /* Height to draw object (FINENESS units) */   
+   int  flags;                 // Boolean object flags.
+   BYTE drawingtype;          // Object flags for drawing effects (invisibility, lighting type etc.)
+   int  minimapflags;          /* Minimap dot color flags */
+   unsigned int  namecolor;    /* Player name color flags */
+   object_type objecttype;     /* Enum of object type (i.e. outlaw, murderer, NPC) */
+   moveon_type moveontype;     /* MoveOn type of the object */
+   int  height;                /* Height to draw object (FINENESS units) */
    int  center;                /* Screen column of center of object */
    int  depth;                 /* Depth under ground to draw object (FINENESS units) */
    BYTE translation;           /* Color translation type */

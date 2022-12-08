@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 DMSpell is Spell
 
 constants:
@@ -16,6 +16,8 @@ constants:
 
 resources:
 
+   include dmspell.lkod
+
    DMSpell_desc_rsc = "%s\n\nThis is a DM only command."
 
 classvars:
@@ -23,7 +25,7 @@ classvars:
    viMana = 0
    viSpell_level = 50
    viSpellExertion = 0
-
+   viPostCast_time = 0
    viSchool = SS_DM_COMMAND
 
 properties:
@@ -37,7 +39,7 @@ messages:
 
       return;
    }
-      
+
    ResetReagents()
    "Reagents for DM commands = nil"
    {
@@ -50,8 +52,9 @@ messages:
    "Checks to be sure that only DMs use this command."
    {
       if NOT IsClass(who,&DM)
+         AND NOT IsClass(self,&Bonk)
       {
-         debug("Non-admin has a DM spell!");
+         Debug("Non-admin has a DM spell!");
 
          return FALSE;
       }
@@ -69,7 +72,7 @@ messages:
    {
       return TRUE;
    }
-    
+
    CanForget()
    {
       return FALSE;
@@ -78,10 +81,9 @@ messages:
    CanBeRemovedByPlayer()
    "Returns if a spell can be removed by normal Purge/Purify"
    {
-      % Can't remove DM spells normally.
+      // Can't remove DM spells normally.
       return TRUE;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

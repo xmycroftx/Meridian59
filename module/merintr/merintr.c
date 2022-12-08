@@ -38,9 +38,11 @@ static Bool HandleGuildList(char *ptr, long len);
 static Bool HandleGuildHalls(char *ptr, long len);
 static Bool HandleGuildShield(char *ptr, long len);
 static Bool HandleGuildShields(char *ptr, long len);
+static Bool HandleGuildShieldClaimError(char *ptr, long len);
 static Bool HandleLookPlayer(char *ptr, long len);
 static Bool HandleSendQuit(char *ptr, long len);
 static Bool HandleSpellSchools(char *ptr, long len);
+static Bool HandlePreferences(char *ptr, long len);
 static void CustomConfigInit(void);
 
 // Server message handler table
@@ -78,9 +80,11 @@ static handler_struct user_handler_table[] = {
 { UC_GUILD_HALLS,          HandleGuildHalls, },
 { UC_GUILD_SHIELD,         HandleGuildShield, },
 { UC_GUILD_SHIELDS,        HandleGuildShields, },
+{ UC_GUILD_SHIELD_ERROR,   HandleGuildShieldClaimError, },
 { UC_LOOK_PLAYER,          HandleLookPlayer, },
 { UC_SEND_QUIT,            HandleSendQuit, },
 { UC_SPELL_SCHOOLS,        HandleSpellSchools, },
+{ UC_RECEIVE_PREFERENCES,  HandlePreferences, },
 { 0, NULL},
 };
 
@@ -89,7 +93,8 @@ client_message user_msg_table[] = {
 { UC_REST,                 { PARAM_END }, },
 { UC_STAND,                { PARAM_END }, },
 { UC_SUICIDE,              { PARAM_END }, },
-{ UC_SAFETY,               { PARAM_BYTE, PARAM_END }, },
+{ UC_REQ_PREFERENCES,      { PARAM_END }, },
+{ UC_SEND_PREFERENCES,     { PARAM_INT, PARAM_END  }, },
 { UC_REQ_GUILDINFO,        { PARAM_END }, },
 { UC_INVITE,               { PARAM_ID, PARAM_END }, },
 { UC_EXILE,                { PARAM_ID, PARAM_END }, },
@@ -117,6 +122,7 @@ client_message user_msg_table[] = {
 { UC_DEPOSIT,              { PARAM_INT, PARAM_END }, },
 { UC_BALANCE,              { PARAM_END }, },
 { UC_APPEAL,               { PARAM_STRING, PARAM_END }, },
+{ UC_REQ_TIME,              { PARAM_END }, },
 { 0,                       { PARAM_END, }, },    // Must end table this way
 };
 
@@ -207,10 +213,11 @@ keymap interface_key_table[] = {
 
 { VK_TAB,         KEY_NONE,             A_TABFWD,   (void *) IDC_MAIN },
 { VK_TAB,         KEY_SHIFT,            A_TABBACK,  (void *) IDC_MAIN },
-{ VK_ESCAPE,	  KEY_ANY,				A_TARGETCLEAR },			//	Does an A_GOTOMAIN as well.
+{ VK_ESCAPE,      KEY_ANY,              A_TARGETCLEAR }, // Does an A_GOTOMAIN as well.
 
-{ VK_LBRACKET,	  KEY_NONE,				A_TARGETPREVIOUS },			//	No idea why it's this value instead of '['. xxx
-{ VK_RBRACKET,	  KEY_NONE,				A_TARGETNEXT },				//	']'
+{ VK_LBRACKET,   KEY_NONE,              A_TARGETPREVIOUS }, // No idea why it's this value instead of '['. xxx
+{ VK_RBRACKET,   KEY_NONE,              A_TARGETNEXT },     // ']'
+{ VK_BACKSLASH,  KEY_NONE,              A_TARGETSELF },
 
 { 'A',            KEY_NONE,             A_TEXTINSERT, "a" },
 { 'B',            KEY_NONE,             A_TEXTINSERT, "b" },
@@ -254,12 +261,12 @@ keymap interface_key_table[] = {
 
 { VK_SPACE,       KEY_ANY,              A_GO },
 { VK_RETURN,      KEY_ANY,              A_LOOK },
-{ VK_SINGLEQUOTE, KEY_ANY,              A_TEXTINSERT,   "say " },
-{ '1',            KEY_SHIFT,            A_TEXTINSERT,   "yell " },
-{ '3',            KEY_SHIFT,            A_TEXTINSERT,   "who" },
-{ VK_SEMICOLON,   KEY_ANY,              A_TEXTINSERT,   "emote " },
-{ VK_PERIOD,      KEY_ANY,              A_TEXTINSERT,   "tell " },
-{ VK_SLASH,       KEY_SHIFT,            A_TEXTINSERT,   "help" },
+{ VK_SINGLEQUOTE, KEY_ANY,              A_TEXTINSERT_MERINTR_RSC, (void *)IDS_CHAT_SAY },
+{ '1',            KEY_SHIFT,            A_TEXTINSERT_MERINTR_RSC, (void *)IDS_CHAT_YELL },
+{ '3',            KEY_SHIFT,            A_TEXTINSERT_MERINTR_RSC, (void *)IDS_CHAT_WHO },
+{ VK_SEMICOLON,   KEY_ANY,              A_TEXTINSERT_MERINTR_RSC, (void *)IDS_CHAT_EMOTE },
+{ VK_PERIOD,      KEY_ANY,              A_TEXTINSERT_MERINTR_RSC, (void *)IDS_CHAT_TELL },
+{ VK_SLASH,       KEY_SHIFT,            A_TEXTINSERT_MERINTR_RSC, (void *)IDS_CHAT_HELP },
 
 { VK_ADD,         KEY_ANY,              A_MAPZOOMIN },
 { VK_SUBTRACT,    KEY_ANY,              A_MAPZOOMOUT },
@@ -299,54 +306,131 @@ static keymap default_key_table[] = {
 };
 
 static TypedCommand commands[] = {
-{ "say",         CommandSay, },
-{ "yell",        CommandYell, },
-{ "broadcast",   CommandBroadcast, },
-{ "emote",       CommandEmote, },
-{ "who",         CommandWho, },
-{ "quit",        CommandQuit, },
-{ "tell",        CommandTell, },
-{ "hel",         CommandHel, },
-{ "help",        CommandHelp, },
-{ "put",         CommandPut, },
-{ "use",         CommandActivate, },
-{ "addgroup",    CommandGroupAdd, },
-{ "agroup",      CommandGroupAdd, },
-{ "delgroup",    CommandGroupDelete, },
-{ "dgroup",      CommandGroupDelete, },
-{ "newgroup",    CommandGroupNew, },
-{ "ngroup",      CommandGroupNew, },
-{ "buy",         CommandBuy, },
-{ "drop",        CommandDrop, },
-{ "get",         CommandGet, },
-{ "look",        CommandLook, },
-{ "offer",       CommandOffer, },
-{ "cast",        CommandCast, },
-{ "map",         CommandMap, },
-{ "wave",        CommandWave, },
-{ "point",       CommandPoint, },
-{ "dance",       CommandDance, },
-{ "alias",       CommandAlias, },
-{ "cmdalias",    CommandVerbAlias, },
-{ "rest",        CommandRest, },
-{ "stand",       CommandStand, },
-{ "suicid",      CommandSuicid, },
-{ "suicide",     CommandSuicide, },
-{ "neutral",     CommandNeutral, },
-{ "happy",       CommandHappy, },
-{ "sad",         CommandSad, },
-{ "wry",         CommandWry, },
-{ "guild",       CommandGuild, },
-{ "password",    CommandPassword, },
-{ "withdraw",    CommandWithdraw, },
-{ "deposit",     CommandDeposit, },
-{ "balance",     CommandBalance, },
-{ "group",       CommandGroup, },
-{ "appeal",      CommandAppeal, },
-{ "tellguild",   CommandTellGuild, },
-{ "tguild",      CommandTellGuild, },
-{ "safetyon",    CommandSafetyOn, },
-{ "safetyoff",   CommandSafetyOff, },
+{ "say",                CommandSay, },
+{ "sagen",              CommandSay, },
+{ "broadcast",          CommandBroadcast, },
+{ "mitteilen",          CommandBroadcast, },
+{ "emote",              CommandEmote, },
+{ "ego",                CommandEmote, },
+{ "who",                CommandWho, },
+{ "wer",                CommandWho, },
+{ "quit",               CommandQuit, },
+{ "beenden",            CommandQuit, },
+{ "tell",               CommandTell, },
+{ "telepathie",         CommandTell, },
+{ "cast",               CommandCast, },
+{ "zaubern",            CommandCast, },
+{ "perform",            CommandPerform, },
+{ "ausführen",          CommandPerform, },
+{ "hel",                CommandHel, },
+{ "hilf",               CommandHel, },
+{ "help",               CommandHelp, },
+{ "hilfe",              CommandHelp, },
+{ "use",                CommandActivate, },
+{ "benutzen",           CommandActivate, },
+{ "get",                CommandGet, },
+{ "addgroup",           CommandGroupAdd, },
+{ "gruppehinzu",        CommandGroupAdd, },
+{ "agroup",             CommandGroupAdd, },
+{ "gruppeneu",          CommandGroupAdd, },
+{ "put",                CommandPut, },
+{ "ablegen",            CommandPut, }, 
+{ "delgroup",           CommandGroupDelete, },
+{ "gruppelöschen",      CommandGroupDelete, }, 
+{ "dgroup",             CommandGroupDelete, },
+{ "gruppelöschen",      CommandGroupDelete, }, 
+{ "newgroup",           CommandGroupNew, },
+{ "neuegruppe",         CommandGroupNew, },
+{ "ngroup",             CommandGroupNew, },
+{ "neuegruppe",         CommandGroupNew, },
+{ "buy",                CommandBuy, },
+{ "kaufen",             CommandBuy, },
+{ "drop",               CommandDrop, },
+{ "wegwerfen",          CommandDrop, },
+{ "nehmen",             CommandGet, },
+{ "look",               CommandLook, },
+{ "schauen",            CommandLook, },
+{ "offer",              CommandOffer, },
+{ "anbieten",           CommandOffer, },
+{ "map",                CommandMap, },
+{ "karte",              CommandMap, },
+{ "wave",               CommandWave, },
+{ "winken",             CommandWave, },
+{ "point",              CommandPoint, },
+{ "deuten",             CommandPoint, },
+{ "dance",              CommandDance, },
+{ "tanzen",             CommandDance, },
+{ "alias",              CommandAlias, },
+{ "befehle",            CommandAlias, },
+{ "cmdalias",           CommandVerbAlias, },
+{ "kurzbefehle",        CommandVerbAlias, },
+{ "rest",               CommandRest, },
+{ "rasten",             CommandRest, },
+{ "yell",               CommandYell, },
+{ "rufen",              CommandYell, },
+{ "stand",              CommandStand, },
+{ "aufstehen",          CommandStand, },
+{ "suicid",             CommandSuicid, },
+{ "haraki",             CommandSuicid, },
+{ "suicide",            CommandSuicide, },
+{ "harakiri",           CommandSuicide, },
+{ "neutral",            CommandNeutral, },
+{ "happy",              CommandHappy, },
+{ "glücklich",          CommandHappy, },
+{ "sad",                CommandSad, },
+{ "traurig",            CommandSad, },
+{ "wry",                CommandWry, },
+{ "grimmig",            CommandWry, },
+{ "guild",              CommandGuild, },
+{ "gilde",              CommandGuild, },
+{ "password",           CommandPassword, },
+{ "passwort",           CommandPassword, },
+{ "withdraw",           CommandWithdraw, },
+{ "abheben",            CommandWithdraw, },
+{ "deposit",            CommandDeposit, },
+{ "einzahlen",          CommandDeposit, },
+{ "balance",            CommandBalance, },
+{ "kontostand",         CommandBalance, },
+{ "group",              CommandGroup, },
+{ "gruppen",            CommandGroup, },
+{ "appeal",             CommandAppeal, },
+{ "aufrufen",           CommandAppeal, },
+{ "tellguild",          CommandTellGuild, },
+{ "telgilde",           CommandTellGuild, },
+{ "tguild",             CommandTellGuild, },
+{ "tgilde",             CommandTellGuild, },
+{ "invite",             CommandInvite, },
+{ "einladen",           CommandInvite, },
+{ "safety on",          CommandSafetyOn, },
+{ "sicherheit an",      CommandSafetyOn, },
+{ "safety off",         CommandSafetyOff, },
+{ "sicherheit aus",     CommandSafetyOff, },
+{ "tempsafe on",        CommandTempSafeOn, },
+{ "tempsicherheit an",  CommandTempSafeOn, },
+{ "tempsafe off",       CommandTempSafeOff, },
+{ "tempsicherheit aus", CommandTempSafeOff, },
+{ "grouping on",        CommandGroupingOn, },
+{ "gruppenbildung an",  CommandGroupingOn, },
+{ "grouping off",       CommandGroupingOff, },
+{ "gruppenbildung aus", CommandGroupingOff, },
+{ "autoloot on",        CommandAutoLootOn, },
+{ "autoloot an",        CommandAutoLootOn, },
+{ "autoloot off",       CommandAutoLootOff, },
+{ "autoloot aus",       CommandAutoLootOff, },
+{ "autocombine on",     CommandAutoCombineOn, },
+{ "autocombine an",     CommandAutoCombineOn, },
+{ "autocombine off",    CommandAutoCombineOff, },
+{ "autocombine aus",    CommandAutoCombineOff, },
+{ "reagentbag on",      CommandReagentBagOn, },
+{ "reagentbag an",      CommandReagentBagOn, },
+{ "reagentbag off",     CommandReagentBagOff, },
+{ "reagentbag aus",     CommandReagentBagOff, },
+{ "spellpower on",      CommandSpellPowerOn, },
+{ "spellpower an",      CommandSpellPowerOn, },
+{ "spellpower off",     CommandSpellPowerOff, },
+{ "spellpower aus",     CommandSpellPowerOff, },
+{ "time",               CommandTime, },
+{ "Zeit",               CommandTime, },
 { NULL,          NULL},    // Must end table this way
 };
 
@@ -377,6 +461,7 @@ static ascii_key	gAsciiKeyMap[] =
 	{"/",		VK_SLASH},
 	{"[",		VK_LBRACKET},
 	{"]",		VK_RBRACKET},
+	{"\\",		VK_BACKSLASH},
 	{"home",	VK_HOME},
 	{"end",		VK_END},
 	{"insert",	VK_INSERT},
@@ -463,17 +548,17 @@ static action_label	gActionLabels[] =
 	{"tabforward",		A_TABFWD,			(void *)IDC_MAIN},
 	{"tabbackward",		A_TABBACK,			(void *)IDC_MAIN},
 
-	// chat
-	{"chat",			A_GOTOSAY,			NULL},
-	{"say",				A_TEXTINSERT,		"say "},
-	{"tell",			A_TEXTINSERT,		"tell "},
-	{"yell",			A_TEXTINSERT,		"yell "},
-	{"broadcast",		A_TEXTINSERT,		"broadcast "},
-	{"emote",			A_TEXTINSERT,		"emote "},
-	{"who",				A_WHO,				NULL},
+   // chat
+   {"chat",       A_GOTOSAY,                NULL},
+   {"say",        A_TEXTINSERT_MERINTR_RSC, (void *)IDS_CHAT_SAY },
+   {"tell",       A_TEXTINSERT_MERINTR_RSC, (void *)IDS_CHAT_TELL },
+   {"yell",       A_TEXTINSERT_MERINTR_RSC, (void *)IDS_CHAT_YELL },
+   {"broadcast",  A_TEXTINSERT_MERINTR_RSC, (void *)IDS_CHAT_BROADCAST },
+   {"emote",      A_TEXTINSERT_MERINTR_RSC, (void *)IDS_CHAT_EMOTE },
+   {"who",        A_WHO,                    NULL},
 
-	// end
-	{"\0", -1, NULL},
+   // end
+   {"\0", -1, NULL},
 };
 
 // this keymap table has to match up exactly with the prior actionlabel table.  don't blame me.
@@ -520,14 +605,14 @@ keymap	gCustomKeys[] =
 	{(WORD)-1,				(WORD)-1,				A_TABFWD,			(void *)IDC_MAIN},
 	{(WORD)-1,				(WORD)-1,				A_TABBACK,			(void *)IDC_MAIN},
 
-	// chat
-	{(WORD)-1,				(WORD)-1,				A_GOTOSAY,			NULL},
-	{(WORD)-1,				(WORD)-1,				A_TEXTINSERT,		"say "},
-	{(WORD)-1,				(WORD)-1,				A_TEXTINSERT,		"tell "},
-	{(WORD)-1,				(WORD)-1,				A_TEXTINSERT,		"yell "},
-	{(WORD)-1,				(WORD)-1,				A_TEXTINSERT,		"broadcast "},
-	{(WORD)-1,				(WORD)-1,				A_TEXTINSERT,		"emote "},
-	{(WORD)-1,				(WORD)-1,				A_WHO,				NULL},
+   // chat
+   {(WORD)-1,           (WORD)-1,            A_GOTOSAY,                NULL},
+   {(WORD)-1,           (WORD)-1,            A_TEXTINSERT_MERINTR_RSC, (void *)IDS_CHAT_SAY },
+   {(WORD)-1,           (WORD)-1,            A_TEXTINSERT_MERINTR_RSC, (void *)IDS_CHAT_TELL },
+   {(WORD)-1,           (WORD)-1,            A_TEXTINSERT_MERINTR_RSC, (void *)IDS_CHAT_YELL },
+   {(WORD)-1,           (WORD)-1,            A_TEXTINSERT_MERINTR_RSC, (void *)IDS_CHAT_BROADCAST },
+   {(WORD)-1,           (WORD)-1,            A_TEXTINSERT_MERINTR_RSC, (void *)IDS_CHAT_EMOTE },
+   {(WORD)-1,           (WORD)-1,            A_WHO,                    NULL},
 
 	// aliases (fkey hotkeys)
 	{(WORD)-1,				(WORD)-1,				A_TEXTCOMMAND,		NULL},
@@ -684,7 +769,6 @@ void CustomConfigInit(void)
 		fprintf(pFile, "mouselookxscale/mouselookyscale:  Sets the mouse sensitivity.  Accepts any value from 1 to 30\n");
 		fprintf(pFile, "quickchat:  Set to true to have all alphabetic keys go instantly to chat (any later key binding using an alphabetic key will be ignored)\n");
 		fprintf(pFile, "alwaysrun:  Set to true to avoid having to hold the run key (default: shift) to run\n");
-		fprintf(pFile, "dynamiclighting:  Set to true to enable dynamic lighting.  Setting this to false may increase performance on some systems\n\n");
 		fprintf(pFile, "softwarerenderer:  Set to true to force the client to run in software graphics mode\n\n");
 		fprintf(pFile, "rendererfailedonce:  NOT USER EDITABLE.  The client will set this to true when it determines that your hardware/driver cannot run Meridian in Direct3D.  This will prevent any further error messages until you either delete this file or change video cards/drivers\n\n");
 
@@ -708,7 +792,6 @@ void CustomConfigInit(void)
 		WritePrivateProfileString("config", "quickchat", "false", "./config.ini");
 		WritePrivateProfileString("config", "alwaysrun", "true", "./config.ini");
 		WritePrivateProfileString("config", "attackontarget", "false", "./config.ini");
-		WritePrivateProfileString("config", "dynamiclighting", "true", "./config.ini");
 		WritePrivateProfileString("config", "softwarerenderer", "false", "./config.ini");
 
 		WritePrivateProfileString("keys", "forward", "w", "./config.ini");
@@ -803,16 +886,6 @@ void CustomConfigInit(void)
 		cinfo->config->bInvertMouse = FALSE;
 		cinfo->config->mouselookYScale = -cinfo->config->mouselookYScale;
 	}
-
-	// dynamic lighting
-	GetPrivateProfileString(config, "dynamiclighting", "error\n", string0,
-		255, file);
-
-	strupr(string0);
-	if (0 == strcmp(string0, "TRUE"))
-		cinfo->config->bDynamicLighting = TRUE;
-	else
-		cinfo->config->bDynamicLighting = FALSE;
 
 	// now key bindings
 	// first check to see if they want classic controls
@@ -958,6 +1031,11 @@ skill *ExtractNewSkill(char **ptr)
    skill *s = (skill *) SafeMalloc(sizeof(skill));
    ZeroMemory(s,sizeof(skill));
    ExtractObject(ptr, &s->obj);
+   Extract(ptr, &s->num_targets, 1);
+   Extract(ptr, &s->school, 1);
+   Extract(ptr, &s->is_active, 1);
+   s->school -= 1;  // Convert to 0 based
+
    return s;
 }  
 /********************************************************************/
@@ -1045,9 +1123,14 @@ Bool HandleRemoveSpell(char *ptr, long len)
 
    if (len != SIZE_ID)
       return False;
-   Extract(&ptr, &spell_id, SIZE_ID);   
+
+   Extract(&ptr, &spell_id, SIZE_ID);
+
+   // Remove from Spells menu.
    RemoveSpell(spell_id);
-   
+   // And also from spells list box.
+   StatCacheRemoveListStat(STATS_SPELLS, spell_id);
+
    return True;
 }
 /********************************************************************/
@@ -1099,9 +1182,14 @@ Bool HandleRemoveSkill(char *ptr, long len)
 
    if (len != SIZE_ID)
       return False;
-   Extract(&ptr, &skill_id, SIZE_ID);   
+
+   Extract(&ptr, &skill_id, SIZE_ID);
+
+   // Remove from (not implemented) Skills menu.
    RemoveSkill(skill_id);
-   
+   // Remove from skills list box.
+   StatCacheRemoveListStat(STATS_SKILLS, skill_id);
+
    return True;
 }
 /********************************************************************/
@@ -1118,7 +1206,8 @@ Bool HandleStat(char *ptr, long len)
    len -= (ptr - start);
    if (len != 0)
       return False;
-   
+
+   // Can change an existing stat/list item, or add a new spell or skill.
    StatChange(group, &s);
    return True;
 }
@@ -1424,6 +1513,26 @@ Bool HandleGuildShields(char *ptr, long len)
    return True;
 }
 /********************************************************************/
+Bool HandleGuildShieldClaimError(char *ptr, long len)
+{
+   char message[MAXMESSAGE];
+   char* desc = message;
+   ID resource_id;
+   char *start = ptr;
+
+   Extract(&ptr, &resource_id, SIZE_ID);
+
+   len -= (ptr - start);
+
+   // Error message text
+   if (!CheckServerMessage(&desc, &ptr, &len, resource_id))
+      return False;
+
+   GuildGotShieldError(desc);
+
+   return True;
+}
+/********************************************************************/
 Bool HandleGuildHalls(char *ptr, long len)
 {
    char *start = ptr;
@@ -1468,18 +1577,32 @@ Bool HandleLookPlayer(char *ptr, long len)
 
    len -= (ptr - start);
 
+   // Player bio desc (editable section).
    /* Remove format string id # & other ids from length */
-   if (!CheckServerMessage(&desc, &ptr, len, resource_id))
+   if (!CheckServerMessage(&desc, &ptr, &len, resource_id))
       return False;
 
-   // Get fixed string (extra info)
-   ExtractString(&ptr, len, fixed, MAXMESSAGE);
-   debug(("got \"%s\" for fixed\n", fixed));
+   // Get fixed string (extra info). This used to be sent as one string,
+   // now we handle it as resources.
+   //ExtractString(&ptr, len, fixed, MAXMESSAGE);
+   //debug(("got \"%s\" for fixed\n", fixed));
+   Extract(&ptr, &resource_id, SIZE_ID);
+   len -= SIZE_ID;
+
+   // See if we need to reorder the message.
+   if (CheckMessageOrder(&ptr, &len, resource_id) < 0)
+      return False;
+   /* Remove format string id # & other ids from length */
+   if (!CheckServerMessage(&fixed, &ptr, &len, resource_id))
+      return False;
 
    // Get URL
    ExtractString(&ptr, len, url, MAX_URL);
+   len -= (SIZE_STRING_LEN + strlen(url));
+   if (len != 0)
+      return False;
 
-   DisplayDescription(&obj, flags, desc, fixed, url);
+   DisplayDescription(&obj, flags, desc, fixed, url, NULL, 0, 0, 0);
    ObjectDestroy(&obj);
    return True;
 }
@@ -1505,6 +1628,22 @@ Bool HandleSpellSchools(char *ptr, long len)
      Extract(&ptr, &schools[i], SIZE_ID);
 
   SpellsGotSchools(num, schools);
+
+  len -= (ptr - start);
+  if (len != 0)
+    return False;
+  
+  return True;
+}
+/********************************************************************/
+Bool HandlePreferences(char *ptr, long len)
+{
+  int preferences;
+  char *start = ptr;
+
+  Extract(&ptr, &preferences, 4);
+
+  SetPlayerPreferences(preferences);
 
   len -= (ptr - start);
   if (len != 0)
@@ -1592,6 +1731,13 @@ Bool WINAPI EventMenuItem(int id)
    {
       MenuActionChosen(id);
       return False;  // Don't pass this menu item on
+   }
+
+   // Check for language menu items
+   if (id >= ID_LANGUAGE && id < ID_LANGUAGE + MAX_LANGUAGE_ID)
+   {
+      MenuLanguageChosen(id);
+      return False;
    }
 
    return True;
@@ -1739,7 +1885,7 @@ Bool WINAPI EventAnimate(int dt)
 
       // If self is invisible, redraw self view to make it shimmer
       r = GetRoomObjectById(cinfo->player->id);
-      if (r != NULL && GetDrawingEffect(r->obj.flags) == OF_INVISIBLE)
+      if (r != NULL && r->obj.drawingtype == DRAWFX_INVISIBLE)
 	 UserAreaRedraw();
    }
    return True;

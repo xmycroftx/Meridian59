@@ -27,9 +27,6 @@ static int num_default_buttons = (sizeof(default_buttons) / sizeof(AddButton));
 // Player/game data that's known only in module
 PInfo pinfo;
 
-// True when we've told server to change safety flag; prevents multiple requests
-static Bool safety_flipped;  
-
 /****************************************************************************/
 /*
  * InterfaceInit:  Called on startup.  Initialize interface.
@@ -45,11 +42,13 @@ void InterfaceInit(void)
       default_buttons[i].hModule = hInst;
       ToolbarAddButton(&default_buttons[i]);
    }
-
+   RequestStatGroups();
    RequestSkills();
    RequestSpells();
+
    SpellsInit();
    ActionsInit();
+   LanguageInit();
    InventoryBoxCreate(cinfo->hMain);
    StatsCreate(cinfo->hMain);
    GroupsLoad();
@@ -64,17 +63,8 @@ void InterfaceInit(void)
    CopyCurrentView(&area);
    InterfaceResizeModule(r.right, r.bottom, &area);
 
-   pinfo.resting = False;
-   safety_flipped = False;
-
-   if (pinfo.resting)
-      RequestRest();
-   else
-      RequestStand();
-   if (cinfo->config->aggressive)
-      SendSafety(0);
-   else
-      SendSafety(1);
+   // Request player preferences from the server.
+   RequestPreferences();
 }
 /****************************************************************************/
 /*
@@ -82,6 +72,7 @@ void InterfaceInit(void)
  */
 void InterfaceExit(void)
 {
+   LanguageExit();
    AliasExit();
    ActionsExit();
    SpellsExit();
@@ -163,18 +154,11 @@ Bool InterfaceDrawItem(HWND hwnd, const DRAWITEMSTRUCT *lpdis)
 /****************************************************************************/
 void InterfaceResetData(void)
 {
-   if (pinfo.resting)
-      RequestRest();
-   else
-      RequestStand();
-   if (cinfo->config->aggressive)
-      SendSafety(0);
-   else
-      SendSafety(1);
-
+   RequestPreferences();
+   RequestStatGroups();
    RequestSpells();
    RequestSkills();
-   RequestStatGroups();   
+
    InventoryResetData();
    EnchantmentsResetData();
    GuildResetData();
@@ -324,7 +308,13 @@ Bool InterfaceAction(int action, void *action_data)
       return False;
 
    case A_CASTSPELL:  // action_data is pointer to spell
-      if (GetPlayer()->viewID && (GetPlayer()->viewID != GetPlayer()->id))
+      if (CheckForAlwaysActiveSpells((spelltemp *) action_data))
+      {
+         SpellCast((spell *) action_data);
+         return False;
+      }
+
+       if (GetPlayer()->viewID && (GetPlayer()->viewID != GetPlayer()->id))
       {
 	 if (!(GetPlayer()->viewFlags & REMOTE_VIEW_CAST))
 	 {
@@ -345,6 +335,35 @@ Bool InterfaceAction(int action, void *action_data)
       }
 
       SpellCast((spell *) action_data);
+
+      return False;
+
+   case A_PERFORM:
+      UserPerformSkill();
+      return False;
+
+   case A_PERFORMSKILL:  // action_data is pointer to skill
+      if (GetPlayer()->viewID && (GetPlayer()->viewID != GetPlayer()->id))
+      {
+         if (!(GetPlayer()->viewFlags & REMOTE_VIEW_CAST))
+         {
+            GameMessage(GetString(hInst, IDS_SKILLPARALYZED));
+            return False;
+         }
+      }
+      if (cinfo->effects->paralyzed)
+      {
+         GameMessage(GetString(hInst, IDS_SKILLPARALYZED));
+         return False;
+      }
+
+      if (pinfo.resting)
+      {
+         GameMessage(GetString(hInst, IDS_SKILLRESTING));
+         return False;
+      }
+
+      SkillPerform((skill *)action_data);
 
       return False;
 
@@ -382,72 +401,50 @@ Bool InterfaceAction(int action, void *action_data)
 
    return True;
 }
+
+Bool CheckForAlwaysActiveSpells(spelltemp *sp)
+{
+   char *name;
+
+   // Use the redbook rsc function, always returns English string.
+   name = LookupRscRedbook(sp->obj.name_res);
+
+   if (stricmp(name, "phase") == 0)
+   {
+      return True;
+   }
+
+   return False;
+}
+
 /****************************************************************************/
 /*
  * InterfaceUserChanged:  Player object changed; update safety flag and redraw player.
  */
 void InterfaceUserChanged(void)
 {
-   room_contents_node *r;
-   Bool new_safety;
-
    UserAreaRedraw();
    AliasInit();
-
-   r = GetRoomObjectById(cinfo->player->id);
-
-   if (r == NULL)
-      return;
-
-   new_safety = ((r->obj.flags & OF_SAFETY) != 0);
-   
-   if (new_safety)
-   {
-      if (cinfo->config->aggressive)
-      {
-         if (!safety_flipped)
-            SendSafety(0);
-         safety_flipped = True;
-      }
-      else 
-      {
-         pinfo.aggressive = cinfo->config->aggressive = False;
-         safety_flipped = False;
-      }
-   }
-   else 
-   {
-      if (!cinfo->config->aggressive)
-      {
-         if (!safety_flipped)
-            SendSafety(1);
-         safety_flipped = True;
-      }
-      else 
-      {
-         pinfo.aggressive = cinfo->config->aggressive = True;
-         safety_flipped = False;
-      }
-
-   }
+   RequestPreferences();
 }
 /****************************************************************************/
 void InterfaceConfigChanged(void)
 {
-   // See if user changed safety flag
-   if (pinfo.aggressive != cinfo->config->aggressive)
-   {
-      pinfo.aggressive = cinfo->config->aggressive;
-      if (pinfo.aggressive)
-         SendSafety(0);
-      else SendSafety(1);
-   }
+   // Send preferences to server.
+   SendPreferences(cinfo->config->preferences);
 }
 
-/* utility functions */
+/* Utility functions */
 /****************************************************************************/
 
-
+/****************************************************************************/
+/*
+ * SetPlayerPreferences:  Sets the player's config preferences.
+ */
+void SetPlayerPreferences(int preferences)
+{
+   cinfo->config->preferences = preferences;
+}
 /************************************************************************/
 /*
  * GetPlayerName:  Parse str, and return a pointer to the start of the first

@@ -186,7 +186,8 @@ char *GetLastErrorStr(void)
 void CenterWindow(HWND hwnd, HWND hwndParent)
 {
    RECT rcDlg, rcParent;
-   int screen_width, screen_height, x, y;
+   int x, y;
+   //int screen_width, screen_height;
 
    /* If dialog has no parent, then its parent is really the desktop */
    if (hwndParent == NULL)
@@ -201,13 +202,13 @@ void CenterWindow(HWND hwnd, HWND hwndParent)
    x = rcParent.left + (rcParent.right - rcParent.left)/2 - rcDlg.right/2;
    y = rcParent.top + (rcParent.bottom - rcParent.top)/2 - rcDlg.bottom/2;
 
-
+   // Disabled checking for compatibility with multi-monitor setups, since
+   // the values for x and y can be negative (non-primary monitor on left).
    // Make sure that child window is completely on the screen
-   screen_width  = GetSystemMetrics(SM_CXSCREEN);
-   screen_height = GetSystemMetrics(SM_CYSCREEN);
-
-   x = max(0, min(x, screen_width  - rcDlg.right));
-   y = max(0, min(y, screen_height - rcDlg.bottom));
+   //screen_width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+   //screen_height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+   //x = max(0, min(x, screen_width  - rcDlg.right));
+   //y = max(0, min(y, screen_height - rcDlg.bottom));
 
    SetWindowPos(hwnd, NULL, x, y, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE);
 }
@@ -455,7 +456,6 @@ void GetSystemStats(SystemInfo *s)
    s->platform = version.dwPlatformId;
    s->platform_minor = version.dwMinorVersion;
    s->platform_major = version.dwMajorVersion;
-   s->memory = mem.dwTotalPhys;
    s->chip = (crc32<<16)|sys.dwProcessorType;
    iModeNum = 0;
    while (EnumDisplaySettings(NULL,iModeNum,&devMode[0]))
@@ -495,6 +495,21 @@ void GetSystemStats(SystemInfo *s)
 
    s->reserved |= (GetPartnerCode() << 8);
    s->reserved &= 0xFFFF;
+
+   s->flags = 0;
+   // Client settings flags.
+   if (D3DRenderIsEnabled())
+      s->flags |= LF_HARDWARE_RENDERER;
+   if (config.large_area)
+      s->flags |= LF_LARGE_GRAPHICS;
+   if (config.play_music)
+      s->flags |= LF_MUSIC_ON;
+   if (config.dynamicLights)
+      s->flags |= LF_DYNAMIC_LIGHTING;
+   if (config.weather)
+      s->flags |= LF_WEATHER_EFFECTS;
+   if (config.drawWireframe)
+      s->flags |= LF_WIREFRAME;
 
    ReleaseDC(GetDesktopWindow(),dc);
 }
@@ -721,4 +736,25 @@ void InitMenuPopupHandler(HWND hwnd, HMENU hMenu, UINT item, BOOL fSystemMenu)
       EnableMenuItem(hMenu, SC_MOVE, MF_GRAYED);
       EnableMenuItem(hMenu, SC_SIZE, MF_GRAYED);
    }
+}
+
+/********************************************************************/
+/*
+ * GetHBitmapFromResource:  Creates a DIB from resources. Returns handle to new DIB.
+ *   Added by ajw.
+ *   xxx Not sure if this works or is useful for anything. Ended up not using it.
+ */
+HBITMAP GetHBitmapFromResource( HMODULE hModule, int bitmap_id )
+{
+	HBITMAP hbmpReturn;
+	BITMAPINFOHEADER* pbmiHeader = GetBitmapResource( hModule, bitmap_id );
+	HDC hDC = GetDC( hMain );
+	BITMAPINFO* pbmInfo = (BITMAPINFO*)SafeMalloc( sizeof(BITMAPINFO) + NUM_COLORS * sizeof(RGBQUAD) );
+	memcpy( &pbmInfo->bmiHeader, pbmiHeader, sizeof(BITMAPINFOHEADER) );
+	SetBMIColors( pbmInfo );
+	hbmpReturn = CreateDIBitmap( hDC, pbmiHeader, CBM_INIT,
+									((BYTE*)pbmiHeader) + sizeof(BITMAPINFOHEADER) + NUM_COLORS * sizeof(RGBQUAD),
+									pbmInfo, DIB_PAL_COLORS );
+	ReleaseDC( hMain, hDC );
+	return hbmpReturn;
 }

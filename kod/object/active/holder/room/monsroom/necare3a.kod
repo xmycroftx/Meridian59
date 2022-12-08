@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+/////////////////////////////////////////////////////////////////////////////////
 Necropolis3a is MonsterRoom
 
 constants:
@@ -16,11 +16,13 @@ constants:
 
 resources:
 
+   include necare3a.lkod
+
    room_name_Necropolis3a = "Ancient Building"
    room_Necropolis3a = nec3a.roo
-   Necropolis3a_music = nec02.mid
+   Necropolis3a_music = nec02.ogg
 
-   Necropolis3a_loop = necloop4.wav
+   Necropolis3a_loop = necloop4.ogg
 
 classvars:
 
@@ -39,13 +41,13 @@ properties:
    piBaseLight = LIGHT_MIN
    piOutside_factor = 0
 
-   piGen_time = 40000
-   piGen_percent = 80
+   piGen_time = 25000
+   piGen_percent = 100
 
-   piInit_count_min = 7
-   piInit_count_max = 9
+   piInit_count_min = 2
+   piInit_count_max = 4
 
-   piMonster_count_max = 25
+   piMonster_count_max = 6
 
    prMusic = Necropolis3a_music
 
@@ -54,10 +56,22 @@ messages:
    Constructed()
    {
       plMonsters = [ [&NarthylWorm, 60], [&DaemonSkeleton, 40] ];
-      plGenerators = [ [ 4, 6 ], [ 5, 7 ] ];
+
       plLooping_sounds = [[ Necropolis3a_loop, 0, 0, 200, 100 ]];
 
       propagate;
+   }
+
+   SetMonsterGenPoints(bRandomGen = TRUE)
+   {
+      if (bRandomGen)
+      {
+         return;
+      }
+
+      plGenerators = [ [ 4, 6 ], [ 5, 7 ] ];
+
+      return;
    }
 
    CreateStandardExits()
@@ -72,7 +86,6 @@ messages:
       propagate;
    }
 
-   
    CreateStandardObjects()
    {
       Send(self,@NewHold,#what=Create(&OrnamentalObject,#type=OO_NECVASE),
@@ -83,6 +96,5 @@ messages:
       propagate;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

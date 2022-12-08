@@ -30,11 +30,11 @@
 #include "common.h"
 #pragma hdrstop
 
-#ifndef __OWL_STATUSBA_H
+#ifndef OWL_STATUSBA_H
 	#include <owl\statusba.h>
 #endif
 
-#ifndef __OWL_TEXTGADG_H
+#ifndef OWL_TEXTGADG_H
 	#include <owl\textgadg.h>
 #endif
 
@@ -79,9 +79,9 @@ END_RESPONSE_TABLE;
 // TMainFrame
 // ----------
 //
-TMainFrame::TMainFrame (const char far *title, TModule* module):
+TMainFrame::TMainFrame (const char* title, TModule* module):
 	TDecoratedFrame(0, title, new TMainClient (0,""), TRUE, module),
-	tooltip((Tip::Style) (Tip::RoundedBorder | Tip::Shadow), (TFont *) 0)
+	tooltip((Tip::Style)(Tip::RoundedBorder | Tip::Shadow), (TFont*)0)
 {
 	inEditor = FALSE;
 	activated = FALSE;
@@ -163,8 +163,9 @@ void TMainFrame::SetMenuAndAccel (TResId id)
 	AssignMenu (id);
 	Attr.AccelTable = id;
 	LoadAcceleratorTable();
-   if (GetHandle())
-      DrawMenuBar();
+	
+	if (GetHandle()) 
+		DrawMenuBar();
 }
 
 
@@ -172,7 +173,7 @@ void TMainFrame::SetMenuAndAccel (TResId id)
 // TMainFrame
 // ----------
 //
-void TMainFrame::EditLevel (char *levelName, BOOL newLevel)
+void TMainFrame::EditLevel (char *levelName, char *saveLevelName, BOOL newLevel)
 {
 	TRACE ("TMainFrame::StartEditLevel: start");
 	assert (inEditor == FALSE) ;
@@ -194,7 +195,7 @@ void TMainFrame::EditLevel (char *levelName, BOOL newLevel)
 	SetupEditorControlBar();
 
 	// Set editor client
-	SetClientWindow (new TEditorClient (0, levelName, newLevel));
+	SetClientWindow(new TEditorClient(0, levelName, saveLevelName, newLevel));
 	statusBar->SetWindowPos(*GetClientWindow(),
 									0, 0, 0, 0,
 									SWP_NOMOVE | SWP_NOSIZE | SWP_NOREDRAW);
@@ -244,10 +245,12 @@ BOOL TMainFrame::StopEditLevel ()
 	// pClient->CloseWindow();
 	delete pClient ;
 
-	// Clear status bar
-	((TTextGadget *)GetStatusBar()->FirstGadget())->SetText ("");
-	// ((TTextGadget *)(*GetStatusBar())[1])->SetText ("");
-	((TTextGadget *)GetStatusBar()->FirstGadget()->NextGadget()->NextGadget())->SetText ("");
+	if (GetStatusBar() && GetStatusBar()->GadgetCount() >= 3)
+	{
+		// Clear status bar (1+3, not 2)
+		((TTextGadget *)GetStatusBar()->FirstGadget())->SetText("");
+		((TTextGadget *)GetStatusBar()->FirstGadget()->NextGadget()->NextGadget())->SetText("");
+	}
 
 	// Setup gadgets for main window
 	SetupMainControlBar();
@@ -346,6 +349,8 @@ void TMainFrame::SetupEditorControlBar()
 	controlBar->Insert(*new TSeparatorGadget(6));
 	controlBar->Insert(*new TButtonGadget(CM_OBJECTS_RECTANGLE, CM_OBJECTS_RECTANGLE));
 	controlBar->Insert(*new TButtonGadget(CM_OBJECTS_POLYGON, CM_OBJECTS_POLYGON));
+	controlBar->Insert(*new TButtonGadget(CM_OBJECTS_CIRCLE, CM_OBJECTS_CIRCLE));
+	controlBar->Insert(*new TButtonGadget(CM_OBJECTS_TORCH, CM_OBJECTS_TORCH));
 	controlBar->Insert(*new TSeparatorGadget(6));
 	controlBar->Insert(*new TButtonGadget(CM_EDIT_UNDO, CM_EDIT_UNDO));
 	controlBar->Insert(*new TButtonGadget(CM_EDIT_REDO, CM_EDIT_REDO));
@@ -394,11 +399,13 @@ void TMainFrame::DrawFreeMemory()
 {
 	char msg[40];
 
+	if (!GetStatusBar() || GetStatusBar()->GadgetCount() <= 1)
+		return;
+
 	// Draw the memory info in the third text gadget of status bar
 	wsprintf (msg, "Free mem: %sKb",
 				   FormatNumber (::GetAvailMemory() / 1024L));
-	((TTextGadget *)GetStatusBar()->FirstGadget()->NextGadget())->SetText (msg);
-
+	((TTextGadget *)GetStatusBar()->FirstGadget()->NextGadget())->SetText(msg);
 	GetStatusBar()->UpdateWindow();
 }
 

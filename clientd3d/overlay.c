@@ -16,16 +16,11 @@
 extern AREA area;                  /* size and position of view window */
 extern player_info player;
 
-// Main client windows current viewport area
-extern int main_viewport_width;
-extern int main_viewport_height;
-float player_overlay_scaler = 1;
-
 /* local function prototypes */
 Bool ComputePlayerOverlayArea(PDIB pdib, char hotspot, AREA *obj_area);
-static void DrawPlayerOverlayBitmap(PDIB pdib, AREA *obj_area, BYTE translation, BYTE secondtranslation, int flags);
+static void DrawPlayerOverlayBitmap(PDIB pdib, AREA *obj_area, BYTE translation, BYTE secondtranslation, int flags, BYTE drawingtype);
 static void DrawPlayerOverlayOverlays(PDIB pdib_obj, AREA *obj_area, list_type overlays,
-			       Bool underlays, BYTE secondtranslation, int flags);
+			       Bool underlays, BYTE secondtranslation, int flags, BYTE drawingtype);
 /************************************************************************/
 void SetPlayerOverlay(char hotspot, object_node *poverlay)
 {
@@ -85,12 +80,20 @@ void DrawPlayerOverlays(void)
    list_type overlays;
    room_contents_node *r;
    int flags;
+   BYTE drawingtype;
 
    // Get player's object flags for special drawing effects
    r = GetRoomObjectById(player.id);
    if (r == NULL)
+   {
       flags = 0;
-   else flags = r->obj.flags;
+      drawingtype = 0;
+   }
+   else
+   {
+      flags = r->obj.flags;
+      drawingtype = r->obj.drawingtype;
+   }
    
    for (i=0; i < NUM_PLAYER_OVERLAYS; i++)
    {
@@ -110,13 +113,13 @@ void DrawPlayerOverlays(void)
       // Draw underlays
       overlays = *(obj->overlays);
       if (overlays != NULL)
-	 DrawPlayerOverlayOverlays(pdib, &obj_area, overlays, True, obj->secondtranslation, flags | (obj->effect << 20));
+	 DrawPlayerOverlayOverlays(pdib, &obj_area, overlays, True, obj->secondtranslation, flags, drawingtype | obj->effect);
 
-      DrawPlayerOverlayBitmap(pdib, &obj_area, obj->translation, obj->secondtranslation, flags | (obj->effect << 20));
+      DrawPlayerOverlayBitmap(pdib, &obj_area, obj->translation, obj->secondtranslation, flags, drawingtype | obj->effect);
 
       // Draw overlays
       if (overlays != NULL)
-	 DrawPlayerOverlayOverlays(pdib, &obj_area, overlays, False, obj->secondtranslation, flags | (obj->effect << 20));
+	 DrawPlayerOverlayOverlays(pdib, &obj_area, overlays, False, obj->secondtranslation, flags, drawingtype | obj->effect);
    }
 }
 /************************************************************************/
@@ -128,7 +131,7 @@ void DrawPlayerOverlays(void)
  *   flags gives the object flags for special drawing effects.
  */
 void DrawPlayerOverlayOverlays(PDIB pdib_obj, AREA *obj_area, list_type overlays, Bool underlays,
-			       BYTE secondtranslation, int flags)
+			       BYTE secondtranslation, int flags, BYTE drawingtype)
 {
    list_type l;
    AREA overlay_area;
@@ -169,7 +172,7 @@ void DrawPlayerOverlayOverlays(PDIB pdib_obj, AREA *obj_area, list_type overlays
 	 // Scale offset, and place on base bitmap
 	 overlay_area.x = overlay_area.x / OVERLAY_FACTOR + obj_area->x;
 	 overlay_area.y = overlay_area.y / OVERLAY_FACTOR + obj_area->y;
-	 DrawPlayerOverlayBitmap(pdib_ov, &overlay_area, overlay->translation, secondtranslation, flags | (overlay->effect << 20));
+	 DrawPlayerOverlayBitmap(pdib_ov, &overlay_area, overlay->translation, secondtranslation, flags, drawingtype | overlay->effect);
       }
    }
 }
@@ -180,7 +183,8 @@ void DrawPlayerOverlayOverlays(PDIB pdib_obj, AREA *obj_area, list_type overlays
  *   translation gives the palette translation type.
  *   flags gives the object flags for special drawing effects.
  */
-void DrawPlayerOverlayBitmap(PDIB pdib, AREA *obj_area, BYTE translation, BYTE secondtranslation, int flags)
+void DrawPlayerOverlayBitmap(PDIB pdib, AREA *obj_area, BYTE translation,
+                           BYTE secondtranslation, int flags, BYTE drawingtype)
 {
    room_contents_node *pPlayer;
    DrawObjectInfo dos;
@@ -201,9 +205,14 @@ void DrawPlayerOverlayBitmap(PDIB pdib, AREA *obj_area, BYTE translation, BYTE s
    dos.light    = KOD_LIGHT_LEVELS - 1;
    dos.draw     = True;
    dos.flags    = flags;
+   dos.drawingtype  = drawingtype;
+   dos.minimapflags  = 0;
+   dos.namecolor = 0;
+   dos.objecttype = OT_NONE;
+   dos.moveontype = MOVEON_YES;
    dos.cone     = &c;
    dos.distance = 1;
-   dos.cutoff   = main_viewport_height;
+   dos.cutoff   = MAXY;
    dos.translation = translation;
    dos.secondtranslation = secondtranslation;
    dos.obj      = pPlayer;
@@ -223,12 +232,6 @@ Bool ComputePlayerOverlayArea(PDIB pdib, char hotspot, AREA *obj_area)
       return False;
    }
 
-   float scaler = player_overlay_scaler * 0.5f;
-   int dib_width = DibWidth(pdib) * scaler;
-   int dib_height = DibHeight(pdib) * scaler;
-   int dib_x_offset = DibXOffset(pdib) * scaler;
-   int dib_y_offset = DibYOffset(pdib) * scaler;
-
    // Find x position
    switch (hotspot)
    {
@@ -241,13 +244,13 @@ Bool ComputePlayerOverlayArea(PDIB pdib, char hotspot, AREA *obj_area)
    case HOTSPOT_SE:
    case HOTSPOT_E:
    case HOTSPOT_NE:
-      obj_area->x = area.cx - dib_width;
+      obj_area->x = area.cx - DibWidth(pdib);
       break;
 
    case HOTSPOT_N:
    case HOTSPOT_S:
    case HOTSPOT_CENTER:
-      obj_area->x = (area.cx - dib_width) / 2;
+      obj_area->x = (area.cx - DibWidth(pdib)) / 2;
       break;
    }
 
@@ -263,20 +266,20 @@ Bool ComputePlayerOverlayArea(PDIB pdib, char hotspot, AREA *obj_area)
    case HOTSPOT_SW:
    case HOTSPOT_S:
    case HOTSPOT_SE:
-      obj_area->y = area.cy - dib_height;
+      obj_area->y = area.cy - DibHeight(pdib);
       break;
 
    case HOTSPOT_W:
    case HOTSPOT_E:
    case HOTSPOT_CENTER:
-      obj_area->y = (area.cy - (dib_height) / 2);
+      obj_area->y = (area.cy - DibHeight(pdib)) / 2;
       break;
    }
 
-   obj_area->x += dib_x_offset;
-   obj_area->y += dib_y_offset;
-   obj_area->cx = dib_width;
-   obj_area->cy = dib_height;
+   obj_area->x += DibXOffset(pdib);
+   obj_area->y += DibYOffset(pdib);
+   obj_area->cx = DibWidth(pdib);
+   obj_area->cy = DibHeight(pdib);
    return True;
 }
 

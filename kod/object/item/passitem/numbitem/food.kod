@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Food is NumberItem
 
 constants:
@@ -16,18 +16,16 @@ constants:
 
 resources:
 
-   food_desc_rsc = "%s\n\nThis will cure the munchies.%s"
+   include food.lkod
 
    food_use = "Yum-yum good!"
    food_cant_use_on = "You can't feed %s%s"
 
-   food_eat_wav = eat.wav
+   food_eat_wav = eat.ogg
 
 classvars:
 
-   viUse_type = ITEM_SINGLE_USE
    viItem_type = ITEMTYPE_FOOD | ITEMTYPE_SUNDRY
-
 
    viFilling = 50
    viNutrition = 10
@@ -35,6 +33,8 @@ classvars:
    vrEat_wav = food_eat_wav
 
 properties:
+
+   viObject_flags = OF_GETTABLE
 
 messages:
 
@@ -86,4 +86,4 @@ messages:
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

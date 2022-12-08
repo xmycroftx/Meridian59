@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Castle2E is Room
 
 constants:
@@ -16,10 +16,12 @@ constants:
 
 resources:
 
+   include castle2e.lkod
+
    room_castle2E = castle2e.roo
    room_name_castle2E = "Madelia's Fine Peacockeries"
 
-   castle2E_music = smithy.mid
+   castle2E_music = smithy.ogg
 
 classvars:
 
@@ -29,6 +31,9 @@ classvars:
    viTeleport_col = 14
 
    viTerrain_type = TERRAIN_CASTLE | TERRAIN_SHOP
+
+   viWeatherZone = WEATHER_ZONE_BARLOQUE
+   viWeatherMask = WEATHER_MASK_DEFAULT_NS
 
 properties:
 
@@ -49,9 +54,9 @@ messages:
    {
       plExits = $;
 
-      %% TO TOWN
-      plExits = Cons([ 2, 15, RID_CASTLE2A, 26, 15, ROTATE_NONE ],plExits);      
-      plExits = Cons([ 3, 15, RID_CASTLE2A, 26, 15, ROTATE_NONE ],plExits);      
+      /// TO TOWN
+      plExits = Cons([ 2, 15, RID_CASTLE2A, 26, 15, ROTATE_NONE ],plExits);
+      plExits = Cons([ 3, 15, RID_CASTLE2A, 26, 15, ROTATE_NONE ],plExits);
       plExits = Cons([ 10, 9, ROOM_LOCKED_DOOR ], plExits); 
       plExits = Cons([ 10, 10, ROOM_LOCKED_DOOR ], plExits); 
 
@@ -62,14 +67,14 @@ messages:
    {
 
       Send(self,@NewHold,#what=Create(&BarloqueTailor),
-	 #new_row=6,#new_col=8,#fine_col=32,#fine_col=16);
+            #new_row=6,#new_col=8,#fine_row=32,#fine_col=16);
       Send(self,@NewHold,#what=Create(&Stool),
-         #new_row=8,#new_col=3,#fine_row=32,#fine_col=32);
+            #new_row=8,#new_col=3,#fine_row=32,#fine_col=32);
       Send(self,@NewHold,#what=Create(&Stool),
-         #new_row=7,#new_col=4,#fine_row=0,#fine_col=0);
- 
+            #new_row=7,#new_col=4,#fine_row=0,#fine_col=0);
+
       propagate;
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

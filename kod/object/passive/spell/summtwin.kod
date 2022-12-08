@@ -1,4 +1,4 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 SummonEvilTwin is Spell
 
 constants:
@@ -7,23 +7,22 @@ constants:
 
 resources:
 
+   include summtwin.lkod
+
    summonEvilTwin_name_rsc = "evil twin"
    summonEvilTwin_icon_rsc = ievltwin.bgf
    summonEvilTwin_desc_rsc = \
       "Summons the darker side of an adventurer to attack them.  Note that "
       "you are responsible for any of your evil twins' actions, and that they "
-      "are notoriously hard to control.  "
-      "Requires solagh and web moss to cast."
-
+      "are notoriously hard to control."
    summonEvilTwin_cast_rsc = \
       "An evil twin mysteriously appears beside your target."
-   summonEvilTwin_failed_rsc = \
-      "There is already an evil twin lurking in this room."
-   summonEvilTwin_bad_target = "You can't cast evil twin on %s%s"
+   summonEvilTwin_bad_target = "You can't cast evil twin on %s%s."
    summonEvilTwin_no_self = \
       "You decide you really don't want to summon your evil against yourself."
-
-   summonEvilTwin_sound = rmirrimg.wav
+   summonEvilTwin_only_one = \
+      "%s is already being pursued by an evil twin."
+   summonEvilTwin_sound = rmirrimg.ogg
 
 classvars:
 
@@ -35,26 +34,26 @@ classvars:
    viSchool = SS_RIIJA
    viSpell_level = 5
    viMana = 10
+   viMeditate_ratio = 50
 
-   viSpellExertion = 20
+   viSpellExertion = 4
    viCast_time = 500
    viHarmful = TRUE
+   viOutlaw = TRUE
    viNoNewbieOffense = TRUE
+   viFlash = FLASH_BAD
 
    vrSucceed_wav = summonEvilTwin_sound
 
-   vbCastable_in_HappyLand = FALSE
-
 properties:
-
 
 messages:
 
    ResetReagents()
    {
       plReagents = $;
-      plReagents = Cons([&Solagh,3], plReagents);
-      plReagents = Cons([&WebMoss,3], plReagents);
+      plReagents = Cons([&Solagh,2], plReagents);
+      plReagents = Cons([&WebMoss,2], plReagents);
 
       return;
    }
@@ -64,14 +63,13 @@ messages:
       return 1;
    }
 
-
-   CanPayCosts(who = $, lTargets = $)
+   CanPayCosts(who=$,lTargets=$)
    {
-      local  oTarget, oRoom;
+      local oTarget;
 
       oTarget = First(lTargets);
 
-      % Check (and deny) casting on yourself.
+      // Only cast on non-self battlers.
       if who = oTarget
       {
          Send(who,@MsgSendUser,#message_rsc=summonEvilTwin_no_self);
@@ -79,75 +77,99 @@ messages:
          return FALSE;
       }
 
-      % Don't cast on non-players or morphed players.
-      if NOT IsClass(oTarget,&Player)
-         OR Send(oTarget,@CheckPlayerFlag,#flag=PFLAG_MORPHED)
+      if NOT IsClass(oTarget,&Battler)
+         OR Send(oTarget,@IsIllusion)
+         OR (IsClass(oTarget,&Monster)
+            AND Send(oTarget,@CanEvilTwin)=FALSE)
       {
-         Send(who,@MsgSendUser,#message_rsc=summonEvilTwin_bad_target,
-              #parm1=Send(First(ltargets),@GetDef),
-              #parm2=Send(First(ltargets),@GetName));
-            
+         // Lich, lupogg king, evil twins, reflections and revenants 
+         // all not valid targets
+         if IsClass(who,&Player)
+         {
+            Send(who,@MsgSendUser,#message_rsc=summonEvilTwin_bad_target,
+                  #parm1=Send(oTarget,@GetDef),
+                  #parm2=Send(oTarget,@GetName));
+         }
+
          return FALSE;
       }
-      else
+
+      // Check for evil twin already following target.
+      if Send(oTarget,@HasEvilTwin)
       {
-         % Is a player.  Check for valid attack.
-         if NOT Send(who,@AllowPlayerAttack,#victim=oTarget)
+         if IsClass(who,&Player)
          {
+            Send(who,@MsgSendUser,#message_rsc=summonEvilTwin_only_one,
+                  #parm1=Send(oTarget,@GetName));
+         }
+
+         return FALSE;
+      }
+
+      if IsClass(oTarget,&Player)
+      {
+         if Send(oTarget,@CheckPlayerFlag,#flag=PFLAG_MORPHED)
+         {
+            // Morph protects against evil twin
+            if IsClass(who,&Player)
+            {
+               Send(who,@MsgSendUser,#message_rsc=summonEvilTwin_bad_target,
+                     #parm1=Send(oTarget,@GetDef),#parm2=Send(oTarget,@GetName));
+            }
+
             return FALSE;
          }
       }
 
-      oRoom = Send(SYS,@UtilGetRoom,#what=who);
+      propagate;
+   }
 
-      if Send(oRoom,@CountHoldingHowMany,#class=&Monster) > 25
-         OR Send(oRoom,@CountHoldingHowMany,#class=&EvilTwin) > 0
-         OR Send(oRoom,@CountHoldingSummoned) > 
-            Send(Send(SYS,@GetSettings), @GetPlayerSummonedObjectLimit)
+   DoSpellEffects(who=$,lTargets=$,iSpellPower=1)
+   {
+      local i, j, oTwin, oRoom, iRow, iCol, iFine_Row, iFine_Col;
+
+      // Monster casters can rarely end up with $ target.
+      if lTargets = $
       {
-         Send(who,@MsgSendUser,#message_rsc=summonEvilTwin_failed_rsc);
-         
          return FALSE;
       }
 
-      propagate;
-   }
-
-   CastSpell(who = $, lTargets = $, iSpellPower = 1)
-   {
-      local oTwin, oRoom, iRow, iCol, iFine_Row, iFine_Col, oTarget;
-
-      oTarget = First(lTargets);
-      oTwin = Create(&EvilTwin,#iSpellpower=iSpellpower,#oMaster=who,
-                     #oTarget=oTarget);
-      oRoom = Send(who,@GetOwner);
-
-      iRow = Send(oTarget,@GetRow);
-      iCol = Send(oTarget,@GetCol);
-      iFine_Row = Send(oTarget,@GetFineRow);
-      iFine_Col = Send(oTarget,@GetFineCol);
-
-      Send(oTwin,@SetOriginal,#who=oTarget);
-
-      Send(oRoom,@NewHold,#what=oTwin,#new_row=iRow,#new_col=iCol,
-           #fine_row=iFine_Row,#fine_col=iFine_Col);
-
       Send(who,@MsgSendUser,#message_rsc=summonEvilTwin_cast_rsc);
 
-      Send(SYS,@AddReflection,#who=oTarget,#oReflection=oTwin);
-	  
+      Send(self,@SpawnEvilTwin,#oTarget=First(lTargets),#who=who,
+            #iSpellPower=iSpellPower);
 
-      propagate;
+      return TRUE;
    }
 
-   EndEnchantment(who=$, state=$)
+   SpawnEvilTwin(who = $, oTarget=$, iSpellPower=SPELLPOWER_MAXIMUM)
+   "Creates the ET and adds the info to caster/target. Tells the ET to "
+   "place itself."
    {
-      Send(First(state),@Delete);
-      
+      local oTwin;
+
+      if (oTarget = $
+         OR who = $)
+      {
+         return;
+      }
+
+      oTwin = Create(&EvilTwin,#iSpellpower=iSpellpower,#oMaster=who,
+                  #oTarget=oTarget);
+
+      // Add this ET to the target's evil twin property, which keeps
+      // track of the current ET pursuing them.
+      Send(oTarget,@AddEvilTwin,#what=oTwin);
+
+      // Also add this ET to the list of ETs created by the caster.
+      // If the caster dies or is otherwise deleted, we delete any
+      // ETs they've created.
+      Send(who,@EvilTwinsCreated,#what=oTwin);
+
+      Send(oTwin,@PlaceEvilTwin,#who=oTarget);
+
       return;
    }
 
- 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

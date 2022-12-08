@@ -1,6 +1,5 @@
 /*-
  * Copyright (c) 2003-2007 Tim Kientzle
- * Copyright (c) 2016 Martin Matuska
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -202,9 +201,6 @@ archive_entry_clone(struct archive_entry *entry)
 	entry2->ae_set = entry->ae_set;
 	archive_mstring_copy(&entry2->ae_uname, &entry->ae_uname);
 
-	/* Copy encryption status */
-	entry2->encryption = entry->encryption;
-	
 	/* Copy ACL data over. */
 	archive_acl_copy(&entry2->acl, &entry->acl);
 
@@ -249,9 +245,10 @@ archive_entry_new2(struct archive *a)
 {
 	struct archive_entry *entry;
 
-	entry = (struct archive_entry *)calloc(1, sizeof(*entry));
+	entry = (struct archive_entry *)malloc(sizeof(*entry));
 	if (entry == NULL)
 		return (NULL);
+	memset(entry, 0, sizeof(*entry));
 	entry->archive = a;
 	return (entry);
 }
@@ -401,7 +398,7 @@ archive_entry_fflags_text(struct archive_entry *entry)
 	return (NULL);
 }
 
-la_int64_t
+int64_t
 archive_entry_gid(struct archive_entry *entry)
 {
 	return (entry->ae_stat.aest_gid);
@@ -417,18 +414,6 @@ archive_entry_gname(struct archive_entry *entry)
 		__archive_errx(1, "No memory");
 	return (NULL);
 }
-
-const char *
-archive_entry_gname_utf8(struct archive_entry *entry)
-{
-	const char *p;
-	if (archive_mstring_get_utf8(entry->archive, &entry->ae_gname, &p) == 0)
-		return (p);
-	if (errno == ENOMEM)
-		__archive_errx(1, "No memory");
-	return (NULL);
-}
-
 
 const wchar_t *
 archive_entry_gname_w(struct archive_entry *entry)
@@ -462,20 +447,6 @@ archive_entry_hardlink(struct archive_entry *entry)
 	return (NULL);
 }
 
-const char *
-archive_entry_hardlink_utf8(struct archive_entry *entry)
-{
-	const char *p;
-	if ((entry->ae_set & AE_SET_HARDLINK) == 0)
-		return (NULL);
-	if (archive_mstring_get_utf8(
-	    entry->archive, &entry->ae_hardlink, &p) == 0)
-		return (p);
-	if (errno == ENOMEM)
-		__archive_errx(1, "No memory");
-	return (NULL);
-}
-
 const wchar_t *
 archive_entry_hardlink_w(struct archive_entry *entry)
 {
@@ -502,7 +473,7 @@ _archive_entry_hardlink_l(struct archive_entry *entry,
 	return (archive_mstring_get_mbs_l(&entry->ae_hardlink, p, len, sc));
 }
 
-la_int64_t
+int64_t
 archive_entry_ino(struct archive_entry *entry)
 {
 	return (entry->ae_stat.aest_ino);
@@ -514,7 +485,7 @@ archive_entry_ino_is_set(struct archive_entry *entry)
 	return (entry->ae_set & AE_SET_INO);
 }
 
-la_int64_t
+int64_t
 archive_entry_ino64(struct archive_entry *entry)
 {
 	return (entry->ae_stat.aest_ino);
@@ -555,18 +526,6 @@ archive_entry_pathname(struct archive_entry *entry)
 {
 	const char *p;
 	if (archive_mstring_get_mbs(
-	    entry->archive, &entry->ae_pathname, &p) == 0)
-		return (p);
-	if (errno == ENOMEM)
-		__archive_errx(1, "No memory");
-	return (NULL);
-}
-
-const char *
-archive_entry_pathname_utf8(struct archive_entry *entry)
-{
-	const char *p;
-	if (archive_mstring_get_utf8(
 	    entry->archive, &entry->ae_pathname, &p) == 0)
 		return (p);
 	if (errno == ENOMEM)
@@ -627,7 +586,7 @@ archive_entry_rdevminor(struct archive_entry *entry)
 		return minor(entry->ae_stat.aest_rdev);
 }
 
-la_int64_t
+int64_t
 archive_entry_size(struct archive_entry *entry)
 {
 	return (entry->ae_stat.aest_size);
@@ -675,20 +634,6 @@ archive_entry_symlink(struct archive_entry *entry)
 	return (NULL);
 }
 
-const char *
-archive_entry_symlink_utf8(struct archive_entry *entry)
-{
-	const char *p;
-	if ((entry->ae_set & AE_SET_SYMLINK) == 0)
-		return (NULL);
-	if (archive_mstring_get_utf8(
-	    entry->archive, &entry->ae_symlink, &p) == 0)
-		return (p);
-	if (errno == ENOMEM)
-		__archive_errx(1, "No memory");
-	return (NULL);
-}
-
 const wchar_t *
 archive_entry_symlink_w(struct archive_entry *entry)
 {
@@ -715,7 +660,7 @@ _archive_entry_symlink_l(struct archive_entry *entry,
 	return (archive_mstring_get_mbs_l( &entry->ae_symlink, p, len, sc));
 }
 
-la_int64_t
+int64_t
 archive_entry_uid(struct archive_entry *entry)
 {
 	return (entry->ae_stat.aest_uid);
@@ -726,17 +671,6 @@ archive_entry_uname(struct archive_entry *entry)
 {
 	const char *p;
 	if (archive_mstring_get_mbs(entry->archive, &entry->ae_uname, &p) == 0)
-		return (p);
-	if (errno == ENOMEM)
-		__archive_errx(1, "No memory");
-	return (NULL);
-}
-
-const char *
-archive_entry_uname_utf8(struct archive_entry *entry)
-{
-	const char *p;
-	if (archive_mstring_get_utf8(entry->archive, &entry->ae_uname, &p) == 0)
 		return (p);
 	if (errno == ENOMEM)
 		__archive_errx(1, "No memory");
@@ -759,24 +693,6 @@ _archive_entry_uname_l(struct archive_entry *entry,
     const char **p, size_t *len, struct archive_string_conv *sc)
 {
 	return (archive_mstring_get_mbs_l(&entry->ae_uname, p, len, sc));
-}
-
-int
-archive_entry_is_data_encrypted(struct archive_entry *entry)
-{
-	return ((entry->encryption & AE_ENCRYPTION_DATA) == AE_ENCRYPTION_DATA);
-}
-
-int
-archive_entry_is_metadata_encrypted(struct archive_entry *entry)
-{
-	return ((entry->encryption & AE_ENCRYPTION_METADATA) == AE_ENCRYPTION_METADATA);
-}
-
-int
-archive_entry_is_encrypted(struct archive_entry *entry)
-{
-	return (entry->encryption & (AE_ENCRYPTION_DATA|AE_ENCRYPTION_METADATA));
 }
 
 /*
@@ -819,7 +735,7 @@ archive_entry_copy_fflags_text_w(struct archive_entry *entry,
 }
 
 void
-archive_entry_set_gid(struct archive_entry *entry, la_int64_t g)
+archive_entry_set_gid(struct archive_entry *entry, int64_t g)
 {
 	entry->stat_valid = 0;
 	entry->ae_stat.aest_gid = g;
@@ -829,12 +745,6 @@ void
 archive_entry_set_gname(struct archive_entry *entry, const char *name)
 {
 	archive_mstring_copy_mbs(&entry->ae_gname, name);
-}
-
-void
-archive_entry_set_gname_utf8(struct archive_entry *entry, const char *name)
-{
-	archive_mstring_copy_utf8(&entry->ae_gname, name);
 }
 
 void
@@ -868,7 +778,7 @@ _archive_entry_copy_gname_l(struct archive_entry *entry,
 }
 
 void
-archive_entry_set_ino(struct archive_entry *entry, la_int64_t ino)
+archive_entry_set_ino(struct archive_entry *entry, int64_t ino)
 {
 	entry->stat_valid = 0;
 	entry->ae_set |= AE_SET_INO;
@@ -876,7 +786,7 @@ archive_entry_set_ino(struct archive_entry *entry, la_int64_t ino)
 }
 
 void
-archive_entry_set_ino64(struct archive_entry *entry, la_int64_t ino)
+archive_entry_set_ino64(struct archive_entry *entry, int64_t ino)
 {
 	entry->stat_valid = 0;
 	entry->ae_set |= AE_SET_INO;
@@ -887,16 +797,6 @@ void
 archive_entry_set_hardlink(struct archive_entry *entry, const char *target)
 {
 	archive_mstring_copy_mbs(&entry->ae_hardlink, target);
-	if (target != NULL)
-		entry->ae_set |= AE_SET_HARDLINK;
-	else
-		entry->ae_set &= ~AE_SET_HARDLINK;
-}
-
-void
-archive_entry_set_hardlink_utf8(struct archive_entry *entry, const char *target)
-{
-	archive_mstring_copy_utf8(&entry->ae_hardlink, target);
 	if (target != NULL)
 		entry->ae_set |= AE_SET_HARDLINK;
 	else
@@ -1041,15 +941,6 @@ archive_entry_set_link(struct archive_entry *entry, const char *target)
 		archive_mstring_copy_mbs(&entry->ae_hardlink, target);
 }
 
-void
-archive_entry_set_link_utf8(struct archive_entry *entry, const char *target)
-{
-	if (entry->ae_set & AE_SET_SYMLINK)
-		archive_mstring_copy_utf8(&entry->ae_symlink, target);
-	else
-		archive_mstring_copy_utf8(&entry->ae_hardlink, target);
-}
-
 /* Set symlink if symlink is already set, else set hardlink. */
 void
 archive_entry_copy_link(struct archive_entry *entry, const char *target)
@@ -1140,12 +1031,6 @@ archive_entry_set_pathname(struct archive_entry *entry, const char *name)
 }
 
 void
-archive_entry_set_pathname_utf8(struct archive_entry *entry, const char *name)
-{
-	archive_mstring_copy_utf8(&entry->ae_pathname, name);
-}
-
-void
 archive_entry_copy_pathname(struct archive_entry *entry, const char *name)
 {
 	archive_mstring_copy_mbs(&entry->ae_pathname, name);
@@ -1209,7 +1094,7 @@ archive_entry_set_rdevminor(struct archive_entry *entry, dev_t m)
 }
 
 void
-archive_entry_set_size(struct archive_entry *entry, la_int64_t s)
+archive_entry_set_size(struct archive_entry *entry, int64_t s)
 {
 	entry->stat_valid = 0;
 	entry->ae_stat.aest_size = s;
@@ -1239,16 +1124,6 @@ void
 archive_entry_set_symlink(struct archive_entry *entry, const char *linkname)
 {
 	archive_mstring_copy_mbs(&entry->ae_symlink, linkname);
-	if (linkname != NULL)
-		entry->ae_set |= AE_SET_SYMLINK;
-	else
-		entry->ae_set &= ~AE_SET_SYMLINK;
-}
-
-void
-archive_entry_set_symlink_utf8(struct archive_entry *entry, const char *linkname)
-{
-	archive_mstring_copy_utf8(&entry->ae_symlink, linkname);
 	if (linkname != NULL)
 		entry->ae_set |= AE_SET_SYMLINK;
 	else
@@ -1306,7 +1181,7 @@ _archive_entry_copy_symlink_l(struct archive_entry *entry,
 }
 
 void
-archive_entry_set_uid(struct archive_entry *entry, la_int64_t u)
+archive_entry_set_uid(struct archive_entry *entry, int64_t u)
 {
 	entry->stat_valid = 0;
 	entry->ae_stat.aest_uid = u;
@@ -1316,12 +1191,6 @@ void
 archive_entry_set_uname(struct archive_entry *entry, const char *name)
 {
 	archive_mstring_copy_mbs(&entry->ae_uname, name);
-}
-
-void
-archive_entry_set_uname_utf8(struct archive_entry *entry, const char *name)
-{
-	archive_mstring_copy_utf8(&entry->ae_uname, name);
 }
 
 void
@@ -1345,26 +1214,6 @@ archive_entry_update_uname_utf8(struct archive_entry *entry, const char *name)
 	if (errno == ENOMEM)
 		__archive_errx(1, "No memory");
 	return (0);
-}
-
-void
-archive_entry_set_is_data_encrypted(struct archive_entry *entry, char is_encrypted)
-{
-	if (is_encrypted) {
-		entry->encryption |= AE_ENCRYPTION_DATA;
-	} else {
-		entry->encryption &= ~AE_ENCRYPTION_DATA;
-	}
-}
-
-void
-archive_entry_set_is_metadata_encrypted(struct archive_entry *entry, char is_encrypted)
-{
-	if (is_encrypted) {
-		entry->encryption |= AE_ENCRYPTION_METADATA;
-	} else {
-		entry->encryption &= ~AE_ENCRYPTION_METADATA;
-	}
 }
 
 int
@@ -1442,15 +1291,6 @@ archive_entry_acl_add_entry_w(struct archive_entry *entry,
 }
 
 /*
- * Return a bitmask of ACL types in an archive entry ACL list
- */
-int
-archive_entry_acl_types(struct archive_entry *entry)
-{
-	return (archive_acl_types(&entry->acl));
-}
-
-/*
  * Return a count of entries matching "want_type".
  */
 int
@@ -1487,121 +1327,34 @@ archive_entry_acl_next(struct archive_entry *entry, int want_type, int *type,
 }
 
 /*
- * Generate a text version of the ACL. The flags parameter controls
+ * Generate a text version of the ACL.  The flags parameter controls
  * the style of the generated ACL.
  */
-wchar_t *
-archive_entry_acl_to_text_w(struct archive_entry *entry, ssize_t *len,
-    int flags)
-{
-	return (archive_acl_to_text_w(&entry->acl, len, flags,
-	    entry->archive));
-}
-
-char *
-archive_entry_acl_to_text(struct archive_entry *entry, ssize_t *len,
-    int flags)
-{
-	return (archive_acl_to_text_l(&entry->acl, len, flags, NULL));
-}
-
-char *
-_archive_entry_acl_to_text_l(struct archive_entry *entry, ssize_t *len,
-   int flags, struct archive_string_conv *sc)
-{
-	return (archive_acl_to_text_l(&entry->acl, len, flags, sc));
-}
-
-/*
- * ACL text parser.
- */
-int
-archive_entry_acl_from_text_w(struct archive_entry *entry,
-    const wchar_t *wtext, int type)
-{
-	return (archive_acl_from_text_w(&entry->acl, wtext, type));
-}
-
-int
-archive_entry_acl_from_text(struct archive_entry *entry,
-    const char *text, int type)
-{
-	return (archive_acl_from_text_l(&entry->acl, text, type, NULL));
-}
-
-int
-_archive_entry_acl_from_text_l(struct archive_entry *entry, const char *text,
-    int type, struct archive_string_conv *sc)
-{
-	return (archive_acl_from_text_l(&entry->acl, text, type, sc));
-}
-
-/* Deprecated */
-static int
-archive_entry_acl_text_compat(int *flags)
-{
-	if ((*flags & ARCHIVE_ENTRY_ACL_TYPE_POSIX1E) == 0)
-		return (1);
-
-	/* ABI compat with old ARCHIVE_ENTRY_ACL_STYLE_EXTRA_ID */
-	if ((*flags & OLD_ARCHIVE_ENTRY_ACL_STYLE_EXTRA_ID) != 0)
-		*flags |= ARCHIVE_ENTRY_ACL_STYLE_EXTRA_ID;
-
-	/* ABI compat with old ARCHIVE_ENTRY_ACL_STYLE_MARK_DEFAULT */
-	if ((*flags & OLD_ARCHIVE_ENTRY_ACL_STYLE_MARK_DEFAULT) != 0)
-		*flags |=  ARCHIVE_ENTRY_ACL_STYLE_MARK_DEFAULT;
-
-	*flags |= ARCHIVE_ENTRY_ACL_STYLE_SEPARATOR_COMMA;
-
-	return (0);
-}
-
-/* Deprecated */
 const wchar_t *
 archive_entry_acl_text_w(struct archive_entry *entry, int flags)
 {
-	if (entry->acl.acl_text_w != NULL) {
-		free(entry->acl.acl_text_w);
-		entry->acl.acl_text_w = NULL;
-	}
-	if (archive_entry_acl_text_compat(&flags) == 0)
-		entry->acl.acl_text_w = archive_acl_to_text_w(&entry->acl,
-		    NULL, flags, entry->archive);
-	return (entry->acl.acl_text_w);
+	const wchar_t *r;
+	r = archive_acl_text_w(entry->archive, &entry->acl, flags);
+	if (r == NULL && errno == ENOMEM)
+		__archive_errx(1, "No memory");
+	return (r);
 }
 
-/* Deprecated */
 const char *
 archive_entry_acl_text(struct archive_entry *entry, int flags)
 {
-	if (entry->acl.acl_text != NULL) {
-		free(entry->acl.acl_text);
-		entry->acl.acl_text = NULL;
-	}
-	if (archive_entry_acl_text_compat(&flags) == 0)
-		entry->acl.acl_text = archive_acl_to_text_l(&entry->acl, NULL,
-		    flags, NULL);
-
-	return (entry->acl.acl_text);
+	const char *p;
+	if (archive_acl_text_l(&entry->acl, flags, &p, NULL, NULL) != 0
+	    && errno == ENOMEM)
+		__archive_errx(1, "No memory");
+	return (p);
 }
 
-/* Deprecated */
 int
 _archive_entry_acl_text_l(struct archive_entry *entry, int flags,
     const char **acl_text, size_t *len, struct archive_string_conv *sc)
 {
-	if (entry->acl.acl_text != NULL) {
-		free(entry->acl.acl_text);
-		entry->acl.acl_text = NULL;
-        }
-
-	if (archive_entry_acl_text_compat(&flags) == 0)
-		entry->acl.acl_text = archive_acl_to_text_l(&entry->acl,
-		    (ssize_t *)len, flags, sc);
-
-	*acl_text = entry->acl.acl_text;
-
-	return (0);
+	return (archive_acl_text_l(&entry->acl, flags, acl_text, len, sc));
 }
 
 /*
@@ -1638,7 +1391,7 @@ _archive_entry_acl_text_l(struct archive_entry *entry, int flags,
  * SUCH DAMAGE.
  */
 
-static const struct flag {
+static struct flag {
 	const char	*name;
 	const wchar_t	*wname;
 	unsigned long	 set;
@@ -1649,10 +1402,7 @@ static const struct flag {
 	{ "nosappnd",	L"nosappnd",		SF_APPEND,	0 },
 	{ "nosappend",	L"nosappend",		SF_APPEND,	0 },
 #endif
-#if defined(FS_APPEND_FL)			/* 'a' */
-	{ "nosappnd",	L"nosappnd",		FS_APPEND_FL,	0 },
-	{ "nosappend",	L"nosappend",		FS_APPEND_FL,	0 },
-#elif defined(EXT2_APPEND_FL)			/* 'a' */
+#ifdef  EXT2_APPEND_FL				/* 'a' */
 	{ "nosappnd",	L"nosappnd",		EXT2_APPEND_FL,	0 },
 	{ "nosappend",	L"nosappend",		EXT2_APPEND_FL,	0 },
 #endif
@@ -1665,11 +1415,7 @@ static const struct flag {
 	{ "noschange",	L"noschange",		SF_IMMUTABLE,	0 },
 	{ "nosimmutable",	L"nosimmutable",	SF_IMMUTABLE,	0 },
 #endif
-#if defined(FS_IMMUTABLE_FL)			/* 'i' */
-	{ "noschg",	L"noschg",		FS_IMMUTABLE_FL,	0 },
-	{ "noschange",	L"noschange",		FS_IMMUTABLE_FL,	0 },
-	{ "nosimmutable",	L"nosimmutable",	FS_IMMUTABLE_FL,	0 },
-#elif defined(EXT2_IMMUTABLE_FL)		/* 'i' */
+#ifdef EXT2_IMMUTABLE_FL			/* 'i' */
 	{ "noschg",	L"noschg",		EXT2_IMMUTABLE_FL,	0 },
 	{ "noschange",	L"noschange",		EXT2_IMMUTABLE_FL,	0 },
 	{ "nosimmutable",	L"nosimmutable",	EXT2_IMMUTABLE_FL,	0 },
@@ -1693,9 +1439,7 @@ static const struct flag {
 #ifdef UF_NODUMP
 	{ "nodump",	L"nodump",		0,		UF_NODUMP},
 #endif
-#if defined(FS_NODUMP_FL)	/* 'd' */
-	{ "nodump",	L"nodump",		0,		FS_NODUMP_FL},
-#elif defined(EXT2_NODUMP_FL) 	/* 'd' */
+#ifdef EXT2_NODUMP_FL				/* 'd' */
 	{ "nodump",	L"nodump",		0,		EXT2_NODUMP_FL},
 #endif
 #ifdef UF_OPAQUE
@@ -1708,127 +1452,65 @@ static const struct flag {
 #ifdef UF_COMPRESSED
 	{ "nocompressed",L"nocompressed",	UF_COMPRESSED,	0 },
 #endif
-#ifdef UF_HIDDEN
-	{ "nohidden",	L"nohidden",		UF_HIDDEN,	0 },
-#endif
-#if defined(FS_UNRM_FL)
-        { "nouunlink",	L"nouunlink",		FS_UNRM_FL,	0},
-#elif defined(EXT2_UNRM_FL)
+#ifdef EXT2_UNRM_FL
         { "nouunlink",	L"nouunlink",		EXT2_UNRM_FL,	0},
 #endif
 
-#if defined(FS_BTREE_FL)
-        { "nobtree",	L"nobtree",       	FS_BTREE_FL,	0 },
-#elif defined(EXT2_BTREE_FL)
+#ifdef EXT2_BTREE_FL
         { "nobtree",	L"nobtree",       	EXT2_BTREE_FL,	0 },
 #endif
 
-#if defined(FS_ECOMPR_FL)
-        { "nocomperr",	L"nocomperr",       	FS_ECOMPR_FL,	0 },
-#elif defined(EXT2_ECOMPR_FL)
+#ifdef EXT2_ECOMPR_FL
         { "nocomperr",	L"nocomperr",       	EXT2_ECOMPR_FL,	0 },
 #endif
 
-#if defined(FS_COMPR_FL)			/* 'c' */
-        { "nocompress",	L"nocompress",       	FS_COMPR_FL,	0 },
-#elif defined(EXT2_COMPR_FL)			/* 'c' */
+#ifdef EXT2_COMPR_FL				/* 'c' */
         { "nocompress",	L"nocompress",       	EXT2_COMPR_FL,	0 },
 #endif
 
-#if defined(FS_NOATIME_FL)			/* 'A' */
-        { "noatime",	L"noatime",		0,		FS_NOATIME_FL},
-#elif defined(EXT2_NOATIME_FL)			/* 'A' */
+#ifdef EXT2_NOATIME_FL				/* 'A' */
         { "noatime",	L"noatime",		0,		EXT2_NOATIME_FL},
 #endif
 
-#if defined(FS_DIRTY_FL)
-        { "nocompdirty",L"nocompdirty",		FS_DIRTY_FL,		0},
-#elif defined(EXT2_DIRTY_FL)
+#ifdef EXT2_DIRTY_FL
         { "nocompdirty",L"nocompdirty",		EXT2_DIRTY_FL,		0},
 #endif
 
-#if defined(FS_COMPRBLK_FL)
-#if defined(FS_NOCOMPR_FL)
-        { "nocomprblk",	L"nocomprblk",		FS_COMPRBLK_FL, FS_NOCOMPR_FL},
-#else
-        { "nocomprblk",	L"nocomprblk",		FS_COMPRBLK_FL,	0},
-#endif
-#elif defined(EXT2_COMPRBLK_FL)
-#if defined(EXT2_NOCOMPR_FL)
+#ifdef EXT2_COMPRBLK_FL
+#ifdef EXT2_NOCOMPR_FL
         { "nocomprblk",	L"nocomprblk",		EXT2_COMPRBLK_FL, EXT2_NOCOMPR_FL},
 #else
         { "nocomprblk",	L"nocomprblk",		EXT2_COMPRBLK_FL,	0},
 #endif
 #endif
-#if defined(FS_DIRSYNC_FL)
-        { "nodirsync",	L"nodirsync",		FS_DIRSYNC_FL,	0},
-#elif defined(EXT2_DIRSYNC_FL)
+#ifdef EXT2_DIRSYNC_FL
         { "nodirsync",	L"nodirsync",		EXT2_DIRSYNC_FL,	0},
 #endif
-#if defined(FS_INDEX_FL)
-        { "nohashidx",	L"nohashidx",		FS_INDEX_FL,		0},
-#elif defined(EXT2_INDEX_FL)
+#ifdef EXT2_INDEX_FL
         { "nohashidx",	L"nohashidx",		EXT2_INDEX_FL,		0},
 #endif
-#if defined(FS_IMAGIC_FL)
-        { "noimagic",	L"noimagic",		FS_IMAGIC_FL,		0},
-#elif defined(EXT2_IMAGIC_FL)
+#ifdef EXT2_IMAGIC_FL
         { "noimagic",	L"noimagic",		EXT2_IMAGIC_FL,		0},
 #endif
-#if defined(FS_JOURNAL_DATA_FL)
-        { "nojournal",	L"nojournal",		FS_JOURNAL_DATA_FL,	0},
-#elif defined(EXT3_JOURNAL_DATA_FL)
+#ifdef EXT3_JOURNAL_DATA_FL
         { "nojournal",	L"nojournal",		EXT3_JOURNAL_DATA_FL,	0},
 #endif
-#if defined(FS_SECRM_FL)
-        { "nosecuredeletion",L"nosecuredeletion",FS_SECRM_FL,		0},
-#elif defined(EXT2_SECRM_FL)
+#ifdef EXT2_SECRM_FL
         { "nosecuredeletion",L"nosecuredeletion",EXT2_SECRM_FL,		0},
 #endif
-#if defined(FS_SYNC_FL)
-        { "nosync",	L"nosync",		FS_SYNC_FL,		0},
-#elif defined(EXT2_SYNC_FL)
+#ifdef EXT2_SYNC_FL
         { "nosync",	L"nosync",		EXT2_SYNC_FL,		0},
 #endif
-#if defined(FS_NOTAIL_FL)
-        { "notail",	L"notail",		0,		FS_NOTAIL_FL},
-#elif defined(EXT2_NOTAIL_FL)
+#ifdef EXT2_NOTAIL_FL
         { "notail",	L"notail",		0,		EXT2_NOTAIL_FL},
 #endif
-#if defined(FS_TOPDIR_FL)
-        { "notopdir",	L"notopdir",		FS_TOPDIR_FL,		0},
-#elif defined(EXT2_TOPDIR_FL)
+#ifdef EXT2_TOPDIR_FL
         { "notopdir",	L"notopdir",		EXT2_TOPDIR_FL,		0},
 #endif
-#ifdef FS_ENCRYPT_FL
-        { "noencrypt",	L"noencrypt",		FS_ENCRYPT_FL,	0},
-#endif
-#ifdef FS_HUGE_FILE_FL
-        { "nohugefile",	L"nohugefile",		FS_HUGE_FILE_FL,	0},
-#endif
-#ifdef FS_EXTENT_FL
-        { "noextent",	L"noextent",		FS_EXTENT_FL,	0},
-#endif
-#ifdef FS_EA_INODE_FL
-        { "noeainode",	L"noeainode",		FS_EA_INODE_FL,	0},
-#endif
-#ifdef FS_EOFBLOCKS_FL
-        { "noeofblocks",L"noeofblocks",		FS_EOFBLOCKS_FL,	0},
-#endif
-#ifdef FS_NOCOW_FL
-        { "nocow",	L"nocow",		FS_NOCOW_FL,	0},
-#endif
-#ifdef FS_INLINE_DATA_FL
-        { "noinlinedata",L"noinlinedata",	FS_INLINE_DATA_FL,	0},
-#endif
-#ifdef FS_PROJINHERIT_FL
-        { "noprojinherit",L"noprojinherit",	FS_PROJINHERIT_FL,	0},
-#endif
-#if defined(FS_RESERVED_FL)
-        { "noreserved",	L"noreserved",		FS_RESERVED_FL,	0},
-#elif defined(EXT2_RESERVED_FL)
+#ifdef EXT2_RESERVED_FL
         { "noreserved",	L"noreserved",		EXT2_RESERVED_FL,	0},
 #endif
+
 	{ NULL,		NULL,			0,		0 }
 };
 
@@ -1843,7 +1525,7 @@ ae_fflagstostr(unsigned long bitset, unsigned long bitclear)
 	char *string, *dp;
 	const char *sp;
 	unsigned long bits;
-	const struct flag *flag;
+	struct flag *flag;
 	size_t	length;
 
 	bits = bitset | bitclear;
@@ -1895,7 +1577,7 @@ static const char *
 ae_strtofflags(const char *s, unsigned long *setp, unsigned long *clrp)
 {
 	const char *start, *end;
-	const struct flag *flag;
+	struct flag *flag;
 	unsigned long set, clear;
 	const char *failed;
 
@@ -1906,23 +1588,19 @@ ae_strtofflags(const char *s, unsigned long *setp, unsigned long *clrp)
 	while (*start == '\t'  ||  *start == ' '  ||  *start == ',')
 		start++;
 	while (*start != '\0') {
-		size_t length;
 		/* Locate end of token. */
 		end = start;
 		while (*end != '\0'  &&  *end != '\t'  &&
 		    *end != ' '  &&  *end != ',')
 			end++;
-		length = end - start;
 		for (flag = flags; flag->name != NULL; flag++) {
-			size_t flag_length = strlen(flag->name);
-			if (length == flag_length
-			    && memcmp(start, flag->name, length) == 0) {
+			if (memcmp(start, flag->name, end - start) == 0) {
 				/* Matched "noXXXX", so reverse the sense. */
 				clear |= flag->set;
 				set |= flag->clear;
 				break;
-			} else if (length == flag_length - 2
-			    && memcmp(start, flag->name + 2, length) == 0) {
+			} else if (memcmp(start, flag->name + 2, end - start)
+			    == 0) {
 				/* Matched "XXXX", so don't reverse. */
 				set |= flag->set;
 				clear |= flag->clear;
@@ -1963,7 +1641,7 @@ static const wchar_t *
 ae_wcstofflags(const wchar_t *s, unsigned long *setp, unsigned long *clrp)
 {
 	const wchar_t *start, *end;
-	const struct flag *flag;
+	struct flag *flag;
 	unsigned long set, clear;
 	const wchar_t *failed;
 
@@ -1974,23 +1652,19 @@ ae_wcstofflags(const wchar_t *s, unsigned long *setp, unsigned long *clrp)
 	while (*start == L'\t'  ||  *start == L' '  ||  *start == L',')
 		start++;
 	while (*start != L'\0') {
-		size_t length;
 		/* Locate end of token. */
 		end = start;
 		while (*end != L'\0'  &&  *end != L'\t'  &&
 		    *end != L' '  &&  *end != L',')
 			end++;
-		length = end - start;
 		for (flag = flags; flag->wname != NULL; flag++) {
-			size_t flag_length = wcslen(flag->wname);
-			if (length == flag_length
-			    && wmemcmp(start, flag->wname, length) == 0) {
+			if (wmemcmp(start, flag->wname, end - start) == 0) {
 				/* Matched "noXXXX", so reverse the sense. */
 				clear |= flag->set;
 				set |= flag->clear;
 				break;
-			} else if (length == flag_length - 2
-			    && wmemcmp(start, flag->wname + 2, length) == 0) {
+			} else if (wmemcmp(start, flag->wname + 2, end - start)
+			    == 0) {
 				/* Matched "XXXX", so don't reverse. */
 				set |= flag->set;
 				clear |= flag->clear;

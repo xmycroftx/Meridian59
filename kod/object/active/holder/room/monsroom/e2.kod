@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 OutdoorsE2 is MonsterRoom
 
 constants:
@@ -16,11 +16,16 @@ constants:
 
 resources:
 
+   include e2.lkod
+
    room_name_OutdoorsE2 = "The Great Ocean"
    room_OutdoorsE2 = e2.roo
-   OutdoorsE2_music = walk7.mid
+   OutdoorsE2_music = walk7.ogg
 
-   E2_oceanwalk = "You decide you don't like saltwater enough to go swimming in the Great Ocean."
+   E2_oceanwalk = \
+      "You decide you don't like saltwater enough to go swimming "
+      "in the Great Ocean."
+   E2_icewalk = "The ice looks a bit too thin to risk going any farther out."
 
 classvars:
 
@@ -31,8 +36,10 @@ classvars:
 
    viTerrain_type = TERRAIN_FOREST | TERRAIN_BEACH
 
-   viFlag_row = 36
-   viFlag_col = 51
+   viFlag_row = 63
+   viFlag_col = 5
+
+   viWeatherZone = WEATHER_ZONE_BARLOQUE
 
 properties:
 
@@ -45,22 +52,30 @@ properties:
 
    piDirectional_percent = DIRECTIONAL_PERCENT_OUTDOORS
 
-   piGen_time = 45000
-   piGen_percent = 70
+   pbSnowGroundTexture = TRUE
 
-   piInit_count_min = 2
+   piGen_time = 20000
+   piGen_percent = 100
+
+   piInit_count_min = 3
    piInit_count_max = 5
+   piMonster_count_max = 15
 
 messages:
 
    Constructed()
    {
-      plMonsters = [ [&MolluskMonster, 80], [&Frogman, 20] ];
+      plMonsters = [ [&FungusBeast, 50], [&Slime, 50] ];
 
+      propagate;
+   }
+
+   SetMonsterGenPoints()
+   {
       plGenerators = [ [40, 6], [45, 13], [58, 28], [34, 34], [32, 53],
                        [53, 50], [40, 67], [14, 66], [15, 46], [4, 68] ];
 
-      propagate;
+      return;
    }
 
    CreateStandardExits()
@@ -78,7 +93,15 @@ messages:
       {
          if (IsClass(what,&Player))
          {
-            send(what,@MsgSendUser,#message_rsc = E2_oceanwalk);
+            if Send(self,@CheckRoomFlag,#flag=ROOM_SNOWING)
+               AND pbSnowGroundTexture
+            {
+               Send(what,@MsgSendUser,#message_rsc=E2_icewalk);
+            }
+            else
+            {
+               Send(what,@MsgSendUser,#message_rsc=E2_oceanwalk);
+            }
          }
 
          return;
@@ -89,22 +112,21 @@ messages:
 
    CreateStandardObjects()
    {
-      Send(self,@NewHold,#what=Create(&Tree,#top=TREE_PINE,#bottom=TREE_PINE),
+      Send(self,@NewHold,#what=Create(&OrnamentalObject,#type=OO_TALLTREE2),
            #new_row=58,#new_col=33);
-      Send(self,@NewHold,#what=Create(&Tree,#top=TREE_PINE,#bottom=TREE_PINE),
+      Send(self,@NewHold,#what=Create(&OrnamentalObject,#type=OO_TALLTREE2),
            #new_row=58,#new_col=51);
-      Send(self,@NewHold,#what=Create(&Tree,#top=TREE_PINE,#bottom=TREE_PINE),
+      Send(self,@NewHold,#what=Create(&OrnamentalObject,#type=OO_TALLTREE2),
            #new_row=57,#new_col=54);
-      Send(self,@NewHold,#what=Create(&Tree,#top=TREE_PINE,#bottom=TREE_PINE),
+      Send(self,@NewHold,#what=Create(&OrnamentalObject,#type=OO_TALLTREE2),
            #new_row=52,#new_col=52);
-      Send(self,@NewHold,#what=Create(&Tree,#top=TREE_PINE,#bottom=TREE_PINE),
+      Send(self,@NewHold,#what=Create(&OrnamentalObject,#type=OO_TALLTREE2),
            #new_row=40,#new_col=54);
-      Send(self,@NewHold,#what=Create(&Tree,#top=TREE_PINE,#bottom=TREE_PINE),
+      Send(self,@NewHold,#what=Create(&OrnamentalObject,#type=OO_TALLTREE2),
            #new_row=40,#new_col=71);
 
       propagate;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

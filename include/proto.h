@@ -25,6 +25,8 @@ enum {
    AP_GETALL        = 9,
    AP_REQ_MENU      = 10,
    AP_ADMINNOTE     = 11,
+   AP_CLIENT_PATCH_OLD = 12,
+   AP_CLIENT_PATCH  = 13,
 
    AP_GETLOGIN      = 21,
    AP_GETCHOICE     = 22,
@@ -56,6 +58,8 @@ enum {
    BP_ROUNDTRIP1            = 4,
    BP_ROUNDTRIP2            = 5,
    BP_SYSTEM                = 6,
+   BP_UDP_PING              = 7,
+   BP_ECHO_UDP_PING         = 8,
 
    BP_LOGOFF                = 20,
    BP_WAIT                  = 21,
@@ -93,12 +97,13 @@ enum {
    BP_REQ_ADMIN_QUEST       = 62,
 
    BP_EFFECT                = 70,
-   
+   BP_MOVEMENT_SPEED        = 71,
+
    BP_MAIL                  = 80,
    BP_REQ_GET_MAIL          = 81,
    BP_SEND_MAIL             = 82,
    BP_DELETE_MAIL           = 83,
-
+   BP_DELETE_NEWS           = 84,
    BP_REQ_ARTICLES          = 85,
    BP_REQ_ARTICLE           = 86,
    BP_POST_ARTICLE          = 87,
@@ -106,6 +111,10 @@ enum {
    BP_REQ_LOOKUP_NAMES      = 88,
 
    BP_ACTION                = 90,
+
+   BP_REQ_PERFORM           = 97,
+   BP_REQ_TRIGGER_QUEST     = 98,
+   BP_REQ_NPC_QUESTS        = 99,
    BP_REQ_MOVE              = 100,
    BP_REQ_TURN              = 101,
    BP_REQ_GO                = 102,
@@ -133,7 +142,9 @@ enum {
    BP_REQ_BUY               = 124,
    BP_REQ_BUY_ITEMS         = 125,
    BP_CHANGE_DESCRIPTION    = 126,
-
+   BP_REQ_INVENTORY_MOVE    = 127,
+   BP_ROOM_CONTENTS_FLAGS   = 128,
+   BP_CHANGE_FLAGS          = 129,
    BP_PLAYER                = 130,
    BP_STAT                  = 131,
    BP_STAT_GROUP            = 132,
@@ -160,6 +171,10 @@ enum {
    BP_REMOVE_BG_OVERLAY     = 153,
    BP_CHANGE_BG_OVERLAY     = 154,
    BP_USERCOMMAND           = 155,
+   BP_REQ_STAT_CHANGE       = 156,
+   BP_CHANGED_STATS         = 157,
+   BP_CHANGED_STATS_OK      = 158,
+   BP_CHANGED_STATS_NOT_OK	 = 159,
 
    BP_PASSWORD_OK           = 160,
    BP_PASSWORD_NOT_OK       = 161,
@@ -168,13 +183,17 @@ enum {
    BP_PLAY_WAVE             = 170,
    BP_PLAY_MUSIC            = 171,
    BP_PLAY_MIDI             = 172,
+   BP_STOP_WAVE             = 173,
 
    BP_LOOK_NEWSGROUP        = 180,
    BP_ARTICLES              = 181,
    BP_ARTICLE               = 182,
 
    BP_LOOKUP_NAMES          = 190,
+   BP_LOOK_SPELL            = 191,
+   BP_LOOK_SKILL            = 192,
 
+   BP_NPC_QUEST_LIST        = 199,
    BP_MOVE                  = 200,
    BP_TURN                  = 201,
    BP_SHOOT                 = 202,
@@ -204,7 +223,7 @@ enum {
    BP_SECTOR_ANIMATE        = 226,
    BP_CHANGE_TEXTURE        = 227,
    BP_INVALIDATE_DATA       = 228,
-
+   BP_RADIUS_SHOOT          = 229,
    BP_REQ_DEPOSIT           = 230,
    BP_WITHDRAWAL_LIST       = 231,
    BP_REQ_WITHDRAWAL        = 232,
@@ -214,6 +233,7 @@ enum {
    BP_SECTOR_SCROLL         = 236,
    BP_SET_VIEW              = 237,
    BP_RESET_VIEW            = 238,
+   BP_SECTOR_CHANGE         = 239,
 };
 
 // User commands (in BP_USERCOMMAND message)
@@ -222,11 +242,14 @@ enum {
    UC_LOOK_PLAYER = 2,
    UC_CHANGE_URL = 3,
    UC_SPELL_SCHOOLS = 4,
-
    UC_REST = 5,
    UC_STAND = 6,
-   UC_SAFETY = 7,
+
+   UC_REQ_PREFERENCES = 7,
+
    UC_SUICIDE = 8,
+
+   UC_SEND_PREFERENCES = 9,
 
    UC_REQ_GUILDINFO = 10,
    UC_GUILDINFO = 11,
@@ -253,9 +276,13 @@ enum {
    UC_GUILD_SHIELDS = 32,
    UC_CLAIM_SHIELD = 33,
 
+   UC_RECEIVE_PREFERENCES = 34,
+
    UC_DEPOSIT = 35,
    UC_WITHDRAW = 36,
    UC_BALANCE = 37,
+
+   UC_GUILD_SHIELD_ERROR = 38,
 
    UC_APPEAL = 40,
    UC_REQ_RESCUE = 41,
@@ -265,7 +292,35 @@ enum {
    UC_MINIGAME_MOVE         = 47,
    UC_MINIGAME_PLAYER       = 48,
    UC_MINIGAME_RESET_PLAYERS= 49,
+
+   UC_REQ_TIME = 60,
 };
+
+// Character creation error enum
+enum {
+   CC_OK = 0,
+   CC_GENERIC_ERROR = 1, // Client uses this for e.g. broken protocol message.
+   CC_NOT_FIRST_TIME = 2, // Player has a restart time > 0.
+   CC_NAME_TOO_LONG = 3,
+   CC_NAME_BAD_CHARACTERS = 4, // Invalid letters in name.
+   CC_NAME_IN_USE = 5,
+   CC_NO_MOB_NAME = 6,
+   CC_NO_NPC_NAME = 7,
+   CC_NO_GUILD_NAME = 8,
+   CC_NO_BAD_WORDS = 9,
+   CC_NO_CONFUSING_NAME = 10, // Gods names, 'You' etc.
+   CC_RETIRED_NAME = 11, // Names of old designers/admins.
+   CC_DESC_TOO_LONG = 12,
+   CC_INVALID_GENDER = 13,
+};
+
+// Login data flags
+#define LF_HARDWARE_RENDERER 0x0001
+#define LF_LARGE_GRAPHICS    0x0002
+#define LF_MUSIC_ON          0x0004
+#define LF_DYNAMIC_LIGHTING  0x0008
+#define LF_WEATHER_EFFECTS   0x0010
+#define LF_WIREFRAME         0x0020
 
 // Login error action constants
 #define LA_NOTHING   0
@@ -351,69 +406,144 @@ enum {
 
 
 /* Object flag values and masks */
-#define OF_NOMOVEON_MASK 0x00000003
+#define OF_DISPLAY_NAME  0x00000001    // Set if object should have name displayed
+#define OF_SIGN          0x00000002    // Set if object is an informational sign (custom name display)
 #define OF_PLAYER        0x00000004    // Set if object is a player
 #define OF_ATTACKABLE    0x00000008    // Set if object is legal target for an attack
 #define OF_GETTABLE      0x00000010    // Set if player can try to pick up object
 #define OF_CONTAINER     0x00000020    // Set if player can put objects inside this one
 #define OF_NOEXAMINE     0x00000040    // Set if player CAN'T examine object
+#define OF_ITEM_MAGIC    0x00000080    // Set for magic item to color in lists
+#define OF_HANGING       0x00000100    // Set for ceiling-pinned objects.
 #define OF_OFFERABLE     0x00000200    // Set if object can be offered to
 #define OF_BUYABLE       0x00000400    // Set if object can be bought from
 #define OF_ACTIVATABLE   0x00000800    // Set if object can be activated
 #define OF_APPLYABLE     0x00001000    // Set if object can be applied to another object
-#define OF_SAFETY        0x00002000    // Set if player has safety on (self only)
-#define OF_PLAYER_MASK   0x0001C000    // Mask to get player flag bits
+#define OF_NPC           0x00002000    // Set if object is an NPC (not necessarily offerable/buyable)
 
-#define OF_HANGING       0x00010000    // Overlaps with PF_CREATOR.
-                                       //     FALSE for most objects.
-                                       //     TRUE for creators or ceiling-pinned objects.
-
+#define OF_BOUNCING      0x00010000    // If both flags on then object is bouncing
 #define OF_FLICKERING    0x00020000    // For players or objects if holding a flickering light.
 #define OF_FLASHING      0x00040000    // For players or objects if flashing with light.
-#define OF_BOUNCING	     0x00060000    // If both flags on then object is bouncing
 #define OF_PHASING       0x00080000    // For players or objects if phasing translucent/solid.
+#define OF_NPCHASQUESTS  0x00100000
+#define OF_NPCACTIVEQUEST 0x00200000
+#define OF_MOBKILLQUEST  0x00400000
+#define OF_NPCQUESTABLE  0x00800000
 
-#define OF_FALSEPLAYER   0x00000800    // Overlaps with OF_ACTIVATABLE.
-                                       //     FALSE for real players,
-                                       //     TRUE for nonplayers that have OF_PLAYER.
+#define GetItemFlags(flags)   ((flags))
 
-// Object drawing effects
-#define OF_DRAW_PLAIN    0x00000000    // No special drawing effects
-#define OF_TRANSLUCENT25 0x00100000    // Set if object should be drawn at 25% opacity
-#define OF_TRANSLUCENT50 0x00200000    // Set if object should be drawn at 50% opacity
-#define OF_TRANSLUCENT75 0x00300000    // Set if object should be drawn at 75% opacity
-#define OF_BLACK         0x00400000    // Set if object should be drawn all black
-#define OF_INVISIBLE     0x00500000    // Set if object should be drawn with invisibility effect
-#define OF_TRANSLATE     0x00600000    // Reserved (used internally by client)
-#define OF_DITHERINVIS   0x00700000    // Haze (dither with transparency) 50% of pixels
-#define OF_DITHERTRANS   0x00800000    // Dither (with two translates) 50% of pixels
-#define OF_DOUBLETRANS   0x00900000    // Translate twice each pixel, plus lighting
-#define OF_SECONDTRANS   0x00A00000    // Ignore per-overlay xlat and use only secondary xlat
-#define OF_EFFECT_MASK   0x01F00000    // Mask to get object drawing effect bits
-#define NUM_DRAW_EFFECTS 32            // # of possible object drawing effects
+// Drawing effects. Separate from object flags.
+#define NUM_DRAW_EFFECTS 256       // # of object drawing effects.
+enum {
+   DRAWFX_DRAW_PLAIN    = 0x00,    // No special drawing effects
+   DRAWFX_TRANSLUCENT25 = 0x01,    // Set if object should be drawn at 25% opacity
+   DRAWFX_TRANSLUCENT50 = 0x02,    // Set if object should be drawn at 50% opacity
+   DRAWFX_TRANSLUCENT75 = 0x03,    // Set if object should be drawn at 75% opacity
+   DRAWFX_BLACK         = 0x04,    // Set if object should be drawn all black
+   DRAWFX_INVISIBLE     = 0x05,    // Set if object should be drawn with invisibility effect
+   DRAWFX_TRANSLATE     = 0x06,    // Reserved (used internally by client)
+   DRAWFX_DITHERINVIS   = 0x07,    // Haze (dither with transparency) 50% of pixels
+   DRAWFX_DITHERTRANS   = 0x08,    // Dither (with two translates) 50% of pixels
+   DRAWFX_DOUBLETRANS   = 0x09,    // Translate twice each pixel, plus lighting
+   DRAWFX_SECONDTRANS   = 0x0A,    // Ignore per-overlay xlat and use only secondary xlat
+   DRAWFX_DITHERGREY    = 0x0B,    // Haze (dither with transparency) 50% of pixels, greyscale other 50%
+};
 
-#define PF_KILLER        0x00004000    // Set if object is a killer (must also have OF_PLAYER)
-#define PF_OUTLAW        0x00008000    // Set if object is an outlaw (must also have OF_PLAYER)
-#define PF_DM            0x0000C000    // Set if object is a DM player
-#define PF_CREATOR       0x00010000    // Set if object is a creator player
-#define PF_SUPER         0x00014000    // Set if object is a "super DM"
-#define PF_EVENTCHAR     0x0001C000    // Set if object is an event character
+// Minimap dot color bitfield. Now separate from object flags.
+#define MM_NONE            0x00000000    // No dot (default for all objects)
+#define MM_PLAYER          0x00000001    // Standard blue player dot
+#define MM_ENEMY           0x00000002    // Enemy (halo or attackable) player
+#define MM_FRIEND          0x00000004    // Friendly (guild ally) player
+#define MM_GUILDMATE       0x00000008    // Guildmate player
+#define MM_BUILDER_GROUP   0x00000010    // Player is in same building group
+#define MM_MONSTER         0x00000020    // Default monster dot
+#define MM_NPC             0x00000040    // NPC
+#define MM_MINION_OTHER    0x00000080    // Set if monster is other's minion
+#define MM_MINION_SELF     0x00000100    // Set if a monster is our minion
+#define MM_TEMPSAFE        0x00000200    // Set if player has a temporary angel.
+#define MM_MINIBOSS        0x00000400    // Set if mob is a miniboss (survival arena).
+#define MM_BOSS            0x00000800    // Set if mob is a boss (survival arena).
+#define MM_RARE_ITEM       0x00001000    // Set if item is rare.
+#define MM_NO_PVP          0x00002000    // Set if player has no PVP flag.
+#define MM_AGGRO_SELF      0x00004000    // Set if monster has aggro on the player.
+#define MM_AGGRO_OTHER     0x00008000    // Set if monster has aggro on another player.
+#define MM_MERCENARY       0x00010000    // Set if monster is our mercenary.
+#define MM_NPCHASQUEST     0x00020000    // Set if NPC has a quest for us
+#define MM_NPCCURRENTQUEST 0x00040000    // Set if NPC is part of an active quest
+#define MM_MOBKILLQUEST    0x00080000    // Set if monster is part of a kill quest
 
-#define OF_ENEMY         0x02000000    // Enemy player
-#define OF_FRIEND        0x04000000    // Friendly player
-#define OF_GUILDMATE     0x08000000    // Guildmate player
+/* Player name color sent as hex RGB value. Define constants
+   for ease of use as needed. Requires OF_PLAYER boolean flag
+   to be set to draw a name. */
+#define NC_PLAYER        0xFFFFFF   // White name.
+#define NC_SHADOW        0x000000   // Set if name should be drawn black.
+#define NC_KILLER        0xFF0000   // Set if object is a killer.
+#define NC_OUTLAW        0xFC9E00   // Set if object is an outlaw.
+#define NC_DM            0x00FFFF   // Set if object is a DM player.
+#define NC_CREATOR       0xFFFF00   // Set if object is a creator player.
+#define NC_SUPER         0x00FF00   // Set if object is a "super DM".
+#define NC_MODERATOR     0x0078FF   // Set if object is a "moderator".
+#define NC_EVENTCHAR     0xFF00FF   // Set if object is an event character.
+#define NC_DAENKS        0xB300B3   // Purple name color for Daenks.
+#define NC_COLOR_MAX     0xFFFFFF   // Max color, defined for clarity.
 
-#define GetPlayerFlags(flags)   ((flags) & OF_PLAYER_MASK)
-#define GetDrawingEffect(flags) ((flags) & OF_EFFECT_MASK)
-#define GetDrawingEffectIndex(flags) (((flags) & OF_EFFECT_MASK) >> 20)
+/* Enum of object types. */
+typedef enum {
+   OT_NONE         = 0,   // Default for most objects.
+   OT_KILLER       = 1,   // Set if object is a killer.
+   OT_OUTLAW       = 2,   // Set if object is an outlaw.
+   OT_DM           = 3,   // Set if object is a DM player.
+   OT_CREATOR      = 4,   // Set if object is a creator player.
+   OT_SUPER        = 5,   // Set if object is a "super DM".
+   OT_MODERATOR    = 6,   // Set if object is a "moderator".
+   OT_EVENTCHAR    = 7,   // Set if object is an event character.
+   OT_QUESTACTIVE  = 8,   // Quest in progress
+   OT_QUESTVALID   = 9,   // Quest can be started
+   OT_QUESTINVALID = 10   // Quest cannot be started
+} object_type;
 
 /* How objects allow or disallow motion onto their square */
-enum {
-   OF_MOVEON_YES        = 0,   // Can always move on object
-   OF_MOVEON_NO         = 1,   // Can never move on object
-   OF_MOVEON_TELEPORTER = 2,   // Can move on object, but then kod will move you elsewhere
-   OF_MOVEON_NOTIFY	= 3,
-};
+typedef enum {
+   MOVEON_YES        = 0,   // Can always move on object
+   MOVEON_NO         = 1,   // Can never move on object
+   MOVEON_TELEPORTER = 2,   // Can move on object, but then kod will move you elsewhere
+   MOVEON_NOTIFY     = 3,
+} moveon_type;
+
+// Client preferences defines. Set if:
+#define CF_SAFETY_OFF    0x0001  // Player has safety off
+#define CF_TEMPSAFE      0x0002  // Player has temp safety on death activated
+#define CF_GROUPING      0x0004  // Player is grouping
+#define CF_AUTOLOOT      0x0008  // Player is automatically picking up loot
+#define CF_AUTOCOMBINE   0x0010  // Player automatically combines spell items
+#define CF_REAGENTBAG    0x0020  // Player automatically puts items into reagent bag
+#define CF_SPELLPOWER    0x0040  // Player gets spellpower readout from cast spells
+
+// Lighting constants, used by D3D renderer for dynamic lighting
+// Bright colors, 100% saturation
+#define LIGHT_BWHITE  0x7FFF
+#define LIGHT_BRED    0x7C00
+#define LIGHT_BORANGE 0x7E40
+#define LIGHT_BYELLOW 0x7FE0
+#define LIGHT_BGREEN  0x03E0
+#define LIGHT_BBLUE   0x001F
+#define LIGHT_BPURPLE 0x481F
+// Average colors, 66% saturation
+#define LIGHT_WHITE   0x5294
+#define LIGHT_RED     0x5000
+#define LIGHT_ORANGE  0x5180
+#define LIGHT_YELLOW  0x5280
+#define LIGHT_GREEN   0x0280
+#define LIGHT_BLUE    0x0014
+#define LIGHT_PURPLE  0x3014
+// Dull colors, 33% saturation
+#define LIGHT_DWHITE  0x294A
+#define LIGHT_DRED    0x2800
+#define LIGHT_DORANGE 0x28C0
+#define LIGHT_DYELLOW 0x2940
+#define LIGHT_DGREEN  0x0140
+#define LIGHT_DBLUE   0x000A
+#define LIGHT_DPURPLE 0x180A
 
 /* Effect codes */
 enum {
@@ -432,8 +562,10 @@ enum {
    EFFECT_CLEARSAND     = 13,  // Stop sandstorm
    EFFECT_WAVER         = 14,  // Wavering sideways
    EFFECT_FLASHXLAT     = 15,  // Flashes screen with a given XLAT number
-   EFFECT_WHITEOUT	= 16,  // Got from full white and fade back to normal
-   EFFECT_XLATOVERRIDE	= 17,  // Use this xlat at end over the whole screen
+   EFFECT_WHITEOUT      = 16,  // Got from full white and fade back to normal
+   EFFECT_XLATOVERRIDE  = 17,  // Use this xlat at end over the whole screen
+   EFFECT_FIREWORKS     = 18,
+   EFFECT_CLEAVE        = 19,  // Effect used by cleave skill.
 };
 
 /* Room animation action codes */
@@ -461,8 +593,6 @@ enum {
    DF_DIRHELP          = 0x10,   // File's location is help subdirectory
    DF_DIRMAIL          = 0x14,   // File's location is mail subdirectory
    DF_ADVERTISEMENT    = 0x18,   // Identifies file as an advertisement (goes in client dir)
-
-   DF_GUEST            = 0x20,   // File should be downloaded by guests
 };
 #define DownloadCommand(z)  ((z) & 0x03)
 #define DownloadLocation(z) ((z) & 0x1c)
@@ -481,6 +611,7 @@ enum {
    CTF_BELOWWALL       = 0x04,      // Change below wall texture
    CTF_FLOOR           = 0x08,      // Change floor texture
    CTF_CEILING         = 0x10,      // Change ceiling texture
+   CTF_RESET           = 0x20,      // Reset to original ROO values
 };
 
 /* Types of sector lighting animation (BP_SECTOR_LIGHT) */
@@ -488,6 +619,9 @@ enum {
    SL_FLICKER_ON       = 1,         // Turn flickering on
    SL_FLICKER_OFF      = 2,         // Turn flickering off
 };
+
+/* Size in bytes of UDP header (without TYPE byte) */
+#define SIZE_HEADER_UDP      11
 
 /* Size in bytes of numbers in protocol */
 #define SIZE_TYPE            1
@@ -522,11 +656,15 @@ enum {
 #define SIZE_FILTER          2
 #define SIZE_PROJECTILE_FLAGS 2
 #define SIZE_PROJECTILE_RESERVED 2
+#define SIZE_SESSION_ID      4
+#define SIZE_CHARINFO_ERROR 1
+#define SIZE_OBJECTFLAGS (3 * SIZE_VALUE + 3 * SIZE_TYPE)
 
 // new defines for dynamic lighting of d3d client
 #define LIGHT_FLAG_NONE		0x0000
 #define LIGHT_FLAG_ON		0x0001
 #define LIGHT_FLAG_DYNAMIC	0x0002
 #define LIGHT_FLAG_WAVERING	0x0004
+#define LIGHT_FLAG_HIGHLIGHT 0x0008
 
 #endif /* #ifndef _PROTO_H */

@@ -1,73 +1,68 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 SandStorm is RoomEnchantment
-% typical room enchantment with periodic global effects
 
 constants:
 
    include blakston.khd
 
-   SANDSTORM_VIGOR_LOSS = 5          % 5 vigor / 10 sec
-   SANDSTORM_PERIOD = 10000          % damage every 15 secs
-   SANDSTORM_TIME = 120000           % 2 realtime minutes
+   SANDSTORM_VIGOR_LOSS = 5          // 5 vigor / 10 sec
+   SANDSTORM_PERIOD = 10000          // damage every 15 secs
+   SANDSTORM_TIME = 120000           // 2 realtime minutes
 
 resources:
+
+   include sandstor.lkod
 
    sandstorm_name_rsc = "sandstorm"
    sandstorm_icon_rsc = isandsto.bgf
    sandstorm_desc_rsc = \
       "All the dust in the room is swept up into a swirling storm, "
-	   "making it harder and more strenuous to move and fight.  "
-	   "Also has a small chance to knock arrows out of the air.  "
-      "Requires orc teeth to cast."
-   
+      "making it harder and more strenuous to move and fight.  "
+      "Also has a small chance to knock arrows out of the air."
    sandstorm_already_enchanted = "A sandstorm already rages here."
-
    sandstorm_on = \
       "From out of nowhere, swirling dust begins to needle into your skin, "
-	   "making it very difficult to breathe.  "
-	   "You feel yourself tiring."
-
+      "making it very difficult to breathe.  "
+      "You feel yourself tiring."
    sandstorm_off = "The air clears."
    sandstorm_new_entrant = \
       "The air is full of dust, making it very difficult to breathe. "
-	   "You feel yourself tiring."
-
-   sandstorm_hurts_you = "You are becoming exhausted from the buffeting winds of sand."
+      "You feel yourself tiring."
+   sandstorm_hurts_you = \
+      "You are becoming exhausted from the buffeting winds of sand."
    sandstorm_miss_rsc = "The powerful sandstorm snatches your shot away."
 
-   sandstorm_sound = fheat.wav
+   sandstorm_sound = fheat.ogg
 
 classvars:
-
-   viSpell_num = SID_SANDSTORM
 
    vrName = sandstorm_name_rsc
    vrIcon = sandstorm_icon_rsc
    vrDesc = sandstorm_desc_rsc
-
+   vrSucceed_wav = sandstorm_sound
+   vrAlreadyEnchanted = sandstorm_already_enchanted
+   vrRoomEnchHit = sandstorm_hurts_you
+   viShow_enchantment_icon = ENCHANTMENT_SHOW_ROOM
+   viHarmful = TRUE
+   viNoNewbieOffense = TRUE
+   viSpell_num = SID_SANDSTORM
    viSchool = SS_FAREN
+   viSpell_type = 0
+   viAttack_type = ATK_TYPE_SLASH
    viSpell_level = 5
    viMana = 14
    viChance_To_Increase = 35
+   viMeditate_ratio = 50
 
-   viOutlaw = TRUE
-   viHarmful = TRUE
-   viNoNewbieOffense = TRUE
-
-   viAttack_spell = ATCK_SPELL_ALL
-
-   vrSucceed_wav = sandstorm_sound
-    vbCastable_in_HappyLand = FALSE
-   
 properties:
 
 messages:
@@ -80,147 +75,115 @@ messages:
       return;
    }
 
-   GetNumSpellTargets()
+   GetSpellPowerFromState(state=$)
    {
-      return 0;
+      return First(state) % 100;
    }
 
-   CanPayCosts(who = $, lTargets = $)
-   {
-      local oRoom;
-      
-      oRoom = Send(who,@GetOwner);
-      
-      % Check for enchantment already applied
-      if Send(oRoom,@IsEnchanted,#what=self)
-      {
-	      Send(who,@MsgSendUser,#message_rsc=sandstorm_already_enchanted);
-	      return FALSE;
-      }
-
-      if Send(oRoom,@CheckRoomFlag,#flag=ROOM_NO_COMBAT)
-         OR Send(oRoom,@CheckRoomFlag,#flag=ROOM_NO_PK)
-         OR Send(oRoom,@CheckRoomFlag,#flag=ROOM_GUILD_PK_ONLY)
-      {
-	      Send(who, @MsgSendUser, #message_rsc=spell_bad_location,#parm1=vrName);
-	      return FALSE;
-      }
-
-      propagate;
-   }
-
-
-   CastSpell( who = $, iSpellPower = 0 )
+   DoSpellEffects(who = $, iSpellPower = 0)
    "Initiation point for the spell."
    {
       local oRoom, oWho, i, iPower;
 
-      oRoom = Send(who,@GetOwner);
+      if (IsClass(who,&Room))
+      {
+         oRoom = who;
+      }
+      else
+      {
+         oRoom = Send(who,@GetOwner);
+      }
 
       Send(oRoom,@SomeoneSaid,#type=SAY_MESSAGE,#string=sandstorm_on,#what=self);
 
-      iPower = bound(iSpellPower,0,99);
+      iPower = Bound(iSpellPower,0,99);
 
-      %% store the spell power in the last two digits of the enchantment value
+      // Store the spell power in the last two digits of the enchantment value.
       Send(oRoom,@RoomStartEnchantment,#what=self,#time=SANDSTORM_PERIOD,
-           #state=SANDSTORM_PERIOD+iPower,#addicon=True,#lastcall=False);
+            #state=[SANDSTORM_PERIOD + iSpellPower, who],#addicon=TRUE,
+            #lastcall=FALSE);
+      Send(oRoom,@EnchantAllOccupants,#what=self,#iSpellPower=iSpellPower,
+            #state=[SANDSTORM_PERIOD + iSpellPower, who]);
 
-      for i in Send(oRoom,@GetHolderActive)
-      {
-	      oWho = Send(oRoom,@HolderExtractObject,#data=i);
-         if isClass(oWho,&User)
-	      {
-	         Send(self,@StartEnchantmentNewOccupant,#who=oWho,#state=SANDSTORM_PERIOD+iPower);
-	      }
-      }
-
-      propagate;
+      return TRUE;
    }
 
-   StartPeriodicEnchantment( who = $, where = $, state = 0 )
-   "Sends enchantment message to room like CastSpell for most room enchantments, "
-   "but silent, and done as often as necessary"
+   StartPeriodicEnchantment(who = $, where = $, state = 0)
+   "Sends enchantment message to room like CastSpell for most room "
+   "enchantments, but silent, and done as often as necessary."
    {
-      local iNext_time, iPower;
+      local iCombined, iNext_time, iSpellPower;
 
-      %% power is stored in the 1s and 10s column
-      iPower = state mod 100;
-      State = State - iPower;    %% state now stores time that has elapsed.
+      // First, extract the spellpower from the state
+      iCombined = First(state);
 
-      % global effects of the enchantment
-      % state is elapsed time in msec
+      // Power is stored in the 1s and 10s column.
+      iSpellPower = iCombined % 100;
+      // State now stores time that has elapsed.
+      iCombined = iCombined - iSpellPower;
 
-      iNext_time = state + SANDSTORM_PERIOD ;	 %% min duration = 80 seconds
-      if iNext_time >= ((80+iPower)*1000)        %% max duration = 180 seconds
+      // Global effects of the enchantment. State is elapsed time in msec.
+
+      iNext_time = iCombined + SANDSTORM_PERIOD ;  // min duration = 80 seconds
+      if iNext_time >= ((80 + iSpellPower) * 1000) // max duration = 180 seconds
       {
-	      Send(where,@RoomStartEnchantment,#what=self,#time=((80+iPower)*1000)-state,
-              #state=((80+iPower)*1000)+iPower,#addicon=False,#lastcall=TRUE);
+         Send(where,@RoomStartEnchantment,#what=self,
+               #time=((80 + iSpellPower) * 1000) - iCombined,
+               #state=[((80 + iSpellPower) * 1000) + iSpellPower, Nth(state,2)],
+               #addicon=FALSE,#lastcall=TRUE);
 
-	      return ;
+         return;
       }
+
       Send(where,@RoomStartEnchantment,#what=self,#time=SANDSTORM_PERIOD,
-           #state=iNext_time+iPower,#addicon=False,#lastcall=False);
-      Send(where,@EnchantAllOccupants,#what=self,#iSpellpower=iPower);
+            #state=[iNext_time + iSpellPower, Nth(state,2)],
+            #addicon=FALSE,#lastcall=FALSE);
+      Send(where,@EnchantAllOccupants,#what=self,#iSpellPower=iSpellPower,
+            #state=state);
 
       return;
    }
-   
 
    StartEnchantmentNewOccupant(who = $, state = $)
    "Called on new occupants of the enchanted room."
    {
       Send(who,@MsgSendUser,#message_rsc=sandstorm_new_entrant);
-      Send(self,@StartEnchantment,#who=who);
-      Send(who,@AddAim,#points=-((state mod 100)/3));
-      Send(who,@EffectSendUser, #what=self, #effect=EFFECT_SAND);
+      Send(self,@StartEnchantment,#who=who,#state=state);
 
       return;
    }
 
-   StartEnchantment( who = $, iSpellpower = 0 )
+   StartEnchantment(who = $, state = $)
    "Does enchantment effect on one player"
    {
-      % extertion is in 10^-4 units of vigor
-      local bDoDamage, iDamage;
-     
-      bDoDamage=FALSE;
-      if Send(who,@Checkplayerflag,#flag=PFLAG_PKILL_ENABLE)
+      Send(who,@EffectSendUser,#what=self,#effect=EFFECT_SAND);
+
+      if (NOT Send(who,@IsEnchanted,#what=self)
+            AND Send(self,@CanEnchantUser,#who=who,#state=state))
       {
-         bDoDamage = TRUE;
-      }
-      
-      if send(send(who,@getowner),@checkroomflag,#flag=ROOM_KILL_ZONE)
-      {
-         bDoDamage = TRUE;
-      }
-      
-      if send(send(who,@getowner),@checkroomflag,#flag=ROOM_SAFE_DEATH)
-      {
-	      if send(send(who,@getowner),@IsValidTarget,#who=who)
-         {
-            bDoDamage = TRUE;
-         }
-         else
-         {
-            bDoDamage = FALSE;
-         }
+         Send(who,@AddAim,#points=-((First(state) % 100) / 3));
+         Send(who,@StartEnchantment,#what=self,#state=state);
       }
 
-      if bDoDamage
-      {	 
-	      Send(who,@AddExertion,#amount=(iSpellPower/10+1)*10000);  % 1 to 10 point vigor loss
-	      iDamage = 1+(iSpellPower/30);
-	      % Don't let people die because of sandstorm.
-	      iDamage = bound(iDamage,0,send(who,@GetHealth)-1);
-         Send(who,@AssessDamage,#what=self,#damage=iDamage,
-		        #atype=0,#aspell=viAttack_spell,#report=FALSE);
-	      Send(who,@MsgSendUser,#message_rsc=sandstorm_hurts_you);
-      }
+      Send(self,@RoomEnchantmentDamage,#oTarget=who,#state=state);
 
       return;
    }
 
-   EndSpell( where = $, state = $ )
+   ComputeDamage(who=$,oTarget=$,iDamage=$,iSpellPower=1)
+   {
+      local i, lUsing;
+
+      // 1 to 10 point vigor loss.
+      Send(oTarget,@LoseVigor,#precision=TRUE,#amount=((iSpellPower + 1) / 25) * 100);
+      iDamage = 1 + (iSpellPower / 30);
+      // Don't let people die because of sandstorm.
+      iDamage = Bound(iDamage,0,Send(oTarget,@GetHealth) - 1);
+
+      return iDamage;
+   }
+
+   EndSpell(where = $, state = $)
    "Called when spell expires."
    {
       Send(where,@SomeoneSaid,#type=SAY_MESSAGE,#string=sandstorm_off,#what=self);
@@ -232,7 +195,6 @@ messages:
    EndRoomEnchantment(who = $, state = $)
    "Ends enchantment effect on one player"
    {
-      Send(who,@RemoveEnchantment,#what=self);
       Send(self,@RemoveEnchantment,#who=who,#state=state);
 
       return;
@@ -241,34 +203,88 @@ messages:
    RemoveEnchantment(who = $, state = $)
    "Remove enchantment effects on this occupant"
    {
-      Send(who,@EffectSendUser,#what=self,#effect=EFFECT_CLEARSAND);
-      Send(who,@AddAim,#points=((state mod 100)/3));
+      local oRoom;
+
+      if (who = $)
+      {
+         return;
+      }
+
+      Send(who,@RemoveEnchantment,#what=self);
+
+      oRoom = Send(who,@GetOwner);
+      if (oRoom <> $
+         AND NOT Send(oRoom,@CheckRoomFlag,#flag=ROOM_SANDSTORM))
+      {
+         Send(who,@EffectSendUser,#what=self,#effect=EFFECT_CLEARSAND);
+      }
 
       return;
    }
 
-   WindsRuinShot(who=$)
+   EndEnchantment(who=$,state=$)
    {
-      local oAmmo,iMissChance,iSpellPower,oFire, iRandom;
-      
-      iSpellpower = send(send(who,@GetOwner),@GetEnchantmentState,#what=self);  
+      Send(who,@AddAim,#points=((First(state) % 100) / 3));
 
-      % This is a bit less than Winds which is (iSpellpower/2 + 10), bound 25 to 60.
-      iMissChance = iSpellpower/3 + 10; 
-      iMissChance = bound(iMissChance,15,40);
+      return;
+   }
 
+   CanEnchantUser(who=$,state=$)
+   {
+      local oCaster;
+
+      if (who = $ OR state = $)
+      {
+         propagate;
+      }
+
+      oCaster = Nth(state,2);
+
+      if ((who = self AND NOT vbRoomEnchHitCaster)
+         OR (IsClass(oCaster,&Battler)
+            AND NOT Send(oCaster,@AllowBattlerAttack,#victim=who,
+                        #stroke_obj=self)))
+      {
+         return FALSE;
+      }
+
+      propagate;
+   }
+
+   TryRuinShot(who=$,state=0)
+   "Returns TRUE if it manages to knock down a shot."
+   {
+      local iMissChance, iSpellPower, oCaster;
+
+      oCaster = Nth(state,2);
+
+      if ((who = self AND NOT vbRoomEnchHitCaster)
+         OR (IsClass(oCaster,&Battler)
+            AND NOT Send(oCaster,@AllowBattlerAttack,#victim=who,
+                        #stroke_obj=self)))
+      {
+         return FALSE;
+      }
+
+      iSpellPower = First(state) % 100;
+      // This is a bit less than Winds which is (iSpellpower/2 + 10),
+      // bound 25 to 60.
+      iMissChance = iSpellpower / 3 + 10;
+      iMissChance = Bound(iMissChance,15,40);
       if Random(1,100) < iMissChance
       {
-         send(who,@MsgSendUser,#message_rsc=sandstorm_miss_rsc);
-         
+         Send(who,@MsgSendUser,#message_rsc=sandstorm_miss_rsc);
+
          return TRUE;
       }
 
       return FALSE;
    }
-   
+
+   HasConditionalEffect()
+   {
+      return TRUE;
+   }
 
 end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+////////////////////////////////////////////////////////////////////////////////

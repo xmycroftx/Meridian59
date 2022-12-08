@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 OutdoorsI3 is MonsterRoom
 
 constants:
@@ -16,9 +16,11 @@ constants:
 
 resources:
 
+   include i3.lkod
+
    room_OutdoorsI3 = i3.roo
    room_name_OutdoorsI3 ="Main gate of Barloque-- Royal City of Meridian"
-   OutdoorsI3_music = walk1.mid
+   OutdoorsI3_music = walk1.ogg
    outdoorsi3_msg1 = "Today does not seem like a particularly good day to drown."
 
 classvars:
@@ -33,6 +35,8 @@ classvars:
    viFlag_row = 13
    viFlag_col = 15
 
+   viWeatherZone = WEATHER_ZONE_BARLOQUE
+
 properties:
 
    prRoom = room_OutdoorsI3
@@ -44,13 +48,15 @@ properties:
 
    piDirectional_percent = DIRECTIONAL_PERCENT_OUTDOORS
 
-   piGen_time = 45000
-   piGen_percent = 40
+   pbSnowGroundTexture = TRUE
 
-   piInit_count_min = 0
-   piInit_count_max = 2
+   piGen_time = 20000
+   piGen_percent = 80
 
-   piMonster_count_max = 7
+   piInit_count_min = 1
+   piInit_count_max = 4
+
+   piMonster_count_max = 12
 
 messages:
 
@@ -58,7 +64,7 @@ messages:
    {
       plExits = $;
 
-  %% TO TOWN
+  /// TO TOWN
       plExits = Cons([ 6, 11, RID_BAR_SOUTH, 46,30, ROTATE_NONE ],plExits);
       plExits = Cons([ 6, 12, RID_BAR_SOUTH, 46,31, ROTATE_NONE ],plExits);
 
@@ -68,30 +74,37 @@ messages:
 
       plEdge_Exits = Cons([LEAVE_WEST, RID_H3, 25, 47, ROTATE_NONE,ROW_IS_LESS_THAN,22], plEdge_exits);
       plEdge_Exits = Cons([LEAVE_WEST, RID_H3, 32, 47, ROTATE_NONE,ROW_IS_GREATER_THAN,21], plEdge_exits);
-     
+
       propagate;
    }
 
    Constructed()
    {
-      plMonsters = [ [&Centipede, 40], [&SpiderBaby, 60] ];
+      plMonsters = [ [&Centipede, 70], [&Slime, 30] ];
 
-      plGenerators = [ [5, 33], [5, 41], [11, 52], [13, 32],
-                      [14, 23], [11, 6], [21, 5], [25, 14], [23, 36] ];
       propagate;
+   }
+
+   SetMonsterGenPoints()
+   {
+      plGenerators = [ [5, 33], [5, 41], [11, 52], [13, 32],
+                       [14, 23], [11, 6], [21, 5], [25, 14], [23, 36] ];
+
+      return;
    }
 
    StandardLeaveDir(what = $,dir = $,pos = $,new_room_num = $)
    {
-      if (dir = LEAVE_NORTH) and (IsClass(what,&Player))
+      if (dir = LEAVE_NORTH) AND (IsClass(what,&Player))
       {
-	 send(what,@MsgSendUser,#message_rsc = outdoorsi3_msg1);
-	 return;
-      }              
+         Send(what,@MsgSendUser,#message_rsc = outdoorsi3_msg1);
+
+         return;
+      }
+
       propagate;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 

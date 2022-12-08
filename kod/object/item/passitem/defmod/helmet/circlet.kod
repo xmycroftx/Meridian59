@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Circlet is Helmet
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include circlet.lkod
 
    circlet_name_rsc = "circlet"
    circlet_icon_rsc = invcirc.bgf
@@ -44,7 +46,10 @@ classvars:
    viGround_group = 1
    viInventory_group = 1
 
-   viDefense_base = 5               % This is the default value for piDefense_bonus
+   // This is the default value for piDefense_bonus
+   viDefense_base = 5
+
+   viLayer = 1
 
 properties:
 
@@ -85,7 +90,7 @@ messages:
       propagate;
    }
 
-   % these 3 called by player, for normal 3rd-person overlays on user.
+   // these 3 called by player, for normal 3rd-person overlays on user.
 
    GetOverlay(animation = $)
    {
@@ -102,6 +107,10 @@ messages:
       return TRUE;
    }
 
+   GetHeatDamage()
+   {
+      return 1;
+   }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

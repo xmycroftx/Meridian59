@@ -50,7 +50,7 @@ void LookListSetContents(HWND hwndListBox, list_type contents, int flags)
    
    /* In single selection box, make 1st item default.  In multiple selection,
     * only highlight 1st item if there is just 1 item AND item doesn't need an amount */
-   if ((flags & LD_MULTIPLESEL) && contents->next == NULL)
+   if ((flags & LD_MULTIPLESEL) && contents && contents->next == NULL)
    {
       obj = (object_node *) contents->data;
       if (!(info->flags & LD_AMOUNTS) || !IsNumberObj(obj->id))
@@ -336,6 +336,9 @@ void LookCommand(HWND hDlg, int ctrl_id, HWND hwndCtl, UINT codeNotify)
 	 break;
 
       case LBN_SELCHANGE:
+#if 0
+	 LookSelChange(hwndCtl);
+#else
 	 index = ListBox_GetCurSel(info->hwndListBox);
 	 obj = (object_node *) ListBox_GetItemData(info->hwndListBox, index);
 	 WindowBeginUpdate(info->hwndQuanList);
@@ -361,6 +364,7 @@ void LookCommand(HWND hDlg, int ctrl_id, HWND hwndCtl, UINT codeNotify)
 	 ListBox_SetSel(info->hwndQuanList,FALSE,index);
 	 WindowEndUpdate(info->hwndQuanList);
 
+#endif
 	 break;
       }
       break;

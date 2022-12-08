@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 OrcCave2 is MonsterRoom
 
 constants:
@@ -16,10 +16,12 @@ constants:
 
 resources:
 
+   include orccave2.lkod
+
    room_orccave2 = oc02.roo
    room_name_orccave2 = "An Enigmatic Chamber"
 
-   orccave2_music = orc1.mid
+   orccave2_music = orc1.ogg
 
 classvars:
 
@@ -52,11 +54,23 @@ messages:
 
    Constructed()
    {
-      plMonsters = [ [&Orc, 70], [&OrcWizard, 30] ];
-      plGenerators = [[44,33],[40,40],[34,46],[17,11],[30,15],[11,17],
-	 [19,50],[27,50],[25,44],[25,34],[30,30],[27,21],[009,30],[009,35]];
-      
+      plMonsters = [ [&Orc, 20], [&OrcWizard, 50], [&CaveOrc, 30] ];
+
       propagate;
+   }
+
+   SetMonsterGenPoints(bRandomGen = TRUE)
+   {
+      if (bRandomGen)
+      {
+         return;
+      }
+
+      plGenerators = [[41,33], [40,42], [32,45], [15,14], [34,13],
+                      [13,17], [19,48], [27,50], [23,33], [31,31],
+                      [11,31], [12,46], [20,65], [28,66], [35,60] ];
+
+      return;
    }
 
    CreateStandardExits()
@@ -68,7 +82,7 @@ messages:
 
       propagate;
    }
-   
+
    CreateStandardObjects()
    {
       include oc02.ktm;
@@ -77,4 +91,4 @@ messages:
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

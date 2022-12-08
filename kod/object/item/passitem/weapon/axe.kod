@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Axe is Weapon
 
 constants:
@@ -16,12 +16,14 @@ constants:
 
 resources:
 
+   include axe.lkod
+
    axe_name_rsc = "axe"
    axe_icon_rsc = axe.bgf
    axe_desc_rsc = \
    "Heavy and razor sharp, this great axe is extremely "
-   "dangerous.  Its head can cleave even the thick hide "
-   "of trolls."
+   "dangerous.  Its head cannot cleave the thick hide "
+   "of trolls, but more fleshy creatures will not be so lucky."
 
    axe_window_overlay_rsc = povaxe.bgf
    axe_player_overlay = axeov.bgf
@@ -33,12 +35,12 @@ classvars:
 
    viIndefinite = ARTICLE_AN
 
-   % Axes are normal quality slashing weapons.
+   // Axes are normal quality slashing weapons.
    viWeaponType = WEAPON_TYPE_SLASH
    viWeaponQuality = WEAPON_QUALITY_NORMAL
 
    viProficiency_Needed = SKID_PROFICIENCY_AXE
-   
+
    viValue_average = 600
    viWeight = 90
    viBulk = 90
@@ -52,9 +54,9 @@ classvars:
 
 properties:
 
-   piAttack_type = ATCK_WEAP_NONMAGIC+ATCK_WEAP_SLASH
+   piAttack_type = ATK_TYPE_NONMAGIC+ATK_TYPE_SLASH
 
 messages:
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

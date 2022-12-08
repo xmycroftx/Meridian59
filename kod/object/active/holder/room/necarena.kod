@@ -1,26 +1,26 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 NecArena is Room
 
 constants:
 
    include blakston.khd
 
-   % Boundaries of the playing field
+   // Boundaries of the playing field
    NORTH_BOUNDARY = 8
    SOUTH_BOUNDARY = 17
    WEST_BOUNDARY = 7
    EAST_BOUNDARY = 19
 
-   % Sector ids for moving platforms and lava pit.
+   // Sector ids for moving platforms and lava pit.
    NW_PLATFORM = 12
    NE_PLATFORM = 11
    E_PLATFORM = 10
@@ -30,33 +30,29 @@ constants:
    CENTER_PLATFORM = 8
    LAVA_PIT = 5
 
-   % Sector states
+   // Sector states
    UP = 1
    DOWN = 2
 
-   % How long between lava checks?
+   // How long between lava checks?
    LAVA_TIMER = 1000
 
-   % What's the delay before we send them to the shrine?
+   // What's the delay before we send them to the shrine?
    SHRINE_DELAY = 3000
 
    SHRINE_USED = 3 * 60 * 1000
 
-   % Delay after shrine is used before people are teleported back.
+   // Delay after shrine is used before people are teleported back.
    TELEPORT_DELAY = 5000
 
 resources: 
+   include necarena.lkod
+
 
    name_NecArena = "Goad's Grinder"
    room_NecArena = necarena.roo
-   NecArena_music = nec02.mid
-
+   NecArena_music = nec02.ogg
    NecArena_no_offer = "Goad hisses, \"No helping the sacrifices.\""
-   NecArena_no_attack = "If you want to die, come onto the arena floor."
-   NecArena_no_spell = "If you want to die, come onto the arena floor."
-   NecArena_no_rescue = "Sorry fool, there's no escape!"
-   NecArena_no_target = "Sorry fool."
-   NecArena_between_bouts = "The time to die has not yet come!"
 
 classvars:
 
@@ -66,6 +62,8 @@ classvars:
    viTeleport_col = 13
 
    viPermanent_flags = ROOM_SAFE_DEATH
+
+   vbAccessibleForFollowers = FALSE
 
 properties:
 
@@ -84,19 +82,17 @@ properties:
 
    pbLocked = FALSE
 
-   ptSafeLimit = $
-
-   % Used to override the advancement and death checks.
-   pbRealDeath = FALSE  
+   // Used to override the advancement and death checks.
+   pbRealDeath = FALSE
 
    pbShrineInUse = FALSE
 
-   % Keeps track of people who get to go to the shrine.
+   // Keeps track of people who get to go to the shrine.
    plGoToShrine = $
-   % Delays sending winners to the shrine - for suspense.
-   ptGoToShrineTimer = $  
+   // Delays sending winners to the shrine - for suspense.
+   ptGoToShrineTimer = $
 
-   % Keeps track of whether or not a given start possition is occupied.
+   // Keeps track of whether or not a given start possition is occupied.
    plOccupied = $
 
    poShrine = $
@@ -104,34 +100,25 @@ properties:
    ptCheckLavaTimer = $
    ptShrineUsedTimer = $
    ptDelayedTeleportTimer = $
-   
+
 messages:
 
-
-   CanOffer(who = $, target = $)
+   CanOffer(who=$,target=$)
    {
       if who = $ OR target = $
       {
          return FALSE;
       }
 
-      if poWatcher = $
-      {
-         return TRUE;
-      }  
-
-      if NOT Send(poWatcher,@FightInSession)
-      {
-         return TRUE;
-      }
-
-      if Send(poWatcher,@IsCombatant,#who=who) =
-         Send(poWatcher,@IsCombatant,#who=target)
+      if (poWatcher = $
+         OR NOT Send(poWatcher,@FightInSession)
+         OR (Send(poWatcher,@IsCombatant,#who=who)
+            = Send(poWatcher,@IsCombatant,#who=target)))
       {
          return TRUE;
       }
 
-      Send(who,@msgSenduser,#message_rsc=NecArena_no_offer);
+      Send(who,@MsgSendUser,#message_rsc=NecArena_no_offer);
 
       return FALSE;
    }
@@ -140,32 +127,34 @@ messages:
    {
       if poWatcher = $
       {
-         debug("Goad is nil!  Goad should never be nil!  Goad was moved!");
+         Debug("Goad is nil!  Goad should never be nil!  Goad was moved!");
          poWatcher = what;
          Send(self,@NewHold,#what=what,#new_row=13,#new_col=20,
-              #fine_row=0,#new_angle=ANGLE_WEST);
+               #fine_row=0,#new_angle=ANGLE_WEST);
       }
 
       return;
    }
 
-   % There are no consequences for killing in the arena.
+   // There are no consequences for killing in the arena.
    SafePlayerAttack()
    {
-      return True;
+      return TRUE;
    }
 
-   NewHold(what = $,new_row = 22, new_col = 11)
+   NewHold(what=$,new_row=22,new_col=11)
    "will move anyone who enters in the playing field into the stands."
    "This should only be necessary for people who drop link."
    {
       if IsClass(what,&Item)
       {
-         % Have to post this to handle numberitems and SYS can't handle posts.
-         Post(self,@PostShrineCheckItem,#what=what);  
+         // Have to post this to handle numberitems and SYS can't handle posts.
+         Post(self,@PostShrineCheckItem,#what=what);
       }
 
-      if IsClass(what,&User) AND Send(what,@GetOwner) = $
+      if IsClass(what,&User)
+         AND Send(what,@GetOwner) = $
+         AND NOT Send(poWatcher,@IsCombatant,#who=what)
       {
          Post(self,@Teleport,#what=what,#outofplay=TRUE);
       }
@@ -176,11 +165,11 @@ messages:
    PostShrineCheckItem(what=$)
    {
       Send(SYS,@ShrineCheckItem,#ShrineObj=poShrine,#what=what,#Radius=2);
-      debug("Sent SYS", poshrine,what,2);
+      Debug("Sent SYS", poShrine,what,2);
 
       return;
    }
-   
+
    CreateStandardExits()
    {
       plEdge_Exits = $;
@@ -192,29 +181,29 @@ messages:
    Constructed()
    {
       plOccupied = [ 0,0,0,0,0,0 ];
-      poShrine = create(&Shrine,#shrine_num=SHRINE_BRAX);
+      poShrine = Create(&Shrine,#shrine_num=SHRINE_BRAX);
       Send(self,@NewHold,#what=poShrine,#new_row=22,#new_col=13);
 
       propagate;
    }
 
-   CreateStandardObjects()   
+   CreateStandardObjects()
    "Creates the watcher"
    {
       if poWatcher = $
       {
          poWatcher = Create(&Goad);
          Send(self,@NewHold,#what=poWatcher,#new_row=7,#new_col=13,
-              #fine_row=0,#new_angle=ANGLE_WEST);
+               #fine_row=0,#new_angle=ANGLE_WEST);
       }
 
       propagate;
    }
 
-   InPlay(what=$,row=0,col=0, bNonPlayerOkay = FALSE)  
-   "Returns true if player is on playing field, false if not."
-   "Can check either by row and column or by object."
-   "Returns false if not a player, unless the nonPlayerOkay flag is marked"
+   InPlay(what=$,row=0,col=0,bNonPlayerOkay=FALSE)
+   "Returns true if player is on playing field, false if not. "
+   "Can check either by row and column or by object. "
+   "Returns false if not a player, unless the nonPlayerOkay flag is marked."
    {
       local iRow, iCol;
 
@@ -229,73 +218,74 @@ messages:
             iRow = row;
             iCol = Col;
          }
+         else if IsClass(what,&Player) OR bNonPlayerOkay
+         {
+            iRow = Send(what,@GetRow);
+            iCol = Send(what,@GetCol);
+         }
          else
          {
-            if IsClass(what,&Player) OR bNonPlayerOkay
-            {
-               iRow = Send(what,@GetRow);
-               iCol = Send(what,@GetCol);
-            }
-            else
-            {
-               return FALSE;
-            }
+            return FALSE;
          }
 
-      
          if iRow < NORTH_BOUNDARY
             OR iRow > SOUTH_BOUNDARY
             OR iCol > EAST_BOUNDARY
             OR iCol < WEST_BOUNDARY
-         {                                                                       
+         {
+            return FALSE;
+         }
+         else if bNonPlayerOkay
+            AND (iRow = NORTH_BOUNDARY
+               OR iRow = SOUTH_BOUNDARY
+               OR iCol = EAST_BOUNDARY
+               OR iCol = WEST_BOUNDARY)
+         {
+            /// special for walls
             return FALSE;
          }
          else
-         {   
-            %% special for walls
-            if bNonPlayerOkay
-               AND (iRow = NORTH_BOUNDARY
-                    OR iRow = SOUTH_BOUNDARY
-                    OR iCol = EAST_BOUNDARY
-                    OR iCol = WEST_BOUNDARY)
-            {
-               return FALSE;
-            }
-            else
-            {
-               return TRUE;
-            }
+         {
+            return TRUE;
          }
       }
 
       return;
    }
 
-   isArena()  
+   IsArena()
    {
-      % This does not need to change for Goad's Grinder. 
+      // This does not need to change for Goad's Grinder.
       return TRUE;
    }
 
-   Teleport(what=$,goinplay=FALSE,outofplay=FALSE)  
+   Teleport(what=$,goinplay=FALSE,outofplay=FALSE,mob_override=FALSE)
    {
       local row, col, angle, rand, i;
 
+      // Don't teleport players if logged off.
+      if (what = $
+         OR (IsClass(what,&User)
+            AND NOT Send(what,@IsLoggedOn)))
+      {
+         return;
+      }
+
       i = 1;
 
-      if goinplay              
+      if goinplay
       {
-         % teleport to the playing field
-         rand = random(1,6);
+         // teleport to the playing field
+         rand = Random(1,6);
 
-         if length(plOccupied) <> 6
+         if Length(plOccupied) <> 6
          {
             return FALSE;
          }
 
-         while Nth(plOccupied,rand) AND i < 20
+         while Nth(plOccupied,rand) <> $ AND i < 20
          {
-            rand = random(1,6);
+            rand = Random(1,6);
             i = i + 1;
          }
 
@@ -316,49 +306,49 @@ messages:
             row = 10;
             col = 9;
          }
-         if rand = 2
+         else if rand = 2
          {
             row = 15;
             col = 9;
          }
-         if rand = 3
+         else if rand = 3
          {
             row = 10;
             col = 13;
          }
-         if rand = 4
+         else if rand = 4
          {
             row = 15;
             col = 13;
          }
-         if rand = 5
+         else if rand = 5
          {
             row = 10;
             col = 17;
          }
-         if rand = 6
+         else if rand = 6
          {
             row = 15;
             col = 17;
          }
 
          Send(SYS,@UtilGoNearSquare,#what=what,#where=self,
-              #new_row=row,#new_col=col);
+              #new_row=row,#new_col=col,#mob_override=mob_override);
 
-         % Mark position as occupied.
-         SetNth(plOccupied,rand,1);  
+         // Mark position as occupied, with the player object number.
+         SetNth(plOccupied,rand,what);
 
          if ptCheckLavaTimer = $
          {
             ptCheckLavaTimer = CreateTimer(self,@CheckLava,LAVA_TIMER);
-         }         
+         }
 
          return;
       }
 
       if outofplay = TRUE
       {
-         rand = random(1,3);
+         rand = Random(1,3);
 
          if rand = 1
          {
@@ -366,71 +356,64 @@ messages:
             col = 6;
             angle = ANGLE_EAST;
          }
+         else if rand = 2
+         {
+            row = 9;
+            col = 20;
+            angle = ANGLE_WEST;
+         }
          else
          {
-            if rand = 2
-            {
-               row = 9;
-               col = 20;
-               angle = ANGLE_WEST;
-            }
-            else
-            {
-               row = 7;
-               col = 13;
-               angle = ANGLE_SOUTH;
-            }
+            row = 7;
+            col = 13;
+            angle = ANGLE_SOUTH;
          }
 
          Send(SYS,@UtilGoNearSquare,#what=what,#where=self,
-              #new_row=row,#new_col=col,#new_angle=angle);
+               #new_row=row,#new_col=col,#new_angle=angle,
+               #mob_override=mob_override);
 
          return;
       }
 
       if Send(poWatcher,@IsCombatant,#who=what)
       {
-         % teleport to the playing field
-         rand = random(1,6);
+         // Teleport to the playing field
+         rand = Random(1,6);
 
          if rand = 1
          {
             row = 10;
             col = 9;
          }
-
-         if rand = 2
+         else if rand = 2
          {
             row = 15;
             col = 9;
          }
-
-         if rand = 3
+         else if rand = 3
          {
             row = 10;
             col = 13;
          }
-
-         if rand = 4
+         else if rand = 4
          {
             row = 15;
             col = 13;
          }
-
-         if rand = 5
+         else if rand = 5
          {
             row = 10;
             col = 17;
          }
-
-         if rand = 6
+         else if rand = 6
          {
             row = 15;
             col = 17;
          }
 
          Send(SYS,@UtilGoNearSquare,#what=what,#where=self,
-              #new_row=row,#new_col=col);
+               #new_row=row,#new_col=col,#mob_override=mob_override);
 
          return;
       }
@@ -443,41 +426,84 @@ messages:
          col = 6;
          angle = ANGLE_EAST;
       }
+      else if rand = 2
+      {
+         row = 9;
+         col = 20;
+         angle = ANGLE_WEST;
+      }
       else
       {
-         if rand = 2
-         {
-            row = 9;
-            col = 20;
-            angle = ANGLE_WEST;
-         }
-         else
-         {
-            row = 7;
-            col = 13;
-            angle = ANGLE_SOUTH;
-         }
+         row = 7;
+         col = 13;
+         angle = ANGLE_SOUTH;
       }
 
       Send(SYS,@UtilGoNearSquare,#what=what,#where=self,
-           #new_row=row,#new_col=col,#new_angle=angle);
+            #new_row=row,#new_col=col,#new_angle=angle,
+            #mob_override=mob_override);
 
       return;
-    }
+   }
 
-   BeginFight(lCombatants=$)  
+   IsValidTarget(who=$)
+   {
+      if poWatcher = $
+      {
+         Debug("IsValidTarget called with no watcher in existence!");
+
+         return;
+      }
+
+      return (Send(poWatcher,@IsCombatant,#who=who)
+         AND Send(poWatcher,@FightInSession));
+   }
+
+   ArenaBeginFight(lCombatants=$)
    {
       plOccupied = [0,0,0,0,0,0];
 
       return;
    }
 
-   EndFight(lCombatants = $)
+   ArenaCombatantReneges(who=$)
+   "Clears a combatant from the occupied list."
    {
+      if who <> $
+         AND plOccupied <> $
+         AND FindListElem(plOccupied,who)
+      {
+         SetNth(plOccupied,FindListElem(plOccupied,who),0);
+      }
+
+      return;
+   }
+
+   ArenaEndFight(lCombatants=$)
+   {
+      local i, j, k;
+
       if plGoToShrine <> $
       {
          ptGoToShrineTimer = CreateTimer(self,@GoToShrineTimer,SHRINE_DELAY);
       }
+
+      // Remove radius enchantments
+      foreach i in plActive
+      {
+         j = First(i);
+         if IsClass(j,&Player)
+            OR (IsClass(j,&Monster) AND NOT ((Send(j,@GetBehavior) & AI_NPC)))
+         {
+            foreach k in Send(j,@GetRadiusEnchantments)
+            {
+               Send(Nth(k,2),@RemoveEnchantment,#who=j,#state=Nth(k,3));
+            }
+         }
+      }
+
+      // Remove room enchantments
+      Send(self,@RemoveAllEnchantments);
 
       if ptCheckLavaTimer <> $
       {
@@ -498,6 +524,7 @@ messages:
    UnlockArena()
    {
       pbLocked = FALSE;
+
       return;
    }
 
@@ -510,16 +537,23 @@ messages:
 
    SomethingKilled(what=$,victim=$)
    {
-      % You get to goto the shrine if you kill someone with 10 more hps
-      %  than you have.
-      if IsClass(what,&User) AND IsClass(victim, &User)
+      // You get to go to the shrine if you kill someone with 10 more hps
+      //  than you have.
+      if IsClass(what,&User)
+         AND IsClass(victim,&User)
       {
          if (Send(what,@GetBaseMaxHealth) + 10) < Send(victim,@GetBaseMaxHealth)
          {
-            plGoToShrine = cons(what,plGotoShrine);
+            plGoToShrine = Cons(what,plGotoShrine);
          }
 
-         Send(self,@teleport,#what=victim,#outofplay=TRUE);
+            Send(self,@Teleport,#what=victim,#outofplay=TRUE);
+      }
+
+      if IsClass(victim,&Monster)
+         AND NOT IsClass(victim,&Goad)
+      {
+         Post(victim,@Delete);
       }
 
       propagate;
@@ -527,30 +561,30 @@ messages:
 
    GoToShrineTimer()
    {
-     ptGoToShrineTimer = $;
+      ptGoToShrineTimer = $;
 
-     Send(self,@GoToShrine); 
+      Send(self,@GoToShrine);
 
-     return;
+      return;
    }
 
    GoToShrine()
    {
       local i;
-      
+
       if plGoToShrine <> $
       {
          pbShrineInUse = TRUE;
-         for i in plGoToShrine
+         foreach i in plGoToShrine
          {
             if IsClass(Send(i,@GetOwner),&NecArena)
             {
-               Send(SYS,@utilGoNearSquare,#what=i,#where=self,
-                    #new_row=19,#new_col=13,#fine_row=32,#fine_col=32,
-                    #new_angle = ANGLE_SOUTH);
+               Send(SYS,@UtilGoNearSquare,#what=i,#where=self,
+                     #new_row=19,#new_col=13,#fine_row=32,#fine_col=32,
+                     #new_angle = ANGLE_SOUTH);
 
-               % Only want one of these at a time.
-               if ptShrineUsedTimer = $ 
+               // Only want one of these at a time.
+               if ptShrineUsedTimer = $
                {
                   ptShrineUsedTimer = CreateTimer(self,@ShrineUsedTimer,SHRINE_USED);
                }
@@ -570,9 +604,9 @@ messages:
    }
 
    ShrineUsed()
-   % Can be called by the shrine or a timer so check to kill the timer here as well.
+   "Can be called by the shrine or a timer so check to kill the timer here as well."
    {
-      local bCalledByShrine,iCntr;    
+      local bCalledByShrine,iCntr;
 
       bCalledByShrine = FALSE;
 
@@ -580,12 +614,12 @@ messages:
 
       if ptShrineUsedTimer <> $
       {
-         % So we know to delay teleportation a moment or two
-         bCalledByShrine = TRUE;  
+         // So we know to delay teleportation a moment or two
+         bCalledByShrine = TRUE;
          DeleteTimer(ptShrineUsedTimer);
          ptShrineUsedTimer = $;
       }
-     
+
       if bCalledByShrine
       {
          ptDelayedTeleportTimer = CreateTimer(self,@DelayedTeleportTimer,
@@ -593,16 +627,16 @@ messages:
       }
       else
       {
-         for iCntr in plGoToShrine
+         foreach iCntr in plGoToShrine
          {
-            Send(iCntr,@Teleport,#what=iCntr,#OutOfPlay=TRUE);
+            Send(self,@Teleport,#what=iCntr,#OutOfPlay=TRUE);
          }
       }
 
       plGoToShrine = $;
 
       return;
-   }  
+   }
 
    DelayedTeleportTimer()
    {
@@ -615,8 +649,8 @@ messages:
    DelayedTeleport()
    {
       local iCntr;
-      
-      for iCntr in plGoToShrine
+
+      foreach iCntr in plGoToShrine
       {
          Send(self,@Teleport,#what=iCntr,#OutOfPlay=TRUE);
       }
@@ -629,16 +663,18 @@ messages:
       return poWatcher;
    }
 
-   CheckLava(flag = TRUE)
+   CheckLava(flag=TRUE)
    {
-      local i, oVictim, irow, icol, ifine_row, ifine_col, bInStands;
+      local i, oVictim, iRow, iCol, ifine_row, ifine_col, bInStands;
 
-      For i in plActive
+      foreach i in plActive
       {
-         if isClass(First(i),&User) AND Send(self,@InPlay,#what = First(i))
-         {
-            oVictim = First(i);
+         oVictim = First(i);
 
+         if (IsClass(oVictim,&Battler)
+               AND NOT IsClass(oVictim,&Goad))
+            AND Send(self,@InPlay,#what=oVictim,#bNonPlayerOkay=TRUE)
+         {
             iRow = Send(oVictim,@GetRow);
             iCol = Send(oVictim,@GetCol);
 
@@ -656,25 +692,14 @@ messages:
                {
                   iFine_row = Send(oVictim,@GetFineRow);
                   iFine_col = Send(oVictim,@GetFineCol);
-                    
-                  if iCol = 7
-                  {
-                     if (iFine_row + iFine_col) <= 64
-                     {
-                        bInStands = TRUE;
-                     }
-                  }
 
-                  if iCol = 19
+                  if ((iCol = 7 AND iFine_row + iFine_col <= 64)
+                     OR (iCol = 19 AND iFine_col >= iFine_row))
                   {
-                     if iFine_col >= iFine_row
-                     {
-                        bInStands = TRUE;
-                     }
+                     bInStands = TRUE;
                   }
-                     
                }
-                  
+
                if NOT bInStands
                {
                   Send(self,@CookVictim,#what=oVictim);
@@ -685,24 +710,40 @@ messages:
 
       if flag
       {
-         ptCheckLavaTimer = CreateTimer(self,@Checklava,(1*1000));
+         ptCheckLavaTimer = CreateTimer(self,@CheckLava,(1*1000));
       }
 
       return;
    }
 
-   CookVictim(what = $)
+   CookVictim(what=$)
    {
-      % Message: You die!!!!
-      Send(what,@killed,#what=self);
-      Send(self,@somethingkilled,#what=self,#victim=what);
+      // Message: You die!!!!
+      if IsClass(what,&Monster)
+         AND NOT IsClass(what,&Goad)
+      {
+         Post(what,@Delete);
+      }
+      else
+      {
+         Post(what,@Killed,#what=self);
+      }
+
+      Send(self,@SomethingKilled,#what=self,#victim=what);
 
       return;
    }
-   
-   ShrineInUse()
+
+   ArenaCanStartFight()
    {
-      return pbShrineInUse;
+      // No fighting if player at shrine.
+      return NOT pbShrineInUse;
+   }
+
+   ArenaCanAddCombatants(lCombatants = $)
+   {
+      // Small fighting area, 6 max.
+      return (Length(lCombatants) <= 6);
    }
 
    Delete()
@@ -711,12 +752,12 @@ messages:
       {
          DeleteTimer(ptCheckLavaTimer);
       }
-      
+
       if ptShrineUsedTimer <> $
       {
          DeleteTimer(ptShrineUsedTimer);
       }
-      
+
       if ptDelayedTeleportTimer <> $
       {
          DeleteTimer(ptDelayedTeleportTimer);
@@ -730,5 +771,15 @@ messages:
       propagate;
    }
 
+   ArenaGetMaxCombatants()
+   {
+      return 6;
+   }
+   
+   CanDropMonsterLoot()
+   {
+      return FALSE;
+   }
+
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

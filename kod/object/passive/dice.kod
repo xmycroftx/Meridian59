@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Dice is PassiveObject
 
 constants:
@@ -18,6 +18,8 @@ constants:
    ROLL_DELAY = 1000
 
 resources:
+
+   include dice.lkod
 
    dice_name = "pair of dice"
    dice_desc = "Two six sided dice which can be used in numerous games of chance.  Eyeing the dice, you begin to wonder if you are feeling lucky tonight."
@@ -39,20 +41,20 @@ resources:
    dieroll_rsc = "%s%s rolls %s%s and gets %s!"
    diceroll_rsc = "%s%s rolls %s%s and gets %s and %s! "
 
-   dice_wav = dice.wav
+   dice_wav = dice.ogg
 
 classvars:
-      
-   viObject_flags = ACTIVATE_YES 
+
+   viObject_flags = OF_ACTIVATABLE
 
 properties:
 
    vbPair = FALSE
    vrName = dice_name
-   vrDesc = dice_desc   
+   vrDesc = dice_desc
    vrIcon = dice_icon
 
-   ptRoll = $     %% This is simply used to keep the spam level tolerable.  3 seconds after each roll.
+   ptRoll = $     /// This is simply used to keep the spam level tolerable.  3 seconds after each roll.
 
 messages:
 
@@ -154,7 +156,7 @@ messages:
       if oRoom = $ or not isClass(oRoom, &Room)
       {  return FALSE;  }
 
-      for i in send(oRoom,@GetHolderActive)
+      foreach i in send(oRoom,@GetHolderActive)
       {
 	 if not isClass(first(i),&Player)
 	 {
@@ -174,7 +176,7 @@ messages:
 	       continue;
 	    }
 
-	    % message comes from except_rsc, with parm1 missing.
+	    // message comes from except_rsc, with parm1 missing.
 	    send(first(i),@MsgSendUser,#message_rsc=except_rsc,
 	       #parm1=parm2,#parm2=parm3,#parm3=parm4,#parm4=parm5,
 	       #parm5=parm6,#parm6=parm7,#parm7=parm8);
@@ -205,5 +207,5 @@ messages:
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 

@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 RemoveCurse is Spell
 
 constants:
@@ -16,16 +16,15 @@ constants:
 
 resources:
 
+   include remcurse.lkod
+
    RemoveCurse_name_rsc = "remove curse"
    RemoveCurse_icon_rsc = iremcurs.bgf
    RemoveCurse_desc_rsc = \
-      "Breaks the magical bond binding you to a cursed item.  "
-      "Requires emeralds to cast."
-   
+      "Breaks the magical bond binding you to a cursed item."
    RemoveCurse_on = "Shal'ille tears the cursed item from your body."
    RemoveCurse_bad_target = \
       "Shal'ille detects no accursed items to strip away."
-
    RemoveCurse_spell_intro = \
       "Shal'ille Lv. 2: Breaks the magical bond binding you to a cursed item."
 
@@ -42,10 +41,11 @@ classvars:
    viSpell_level = 2
    viMana = 9
    viChance_To_Increase = 30
+   viMeditate_ratio = 20
 
    viFlash = FLASH_GOOD
 
-properties:   
+properties:
 
 messages:
 
@@ -65,8 +65,8 @@ messages:
    CanPayCosts(who = $, lTargets = $)
    {
       local target, i;
-      
-      % Can cast spell if the 1 target item is a user
+
+      // Can cast spell if the 1 target item is a user
       if Length(lTargets) <> 1
       {
          return FALSE;
@@ -81,7 +81,7 @@ messages:
          return FALSE;
       }
 
-      % Check if there's actually a cursed item on the player.
+      // Check if there's actually a cursed item on the player.
       if NOT Send(target,@IsCursedByItems)
       {
          Send(who,@MsgSendUser,#message_rsc=RemoveCurse_bad_target);
@@ -92,33 +92,36 @@ messages:
       propagate;
    }
 
-   CastSpell(who = $, lTargets = $ )
+   DoSpellEffects(who = $, lTargets = $)
    {
       local oTarget;
 
       oTarget = First(lTargets);
 
-      % Only give message and propagate if player has a cursed item to remove
+      // Only give message and propagate if player has a cursed item to remove
       if Send(oTarget,@RemoveCurseAllItems)
       {
          Send(oTarget,@MsgSendUser,#message_rsc=RemoveCurse_on);
          if IsClass(who,&Player) AND who <> oTarget
          {
             Send(who,@MsgSendUser,#message_rsc=spell_cast_on_target,
-                 #parm1=Send(self,@GetName),
-                 #parm2=Send(oTarget,@GetDef),
-                 #parm3=Send(oTarget,@GetName));
+                  #parm1=Send(self,@GetName),#parm2=Send(oTarget,@GetDef),
+                  #parm3=Send(oTarget,@GetName));
          }
       }
-      
-      propagate;
+
+      return TRUE;
    }
 
    GetPotionClass()
    {
-      RETURN &RemoveCursePotion;
+      return &RemoveCursePotion;
    }
 
+   GetCombatType()
+   {
+      return COMBAT_ACTION_BUFF;
+   }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

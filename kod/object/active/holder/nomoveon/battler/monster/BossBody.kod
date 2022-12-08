@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 OrcPitBossBody is Monster
 
 constants:
@@ -15,9 +15,10 @@ constants:
    include blakston.khd
 
 resources:
-  
+
+   include bossbody.lkod
+
    OrcPitBossBody_name_rsc = "body of the orc pit boss"
-   OrcPitBossBody_live_name = "orc pit boss"
    OrcPitBossBody_icon_rsc = OrcPitbX.bgf
    OrcPitBossBody_desc_rsc = \
       "This is the body of the orc pit boss.  Its head is almost completely "
@@ -26,14 +27,10 @@ resources:
    OrcPitBossBody_dead_icon_rsc = OrcPitbX.bgf
    OrcPitBossBody_dead_name_rsc = "headless orc pit boss body"
 
-   OrcPitBossBody_sound_hit = tr_atkh.wav
-   OrcPitBossBody_sound_miss = tr_atkm.wav
-   OrcPitBossBody_sound_death = tr_dth.wav
-   OrcPitBossBody_sound_aware = tr_awr.wav
-
-   OrcPitBossBody_monster_healing = \
-      "The body of the orc pit boss twitches slightly, its nearly-severed "
-      "neck gurgling grotesquely as its lungs spasm."
+   OrcPitBossBody_sound_hit = tr_atkh.ogg
+   OrcPitBossBody_sound_miss = tr_atkm.ogg
+   OrcPitBossBody_sound_death = tr_dth.ogg
+   OrcPitBossBody_sound_aware = tr_awr.ogg
 
 classvars:
 
@@ -44,22 +41,28 @@ classvars:
    vrDead_name = OrcPitBossBody_dead_name_rsc
 
    viTreasure_type = TID_NONE
-   viAttack_type = ATCK_WEAP_WHIP
+   viAttack_type = ATK_TYPE_WHIP
    viSpeed = SPEED_NONE
    viAttributes = MOB_NOMOVE 
    viDefault_behavior = AI_NOMOVE| AI_NOFIGHT
    viLevel = 1
    viDifficulty = 1
+   viVisionDistance = 1
    viKarma = 0
-
+   viCashmin = 1
+   viCashmax = 1
    vrSound_hit = OrcPitBossBody_sound_hit
    vrSound_miss = OrcPitBossBody_sound_miss
    vrSound_aware = OrcPitBossBody_sound_aware
    vrSound_death = OrcPitBossBody_sound_death
 
-   vrMonster_healing = OrcPitBossBody_monster_healing
+   vbCanPoison = FALSE
+   vbCanBleed = FALSE
+   vbCanSiphon = FALSE
+   vbCanFatigue = FALSE
+   vbCanBurn = FALSE
 
-properties:  
+properties:
 
 messages:
 
@@ -67,12 +70,12 @@ messages:
    {
       local oHead;
 
-      if poOwner <>$
+      if poOwner <> $
       {
          oHead = Create(&OrcPitBossHead,#corpse=corpse);
          Send(poOwner,@NewHold,#what=oHead,
-              #new_row=send(self,@GetRow),#new_col=send(self,@getCol),
-	           #fine_row=send(self,@GetFineRow),#fine_col=send(self,@GetFineCol));
+               #new_row=piRow,#new_col=piCol,
+               #fine_row=piFine_row,#fine_col=piFine_col);
       }
 
       propagate;
@@ -80,7 +83,7 @@ messages:
 
    GetMaxHitPoints()
    {
-      return 100;      
+      return 100;
    }
 
    SendAnimation()
@@ -94,7 +97,43 @@ messages:
    {
       return FALSE;
    }
+ 
+   CanEvilTwin()
+   {
+      return FALSE;
+   }
 
+   CanGetMe()
+   {
+      return TRUE;
+   }
+
+   // Dead people don't regenerate health.
+   CalculateHealthPerTick()
+   {
+      local iHealthPerTick, iBoost, i;
+
+      iHealthPerTick = 0;
+
+      // Additional effects may cause our health to decay.
+      iHealthPerTick += piHealth_Rate;
+
+      iHealthPerTick = Bound(iHealthPerTick,$,0);
+
+      // Add a decay of 1 point per 5 seconds if sitting above the max.
+      if piHealth > 100*piMax_health
+      {
+         iHealthPerTick -= 200;
+      }
+
+      // Stop any decay if we are already sitting at 0 health.
+      if piHealth = 0
+      {
+         iHealthPerTick = Bound(iHealthPerTick,0,$);
+      }
+
+      return iHealthPerTick;
+   }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

@@ -12,8 +12,8 @@
 #ifndef _MAINDLG_H
 #define _MAINDLG_H
 
-#define MAXMINUTES 3   /* Max # of digits in # of a # of minutes */
-#define MAXTIMEOUT 3   /* Max # of characters in timeout edit box */
+#define MAXMINUTES 5   /* Max # of digits in # of a # of minutes */
+#define MAXTIMEOUT 5   /* Max # of characters in timeout edit box */
 
 #define MAXREGISTERSTR 50  /* Max length of a typed string in register dialog */
 #define MAXNOTE      2048  /* Max length of a typed string in admin note dialog */
@@ -25,9 +25,11 @@ BOOL CALLBACK PasswordDialogProc(HWND hDlg, UINT message, UINT wParam, LONG lPar
 BOOL CALLBACK RegisterDialogProc(HWND hDlg, UINT message, UINT wParam, LONG lParam);
 BOOL CALLBACK AdminNoteDialogProc(HWND hDlg, UINT message, UINT wParam, LONG lParam);
 BOOL CALLBACK PreferencesDialogProc(HWND hDlg, UINT message, UINT wParam, LONG lParam);
+BOOL CALLBACK GraphicsDialogProc(HWND hDlg, UINT message, UINT wParam, LONG lParam);
 
 void AbortPasswordDialog(void);
 void AbortPreferencesDialog(void);
+void AbortGraphicsDialog(void);
 void AbortRegisterDialog(void);
 void AbortAdminNoteDialog(void);
 

@@ -22,6 +22,27 @@ enum {
    HOTSPOT_OVEROVER   = 4,   // Overlay on an overlay
    HOTSPOT_UNDERUNDER = 5,   // Underlay on an underlay
    HOTSPOT_UNDEROVER  = 6,   // Over on an underlay
+   HOTSPOT_OVERUNDEROVERUNDER = 7, // Overlay displayed under underlays of overlays
+};
+
+// Hotspot indexes used in BGFs.
+enum {
+   HS_HEAD = 1,
+   HS_HELM = 2,
+   HS_EYES = 11,
+   HS_MOUTH = 12,
+   HS_TOUPEE = 13,
+   HS_NOSE = 14,
+   HS_RIGHT_HAND = 21,
+   HS_RIGHT_WEAPON = 22,
+   HS_TOKEN = 29,
+   HS_LEFT_HAND = 31,
+   HS_LEFT_WEAPON = 32,
+   HS_TOP_BOW = 32,
+   HS_BOTTOM_BOW = 33,
+   HS_LEGS = 41,
+   HS_EMBLEM = 51,
+   HS_SHIELD_BACK = 61,
 };
 
 // Factor by which overlay offsets are magnified to give extra resolution
@@ -39,17 +60,22 @@ typedef struct {
 
 // Options to DrawObjectBitmap
 typedef struct {
-   PDIB      pdib;       // Object bitmap
-   int       distance;   // Distance to object in FINENESS units
-   BYTE      light;      // Light level to draw object
-   Bool      draw;       // True if object should actually be drawn (False = just compute location)
-   ViewCone *cone;       // Cone in which to draw object
-   int       flags;      // Object flags for special options (invisibility, etc.)
-   int       cutoff;     // Last screen row in which to draw object (to cut off at ground level)
-   BYTE      translation;// Color translation type, 0 = none
-   BYTE      secondtranslation; // Overriding second translation for all overlays.
-   BYTE	     effect;
-   room_contents_node *obj;    // Pointer to room_contents_node for object
+   PDIB         pdib;              // Object bitmap
+   int          distance;          // Distance to object in FINENESS units
+   BYTE         light;             // Light level to draw object
+   Bool         draw;              // True if object should actually be drawn (False = just compute location)
+   ViewCone     *cone;             // Cone in which to draw object
+   int          flags;             // Boolean object flags.
+   BYTE         drawingtype;      // Object flags for drawing effects (invisibility, lighting type etc.)
+   int          minimapflags;      // Flag field for minimap dot drawing
+   unsigned int namecolor;         /* Player name color flags */
+   object_type  objecttype;        /* Enum of object type (i.e. outlaw, murderer, NPC) */
+   moveon_type  moveontype;        // MoveOn type of the object
+   int          cutoff;            // Last screen row in which to draw object (to cut off at ground level)
+   BYTE         translation;       // Color translation type, 0 = none
+   BYTE         secondtranslation; // Overriding second translation for all overlays.
+   BYTE         effect;
+   room_contents_node *obj;         // Pointer to room_contents_node for object
 } DrawObjectInfo;
 
 #define NAME_COLOR_NORMAL_BG   PALETTERGB(0, 0, 0)

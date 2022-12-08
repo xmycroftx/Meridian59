@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 OutdoorsC7 is ObjectRoom
 
 constants:
@@ -16,9 +16,11 @@ constants:
 
 resources:
 
+   include c7.lkod
+
    room_OutdoorsC7 = c7.roo
    room_name_OutdoorsC7 ="Faronath, home of the TreeFolk"
-   OutdoorsC7_music = walk5.mid
+   OutdoorsC7_music = walk5.ogg
 
 classvars:
 
@@ -32,6 +34,8 @@ classvars:
    viFlag_row = 42
    viFlag_col = 15
 
+   viWeatherZone = WEATHER_ZONE_JASPER
+
 properties:
 
    prRoom = room_OutdoorsC7
@@ -43,13 +47,15 @@ properties:
 
    piDirectional_percent = DIRECTIONAL_PERCENT_OUTDOORS
 
-   piGen_time = 45000
+   pbSnowGroundTexture = TRUE
+
+   piGen_time = 25000
    piGen_percent = 80
 
    piInit_count_min = 6
    piInit_count_max = 12
 
-   piMonster_count_max = 8
+   piMonster_count_max = 10
 
 messages:
 
@@ -57,11 +63,22 @@ messages:
    {
       plMonsters = [ [&Spider, 5], [&Ent, 95]];
 
-      plGenerators = [ [3, 11], [5, 35], [13, 10], [14, 22], [19, 7],
-		      [24, 11], [17, 18], [24, 24], [18, 35], [19, 42], 
-		      [23, 35], [39, 9], [45, 11], [40, 17], [34, 28],
-		      [41, 27], [38, 34], [37, 46] ];
       propagate;
+   }
+
+   SetMonsterGenPoints(bRandomGen = TRUE)
+   {
+      if (bRandomGen)
+      {
+         return;
+      }
+
+      plGenerators = [ [3, 11], [5, 35], [13, 10], [14, 22], [19, 7],
+                       [24, 11], [17, 18], [24, 24], [18, 35], [19, 42], 
+                       [23, 35], [39, 9], [45, 11], [40, 17], [34, 28],
+                       [41, 27], [38, 34], [37, 46] ];
+
+      return;
    }
 
    CreateObjectGeneration()
@@ -90,4 +107,4 @@ messages:
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

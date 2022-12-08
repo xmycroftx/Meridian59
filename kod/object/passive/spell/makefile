@@ -5,25 +5,57 @@
 !include $(TOPDIR)\common.mak
 
 DEPEND = ..\spell.bof
-BOFS = heal.bof atakspel.bof rescue.bof earthqua.bof \
-       dmspell.bof mend.bof winds.bof \
-       remcurse.bof blink.bof \
-       cdisease.bof cpoison.bof discord.bof hospice.bof \
-       majheal.bof dishonor.bof \
-       blind.bof hold.bof defile.bof umbrella.bof \
-       creaweap.bof enfeeble.bof shatter.bof swap.bof \
-       brittle.bof creafood.bof dement.bof enchwp.bof fade.bof focus.bof \
-       holywp.bof manabomb.bof unholywp.bof \
-       purify.bof nodebrst.bof \
-       illform.bof identify.bof reveal.bof shroud.bof engrave.bof \
-       cursewp.bof anon.bof boon.bof jala.bof \
-       dispillu.bof summrefl.bof apparitn.bof creasphm.bof forget.bof \
-       seduce.bof morph.bof portlife.bof artifice.bof \
-       forsight.bof bait.bof persench.bof Vertigo.bof \
-       roomench.bof flash.bof animate.bof \
-       holysymb.bof finlrite.bof fdeath.bof multicst.bof \
-       summtwin.bof brthlife.bof glow.bof seance.bof \
-       sweep.bof mysttch.bof relay.bof distill.bof \
-       Dazzle.bof purge.bof elusion.bof walspell.bof
+BOFS = animate.bof \
+       apparitn.bof \
+       atakspel.bof \
+       bait.bof \
+       boon.bof \
+       brittle.bof \
+       brthlife.bof \
+       cdisease.bof \
+       cooldown.bof \
+       cpoison.bof \
+       creafood.bof \
+       creasphm.bof \
+       creaweap.bof \
+       crysmana.bof \
+       debuff.bof \
+       defile.bof \
+       discord.bof \
+       dispillu.bof \
+       distill.bof \
+       dmspell.bof \
+       engrave.bof \
+       fade.bof \
+       fdeath.bof \
+       finlrite.bof \
+       flash.bof \
+       forsight.bof \
+       heal.bof \
+       holysymb.bof \
+       illform.bof \
+       itemench.bof \
+       manabomb.bof \
+       morph.bof \
+       multicst.bof \
+       mysttch.bof \
+       nodebrst.bof \
+       persench.bof \
+       portlife.bof \
+       purge.bof \
+       purify.bof \
+       radiusench.bof \
+       relay.bof \
+       remcurse.bof \
+       roomench.bof \
+       seance.bof \
+       shatter.bof \
+       summrefl.bof \
+       summtwin.bof \
+       swap.bof \
+       sweep.bof \
+       teleportspell.bof \
+       utility.bof \
+       walspell.bof
 
 !include $(KODDIR)\kod.mak

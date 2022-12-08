@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+/////////////////////////////////////////////////////////////////////////////////
 TosSecretPassage is TosRoom
 
 constants:
@@ -16,9 +16,11 @@ constants:
 
 resources:
 
+   include toshidden.lkod
+
    room_name_TosHidden = "Secret Passage"
    room_TosHidden = toshidden.roo
-   TosHidden_music = ksong.mid
+   TosHidden_music = ksong.ogg
 
 classvars:
 
@@ -45,6 +47,10 @@ messages:
 
       plExits = Cons([ 4, 10, RID_TOS_INN_CELLAR, 4, 2, ROTATE_NONE ],plExits);
       plExits = Cons([ 4, 1, RID_TOS_OLD_TAVERN, 6, 11, ROTATE_NONE ],plExits);
+      plExits = Cons([ 1, 8, RID_RATCAVE1, 80, 20, ROTATE_NONE ],plExits);
+      plExits = Cons([ 2, 8, RID_RATCAVE1, 80, 20, ROTATE_NONE ],plExits);
+      plExits = Cons([ 1, 7, RID_RATCAVE1, 80, 20, ROTATE_NONE ],plExits);
+      plExits = Cons([ 2, 7, RID_RATCAVE1, 80, 20, ROTATE_NONE ],plExits);
 
       propagate;
    }
@@ -62,4 +68,4 @@ messages:
 
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

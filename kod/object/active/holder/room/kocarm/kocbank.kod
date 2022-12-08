@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 KocatanBank is KocatanRoom
 
 constants:
@@ -15,16 +15,27 @@ constants:
    include blakston.khd
 
 resources:
+
+   include kocbank.lkod
   
    room_name_kocbank = "The Hungry Vaults"
    room_kocbank = kocbank.roo
-   kocbank_music = song12.mid
+   kocbank_music = song12.ogg
 
    kocbank_locked1 = \
       "~kThe sentry barks, \"Just where do you think you are going?\""
    kocbank_locked2 = \
       "~kHuital ko'Nosak says, \"Our customers are not permitted into the "
       "vaults.  Security, you understand.\""
+
+   kocbank_sign_name = "The Ko'catan Vaults and Bank"
+   kocbank_sign_desc = \
+      "These vaults and bank work the same as their mainland counterparts, "
+      "but any deposits made here will not be accessible from the mainland.  "
+      "Deposits made to mainland vaults or banks will also be inaccessible "
+      "from Ko'catan.\n\nCasting Conveyance on items from Ko'catan or the "
+      "island will send them to these vaults.  Casting the spell from the "
+      "Orc Caves will send items to the mainland (Barloque and Jasper vaults)."
 
 classvars:
 
@@ -82,33 +93,40 @@ messages:
                       [21,11,16,40,OO_BLUE_BOTTLE],[18,10,48,48,OO_POT],
                       [24,10,40,32,OO_bigurn]
                     ];
+
       Send(self,@CreateOrnObjFromList,#lObjlist=lObjCoords1);
 
       Send(self,@NewHold,#what=Create(&KocatanVaultman),
-           #new_row=21,#new_col=10,#fine_row=0,#fine_col=56);
+            #new_row=21,#new_col=10,#fine_row=0,#fine_col=56);
       Send(self,@NewHold,#what=Create(&KocatanBanker),
-           #new_row=19,#new_col=10,#fine_row=24,#fine_col=40);
+            #new_row=19,#new_col=10,#fine_row=24,#fine_col=40);
 
       Send(self,@NewHold,#what=Create(&KocatanSentry),
-           #new_row=8,#new_col=11,#fine_row=56,#fine_col=08);
+            #new_row=8,#new_col=11,#fine_row=56,#fine_col=08);
 
-      % Lighting
+      // Lighting
       oLight = Create(&DynamicLight,#iColor=LIGHT_FIRE,#iIntensity=25);
       Send(self,@NewHold,#what=oLight,#new_row=9,#new_col=4,
-           #fine_row=40,#fine_col=8);
+            #fine_row=40,#fine_col=8);
+
       oLight = Create(&DynamicLight,#iColor=LIGHT_FIRE,#iIntensity=25);
       Send(self,@NewHold,#what=oLight,#new_row=9,#new_col=13,
-           #fine_row=40,#fine_col=32);
+            #fine_row=40,#fine_col=32);
+
       oLight = Create(&DynamicLight,#iColor=LIGHT_FIRE,#iIntensity=25);
       Send(self,@NewHold,#what=oLight,#new_row=13,#new_col=7,
-           #fine_row=24,#fine_col=48);
+            #fine_row=24,#fine_col=48);
+
       oLight = Create(&DynamicLight,#iColor=LIGHT_FIRE,#iIntensity=25);
       Send(self,@NewHold,#what=oLight,#new_row=13,#new_col=9,
-           #fine_row=24,#fine_col=48);
+            #fine_row=24,#fine_col=48);
+
+      Send(self,@NewHold,#what=Create(&Sign,#name=kocbank_sign_name,
+            #desc=kocbank_sign_desc),
+            #new_row=22,#new_col=11,#fine_row=40,#fine_col=12);
 
       propagate;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

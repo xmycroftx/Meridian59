@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 HeatScroll is Scroll
 
 constants:
@@ -16,10 +16,10 @@ constants:
 
 resources:
 
+   include heatscrl.lkod
+
    HeatScroll_label_name_rsc = "scroll of heat"
-   HeatScroll_icon_rsc = scr07.bgf
-   HeatScroll_desc_rsc = \
-      "This scroll is covered with indecipherable mystical writing in a spidery hand."
+   HeatScroll_icon_rsc = scr08.bgf
 
 classvars:
 
@@ -30,9 +30,7 @@ classvars:
 
 properties:
 
-   vrDesc = HeatScroll_desc_rsc
-
 messages:
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

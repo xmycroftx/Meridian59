@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 OrcCave5Extension is MonsterRoom
 
 constants:
@@ -16,13 +16,15 @@ constants:
 
 resources:
 
+   include orccav5x.lkod
+
    room_OrcCave5Ext  = oc5b.roo
    room_name_OrcCave5Ext =  "A spring of vitality"
 
-   OrcCave5Ext_music = orcpit.mid
+   OrcCave5Ext_music = orcpit.ogg
    
    OrcCave5Ext_drink = "You drink from the life-giving waters, and feel refreshed!"
-   OrcCave5Ext_drink_sound =  drink.wav
+   OrcCave5Ext_drink_sound =  drink.ogg
 
 classvars:
 
@@ -76,7 +78,7 @@ messages:
 
    UserDrink(who=$)
    {
-      %% someone presses space bar in the pool, gets a cute little boost.
+      /// someone presses space bar in the pool, gets a cute little boost.
       if NOT Send(who,@ReqEatSomething,#filling=viFilling,#what=self)
       {
          return TRUE;
@@ -92,7 +94,7 @@ messages:
    ModifyChanceToImprove(who=$,oSpellSkill=$,chance=0)
    "This takes a spell/skill that who is trying to advance and modifies the improve_chance."
    {
-      % Return a reduced chance.  This is a popular botting spot.
+      // Return a reduced chance.  This is a popular botting spot.
       return (chance / 3);
    }
 
@@ -107,4 +109,4 @@ messages:
 
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

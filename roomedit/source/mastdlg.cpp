@@ -133,7 +133,7 @@ void TMasterDialog::SetupWindow ()
 // EvDrawItem
 // ----------
 //
-void TMasterDialog::EvDrawItem (UINT ctrlId, const DRAWITEMSTRUCT far& drawInfo)
+void TMasterDialog::EvDrawItem (UINT ctrlId, const DRAWITEMSTRUCT& drawInfo)
 {
 	char Buf[128];
 

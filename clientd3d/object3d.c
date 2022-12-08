@@ -58,10 +58,6 @@ ObjectRange visible_objects[MAXOBJECTS];    /* Where objects are on screen */
 // Inner loops for drawing objects with special effects
 extern DrawingLoop drawing_loops[];
 
-// Main client windows current viewport area
-extern int main_viewport_width;
-extern int main_viewport_height;
-
 /* local function prototypes */
 static void SortObjects(DrawnObject *objects, int *indices, int max_object);
 static void ComputeObjectArea(PDIB pdib, int center, int distance, int height, AREA *a, int *cutoff);
@@ -114,7 +110,12 @@ BOOL DrawObject3D(DrawnObject *object, ViewCone *clip)
 	dos.light  = object->light;
 	dos.draw   = object->draw;
 	dos.cone   = clip;
-	dos.flags  = object->flags;
+	dos.flags = object->flags;
+	dos.drawingtype  = object->drawingtype;
+	dos.minimapflags  = object->minimapflags;
+	dos.namecolor = object->namecolor;
+	dos.objecttype = object->objecttype;
+	dos.moveontype = object->moveontype;
 	dos.translation = object->translation;
 	dos.secondtranslation = object->secondtranslation;
 
@@ -201,22 +202,29 @@ Bool DrawObjectOverlays( DrawObjectInfo *dos, list_type overlays, PDIB pdib_obj,
 	Bool visible, temp;
 
 	visible = False;
-	for (pass = 0; pass < 3; pass++)
+	for (pass = 0; pass < 4; pass++)
 	{
-		if (underlays)
-			switch (pass)
-			{
-			case 0: depth = HOTSPOT_UNDERUNDER;  break;
-			case 1: depth = HOTSPOT_UNDER;       break;
-			case 2: depth = HOTSPOT_UNDEROVER;   break;
-			}
-		else
-			switch (pass)
-			{
-			case 0: depth = HOTSPOT_OVERUNDER;  break;
-			case 1: depth = HOTSPOT_OVER;       break;
-			case 2: depth = HOTSPOT_OVEROVER;   break;
-			}
+      if (underlays)
+      {
+         if (pass == 0)
+            continue;
+         switch (pass)
+         {
+         case 1: depth = HOTSPOT_UNDERUNDER;  break;
+         case 2: depth = HOTSPOT_UNDER;       break;
+         case 3: depth = HOTSPOT_UNDEROVER;   break;
+         }
+      }
+      else
+      {
+         switch (pass)
+         {
+         case 0: depth = HOTSPOT_OVERUNDEROVERUNDER; break;
+         case 1: depth = HOTSPOT_OVERUNDER;  break;
+         case 2: depth = HOTSPOT_OVER;       break;
+         case 3: depth = HOTSPOT_OVEROVER;   break;
+         }
+      }
 
 		for (l = overlays; l != NULL; l = l->next)
 		{
@@ -259,7 +267,7 @@ Bool DrawObjectBitmap( DrawObjectInfo *dos, AREA *obj_area, Bool bTargetSelectEf
    long col, row, rowTimesMAXX;
    long lefttop,righttop,leftbot,rightbot;
    ViewCone *c;
-   int effect;
+   BYTE effect;
    ObjectRowData d;
 
 //	Bool	bClipHaloLeft;
@@ -332,7 +340,12 @@ Bool DrawObjectBitmap( DrawObjectInfo *dos, AREA *obj_area, Bool bTargetSelectEf
    //palette = GetLightPalette(dos->distance, rand() % 60 + 1, FINENESS);
 
    d.palette = palette;
-   d.flags = dos->flags | (dos->effect << 20);
+   d.flags  = dos->flags;
+   d.drawingtype = dos->drawingtype | dos->effect;
+   d.minimapflags  = dos->minimapflags;
+   d.namecolor = dos->namecolor;
+   d.objecttype = dos->objecttype;
+   d.moveontype = dos->moveontype;
    d.translation = dos->translation;
    d.secondtranslation = dos->secondtranslation;
    rowTimesMAXX = starty * MAXX;
@@ -397,7 +410,7 @@ Bool DrawObjectBitmap( DrawObjectInfo *dos, AREA *obj_area, Bool bTargetSelectEf
 
 
       // Handle common case of no effects specially here
-      if (d.translation == 0 && GetDrawingEffect(d.flags) == 0)
+      if (d.translation == 0 && d.drawingtype == 0)
       {	 // Draw normally
 #if 1
 	 while (screen_ptr <= end_screen_ptr)
@@ -543,13 +556,13 @@ END_TRANS_BLIT:
 	 DrawingLoop loop;
 
 	 // Take effect from palette translation or object flags
-	 effect = GetDrawingEffectIndex(d.flags);
+	 effect = d.drawingtype;
 	 if (effect == 0)
-	    effect = GetDrawingEffectIndex(OF_TRANSLATE);
+	    effect = DRAWFX_TRANSLATE;
 
 	 loop = drawing_loops[effect];
 	 if (loop == NULL)
-	    debug(("DrawObjectBitmap got unknown effect index %d\n", GetDrawingEffectIndex(d.flags)));
+	    debug(("DrawObjectBitmap got unknown effect index %d\n", d.drawingtype));
 	 else
 	 {
 	    d.start_ptr = screen_ptr;
@@ -718,44 +731,50 @@ int FindHotspot(list_type overlays, PDIB pdib, PDIB pdib_ov, char hotspot, int a
       
       pdib_ov2 = GetObjectPdib(overlay->icon_res, angle, overlay->animate.group);
       if (pdib_ov2 == NULL)
-	 continue;
+         continue;
 
       if ((retval = FindHotspotPdib(pdib_ov2, hotspot, point)) != HOTSPOT_NONE)
       {
-	 // Measure position relative to overlay's point of attachment
-	 // If hotspot is over or under object, use this as return value
-	 POINT p2;
-	 retval2 = FindHotspotPdib(pdib, overlay->hotspot, &p2);
-	 if (retval2 != HOTSPOT_NONE)
-	 {
+         // Measure position relative to overlay's point of attachment
+         // If hotspot is over or under object, use this as return value
+         POINT p2;
+         retval2 = FindHotspotPdib(pdib, overlay->hotspot, &p2);
+         if (retval2 != HOTSPOT_NONE)
+         {
 
-	    point->x = point->x * OVERLAY_FACTOR * obj_shrink / DibShrinkFactor(pdib_ov2) +
-	       p2.x * OVERLAY_FACTOR;
-	    point->y = point->y * OVERLAY_FACTOR * obj_shrink / DibShrinkFactor(pdib_ov2) + 
-	       p2.y * OVERLAY_FACTOR;
+            point->x = point->x * OVERLAY_FACTOR * obj_shrink / DibShrinkFactor(pdib_ov2) +
+               p2.x * OVERLAY_FACTOR;
+            point->y = point->y * OVERLAY_FACTOR * obj_shrink / DibShrinkFactor(pdib_ov2) + 
+               p2.y * OVERLAY_FACTOR;
 
-	    // Include offset, in units of underlying overlay pixels.
-	    // Also include offset of underlying overlay (first term).
+            // Include offset, in units of underlying overlay pixels.
+            // Also include offset of underlying overlay (first term).
 
-	    point->x += DibXOffset(pdib_ov2) * OVERLAY_FACTOR + 
-	       DibXOffset(pdib_ov) * OVERLAY_FACTOR *
-		  DibShrinkFactor(pdib) / DibShrinkFactor(pdib_ov2);
-	    point->y += DibYOffset(pdib_ov2) * OVERLAY_FACTOR + 
-	       DibYOffset(pdib_ov) * OVERLAY_FACTOR * 
-		  DibShrinkFactor(pdib) / DibShrinkFactor(pdib_ov2);
+            point->x += DibXOffset(pdib_ov2) * OVERLAY_FACTOR + 
+               DibXOffset(pdib_ov) * OVERLAY_FACTOR *
+               DibShrinkFactor(pdib) / DibShrinkFactor(pdib_ov2);
+            point->y += DibYOffset(pdib_ov2) * OVERLAY_FACTOR + 
+               DibYOffset(pdib_ov) * OVERLAY_FACTOR * 
+               DibShrinkFactor(pdib) / DibShrinkFactor(pdib_ov2);
 
             if (retval == HOTSPOT_OVER)
-	       if (retval2 == HOTSPOT_OVER)
-		  return HOTSPOT_OVEROVER;
-	       else return HOTSPOT_UNDEROVER;
-	    else
-	       if (retval2 == HOTSPOT_OVER)
-		  return HOTSPOT_OVERUNDER;
-	       else return HOTSPOT_UNDERUNDER;
-	 }
-	 
-	 // If overlay had no hotspot attachment, assume overlay
-	 return HOTSPOT_OVER;
+            {
+               if (retval2 == HOTSPOT_OVER)
+                  return HOTSPOT_OVEROVER;
+               else
+                  return HOTSPOT_UNDEROVER;
+            }
+            else
+            {
+               if (retval2 == HOTSPOT_OVER)
+                  return HOTSPOT_OVERUNDER;
+               else
+                  return HOTSPOT_UNDERUNDER;
+            }
+         }
+    
+         // If overlay had no hotspot attachment, assume overlay
+         return HOTSPOT_OVER;
       }
    }
    return HOTSPOT_NONE;
@@ -778,10 +797,11 @@ int FindHotspotPdib(PDIB pdib, char hotspot, POINT *point)
       num = DibHotspotNumber(pdib, i);
       if (ABS(num) == hotspot)
       {
-	 p = DibHotspotIndex(pdib, i);
-	 point->x = p.x;
-	 point->y = p.y;
-	 return (num > 0) ? HOTSPOT_OVER : HOTSPOT_UNDER;
+         p = DibHotspotIndex(pdib, i);
+         point->x = p.x;
+         point->y = p.y;
+         return (num > 0) ? ((num == HS_HELM) ? HOTSPOT_OVERUNDEROVERUNDER
+            : HOTSPOT_OVER) : HOTSPOT_UNDER;
       }
    }
    return HOTSPOT_NONE;
@@ -859,19 +879,23 @@ void DrawObjectDecorations(DrawnObject *object)
 
    room_contents_node *r;
 
-   if (!config.draw_names || effects.blind)
+   if (effects.blind)
       return;
 
    r = GetRoomObjectById(object->id);
    if (r == NULL)
       return;
 
-   if (!(r->obj.flags & OF_PLAYER) || (GetDrawingEffect(r->obj.flags) == OF_INVISIBLE))
+   if (!(r->obj.flags & OF_DISPLAY_NAME)
+      || (r->obj.drawingtype == DRAWFX_INVISIBLE)
+      || !config.draw_player_names && (r->obj.flags & OF_PLAYER)
+      || !config.draw_npc_names && (r->obj.flags & OF_NPC)
+      || !config.draw_sign_names && (r->obj.flags & OF_SIGN))
       return;
 
    // Draw player name
    range = FindVisibleObjectById(r->obj.id);
-   if (range == NULL || range->distance > MAX_NAME_DISTANCE)
+   if (!range || (range->distance > MAX_NAME_DISTANCE && !(r->obj.flags & OF_SIGN)))
       return;
    
    name = LookupNameRsc(r->obj.name_res);
@@ -883,7 +907,7 @@ void DrawObjectDecorations(DrawnObject *object)
    y = range->top_row - s.cy - 2;
 
    // Give a shadowed look to be visible on all color backgrounds
-   fg_color = GetPlayerNameColor(r->obj.flags,name);
+   fg_color = GetPlayerNameColor(&r->obj,name);
    bg_color = NAME_COLOR_NORMAL_BG;
 
    // Some names never grow darker, they use PALETTEINDEX().

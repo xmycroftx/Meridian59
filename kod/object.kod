@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+///////////////////////////////////////////////////////////////////////////////
 Object
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include object.lkod
 
    object_name_rsc = "something"
    object_icon_rsc = somethin.bgf
@@ -59,9 +61,24 @@ resources:
    object_cap_lord = "Lord"
    object_cap_lady = "Lady"
 
-
+   // Resources for displaying time remaining. Used in descriptions.
+   // The default is for an enchantment (spell or skill).
+   object_time_header_rsc = \
+      "\n\nYour current %s enchantment will last for %r%r%r%r%r%r%r."
+   object_time_sec_rsc = "1 second"
+   object_time_secs_rsc = "%i seconds"
+   object_time_min_rsc = "1 minute"
+   object_time_mins_rsc = "%i minutes"
+   object_time_hour_rsc = "1 hour"
+   object_time_hours_rsc = "%i hours"
+   object_time_day_rsc = "1 day"
+   object_time_days_rsc = "%i days"
+   object_time_and_rsc = " and "
+   object_time_comma_rsc = ", "
+   object_time_blank_rsc = ""
 
 classvars:
+
    vrName = object_name_rsc
    vrIcon = object_icon_rsc
    vrDesc = object_desc_rsc
@@ -70,27 +87,36 @@ classvars:
    viDefinite = ARTICLE_THE
 
    viBulk = 0
-   viWeight = 0 
+   viWeight = 0
 
    viIllusion = FALSE
    vbSummoned = FALSE
 
    viGender = GENDER_NEUTER
+
    viObject_flags = 0
+   viMoveOn_type = 0
 
 properties:
 
    poOwner = $
 
+   plObject_attributes = $
+
+   piNameColor = 0
+   piDrawfx = 0
+   piDrawEffectFlag = 0
+
 messages:
 
    Constructor()
    {
-      % Essential for creation stuff that needs to happen AFTER constructors
-      %  called
+      // Essential for creation stuff that needs to happen AFTER constructors
+      //  called
       Send(self,@Constructed);
-      % Set any default values
+      // Set any default values
       Send(self,@DefaultValues);
+
       return;
    }
 
@@ -101,19 +127,26 @@ messages:
 
    Delete()
    {
+      local i;
+
       if poOwner <> $
       {
          Send(poOwner,@LeaveHold,#what=self);
          poOwner = $;
       }
 
+      foreach i in plObject_attributes
+      {
+         Send(i,@Delete);
+      }
+
       return;
    }
 
-   % This message will restore the default values in any object.  Must be
-   %  defined for any subclass that wants to use it. This is intended to
-   %  make updating a bit smoother, so you can re-set properties in objects
-   %  that have changed radically.
+   // This message will restore the default values in any object.  Must be
+   //  defined for any subclass that wants to use it. This is intended to
+   //  make updating a bit smoother, so you can re-set properties in objects
+   //  that have changed radically.
    DefaultValues()
    {
       return;
@@ -136,6 +169,166 @@ messages:
    GetDesc()
    {
       return vrDesc;
+   }
+
+   SendTimeRemainingHeader(parm1=$, parm2=$)
+   "Sends the time remaining header to the user. Classes override this "
+   "to send the 'master' resource for the time remaining (e.g. for an "
+   "enchantment or quest) and any extra resources.  Called only by "
+   "SendTimeRemaining, which appends the actual time information."
+   {
+      AddPacket(4,object_time_header_rsc, 4,Send(self,@GetName));
+
+      return;
+   }
+
+   SendTimeRemainingExtra()
+   "If anything extra needs to be sent after the time remaining packets "
+   "are added, this messsage should be overridden to do so."
+   {
+      return;
+   }
+
+   SendTimeRemaining(iTime=0, parm1=$, parm2=$)
+   "Takes iTime (in seconds) and uses it to pick which time resource to "
+   "display to the user. Adds the appropriate packets via AddPacket, so "
+   "call this message at the correct time."
+   {
+      local iSeconds, iMinutes, iHours, iDays;
+
+      // iTime is in seconds.
+      iDays = iTime / DAY;
+      iHours = (iTime % DAY) / HOUR;
+      iMinutes = (iTime % HOUR) / MINUTE;
+      iSeconds = iTime % MINUTE;
+
+      if iTime > 0
+      {
+         Send(self,@SendTimeRemainingHeader,#parm1=parm1,#parm2=parm2);
+      }
+      else
+      {
+         AddPacket(4,object_time_blank_rsc);
+
+         return;
+      }
+
+      if iDays > 0
+      {
+         if iDays = 1
+         {
+            AddPacket(4,object_time_day_rsc);
+         }
+         else
+         {
+            AddPacket(4,object_time_days_rsc, 4,iDays);
+         }
+
+         // If two or more remaining fields greater than 0, use a comma.
+         if (iHours > 0 AND iMinutes > 0)
+            OR (iHours > 0 AND iSeconds > 0)
+            OR (iMinutes > 0 AND iSeconds > 0)
+         {
+            AddPacket(4,object_time_comma_rsc);
+         }
+         else
+         {
+            // If one remaining field greater than 0, use and.
+            if iHours > 0
+               OR iMinutes > 0
+               OR iSeconds > 0
+            {
+               AddPacket(4,object_time_and_rsc);
+            }
+            else
+            {
+               AddPacket(4,object_time_blank_rsc);
+            }
+         }
+      }
+      else
+      {
+         AddPacket(4,object_time_blank_rsc, 4,object_time_blank_rsc);
+      }
+
+      if iHours > 0
+      {
+         if iHours = 1
+         {
+            AddPacket(4,object_time_hour_rsc);
+         }
+         else
+         {
+            AddPacket(4,object_time_hours_rsc, 4,iHours);
+         }
+
+         if (iMinutes > 0 AND iSeconds > 0)
+         {
+            AddPacket(4,object_time_comma_rsc);
+         }
+         else
+         {
+            if iMinutes > 0
+               OR iSeconds > 0
+            {
+               AddPacket(4,object_time_and_rsc);
+            }
+            else
+            {
+               AddPacket(4,object_time_blank_rsc);
+            }
+         }
+      }
+      else
+      {
+         AddPacket(4,object_time_blank_rsc, 4,object_time_blank_rsc);
+      }
+
+      if iMinutes > 0
+      {
+         if iMinutes = 1
+         {
+            AddPacket(4,object_time_min_rsc);
+         }
+         else
+         {
+            AddPacket(4,object_time_mins_rsc, 4,iMinutes);
+         }
+
+         if iSeconds > 0
+         {
+            AddPacket(4,object_time_and_rsc);
+         }
+         else
+         {
+            AddPacket(4,object_time_blank_rsc);
+         }
+      }
+      else
+      {
+         AddPacket(4,object_time_blank_rsc, 4,object_time_blank_rsc);
+      }
+
+      if iSeconds > 0
+      {
+         if iSeconds = 1
+         {
+            AddPacket(4,object_time_sec_rsc);
+         }
+         else
+         {
+            AddPacket(4,object_time_secs_rsc, 4,iSeconds);
+         }
+      }
+      else
+      {
+         AddPacket(4,object_time_blank_rsc);
+      }
+
+      // Call this to add anything after the time resources if necessary.
+      Send(self,@SendTimeRemainingExtra);
+
+      return;
    }
 
    GetBulk()
@@ -161,7 +354,7 @@ messages:
             return Send(poOwner,@GetPos);
          }
       }
-      
+
       return $;
    }
 
@@ -178,7 +371,7 @@ messages:
             return Send(poOwner,@GetAngle);
          }
       }
-      
+
       return 0;
    }
 
@@ -192,7 +385,7 @@ messages:
       {
          return $;
       }
-      
+
       return First(lPos);
    }
 
@@ -206,7 +399,7 @@ messages:
       {
          return $;
       }
-      
+
       return Nth(lPos,2);
    }
 
@@ -220,7 +413,7 @@ messages:
       {
          return $;
       }
-      
+
       return Nth(lPos,3);
    }
 
@@ -234,8 +427,145 @@ messages:
       {
          return $;
       }
-      
+
       return Nth(lPos,4);
+   }
+
+   GetHeight()
+   "Returns the current height (z-coordinate) of the object"
+   {
+      if Send(self, @GetObjectFlags) & OF_HANGING
+      {
+         return Send(self, @GetHeightCeilingAtObjectBSP);
+      }
+
+      return Send(self, @GetHeightFloorAtObjectBSP);
+   }
+   
+   GetSectorID()
+   "Returns the current sector id at the location of the object"
+   {
+      return Send(self, @GetSectorIDAtObject);
+   }
+   
+   GetHeightAtObject()
+   "Returns the height at the object's coordinates. If the object is not "
+   "in a room, this message recursively checks the owner's coordinates "
+   "until one in a room is found."
+   {
+      return Send(self, @GetHeightFloorAtObjectBSP);
+   }
+
+   GetHeightFloorAtObjectBSP()
+   "Returns the floor height at the object's coordinates in FINENESS from BSP."
+   "If the object is not in a room, this message recursively checks the "
+   "owner's coordinates until one in a room is found."
+   {
+      local iQflags, iRflags, iHeightF, iHeightFWD, iHeightC, iServerID;
+
+      if poOwner <> $
+      {
+         if IsClass(poOwner,&Room)
+         {
+            // set query-flags, here we're only interested in the sectorinfo
+            iQflags = LIQ_GET_SECTORINFO;
+
+            // query data from bsp in c-function
+            if NOT GetLocationInfoBSP(
+                      Send(poOwner,@GetRoomData), iQflags, 
+                      Send(self,@GetRow), Send(self,@GetCol),
+                      Send(self,@GetFineRow), Send(self,@GetFineCol),
+                      *iRflags, *iHeightF, *iHeightFWD, *iHeightC, *iServerID)
+            {
+               Debug("Failed to get location info in ", Send(poOwner,@GetRoomData));
+
+               return 0;
+            }
+
+            // we're only using the floor-height with depth modifier here
+            return iHeightFWD;
+         }
+         else
+         {
+            Send(poOwner,@GetHeightFloorAtObjectBSP);
+         }
+      }
+
+      return 0;
+   }
+
+   GetSectorIDAtObject()
+   "Gets the sector tag ID for the room sector the object is currently in.  "
+   "Returns -1 on error, as valid tags are all >= 0."
+   {
+      local iQflags, iRflags, iHeightF, iHeightFWD, iHeightC, iServerID;
+
+      if poOwner <> $
+      {
+         if IsClass(poOwner,&Room)
+         {
+            // set query-flags, here we're only interested in the sectorinfo
+            iQflags = LIQ_GET_SECTORINFO;
+
+            // query data from bsp in c-function
+            if NOT GetLocationInfoBSP(Send(poOwner,@GetRoomData), iQflags,
+                      Send(self,@GetRow), Send(self,@GetCol),
+                      Send(self,@GetFineRow), Send(self,@GetFineCol),
+                      *iRflags, *iHeightF, *iHeightFWD, *iHeightC, *iServerID)
+            {
+               Debug("Failed to get location info in ", Send(poOwner,@GetRoomData));
+
+               return -1;
+            }
+
+            // we're only using the floor-height with depth modifier here
+            return iServerID;
+         }
+         else
+         {
+            Send(poOwner,@GetSectorIDAtObject);
+         }
+      }
+
+      return -1;
+   }
+
+   GetHeightCeilingAtObjectBSP()
+   "Returns the ceiling height at the object's coordinates in FINENESS from BSP."
+   "If the object is not in a room, this message recursively checks the owner's coordinates "
+   "until one in a room is found."
+   {
+      local iQflags, iRflags, iHeightF, iHeightFWD, iHeightC, iServerID;
+
+      if poOwner <> $
+      {
+         if IsClass(poOwner,&Room)
+         {
+            // set query-flags, here we're only interested in the sectorinfo
+            iQflags = LIQ_GET_SECTORINFO;
+
+            // query data from bsp in c-function
+            if NOT GetLocationInfoBSP(
+                      Send(poOwner,@GetRoomData), iQflags,
+                      Send(self,@GetRow), Send(self,@GetCol),
+                      Send(self,@GetFineRow), Send(self,@GetFineCol),
+                      *iRflags, *iHeightF, *iHeightFWD, *iHeightC, *iServerID)
+            {
+               Debug("Failed to get location info in ", Send(poOwner,@GetRoomData));
+
+               return 0;
+            }
+
+            // we're only using the ceiling-height here
+            return iHeightC;
+         }
+         else
+         {
+            Send(poOwner,@GetHeightCeilingAtObjectBSP);
+         }
+      }
+
+      return 0;
    }
 
    GetOwner()
@@ -245,8 +575,8 @@ messages:
 
    ReqNewOwner(what = $)
    {
-      % Don't go into a user.  Also, make sure we can leave our previous owner,
-      %  if we had one.
+      // Don't go into a user.  Also, make sure we can leave our previous owner,
+      //  if we had one.
       if IsClass(what,&User)
          OR (poOwner <> $ AND NOT Send(poOwner,@ReqLeaveHold,#what=self))
       {
@@ -283,6 +613,23 @@ messages:
       return vbSummoned;
    }
 
+   CountsTowardsSummonLimit()
+   "Useful for objects that are summoned, but aren't counted as part of "
+   "a room's summoned object limit.  Summoned objects counted by default."
+   {
+      return vbSummoned;
+   }
+
+   CanBeWebbed()
+   {
+      return TRUE;
+   }
+
+   CanBeTangled()
+   {
+      return TRUE;
+   }
+
    SomethingTryGo(what = $,row = $,col = $)
    {
       return FALSE;
@@ -293,21 +640,21 @@ messages:
       return;
    }
 
-   % New Name Convention:
-   %
-   % Most cases, use GetName().
-   % A child class might override it to get an apparent pseudonym
-   % or the word "something".  It should never return the empty string,
-   % so that it's always suitable for use in sentences.
-   %
-   % If you want the real actual name, use GetTrueName().
-   % This *always* returns vrName, and shouldn't be overridden by any
-   % child class.
-   %
-   % For cases which might return a blank string, use GetApparentName().
-   % A child class can override it to return an apparent pseudonym or
-   % a blank string.  Not recommended for text, but recommended for
-   % visuals.
+   // New Name Convention:
+   //
+   // Most cases, use GetName().
+   // A child class might override it to get an apparent pseudonym
+   // or the word "something".  It should never return the empty string,
+   // so that it's always suitable for use in sentences.
+   //
+   // If you want the real actual name, use GetTrueName().
+   // This *always* returns vrName, and shouldn't be overridden by any
+   // child class.
+   //
+   // For cases which might return a blank string, use GetApparentName().
+   // A child class can override it to return an apparent pseudonym or
+   // a blank string.  Not recommended for text, but recommended for
+   // visuals.
 
    GetName()
    {
@@ -323,22 +670,22 @@ messages:
    {
       return vrName;
    }
-   
+
    GetDef()
    {
-      % return resource of definite article
+      // return resource of definite article
       return Send(self,@LookupArticle,#article_num=viDefinite);
    }
 
    GetIndef()
    {
-      % return resource of indefinite article
+      // return resource of indefinite article
       return Send(self,@LookupArticle,#article_num=viIndefinite);
    }
 
    LookupArticle(article_num = $)
    {
-      % returns resource of the article, given as an integer
+      // returns resource of the article, given as an integer
 
       if article_num = ARTICLE_THE
       {
@@ -375,26 +722,26 @@ messages:
          return object_article_some_rsc;
       }
 
-      debug("Invalid article num",article_num);
+      Debug("Invalid article num",article_num);
 
       return object_article_none_rsc;
    }
 
    GetCapDef()
    {
-      % return resource of capitalized definite article
+      // return resource of capitalized definite article
       return Send(self,@LookupCapitalArticle,#article_num=viDefinite);
    }
 
    GetCapIndef()
    {
-      % return resource of capitalized indefinite article
+      // return resource of capitalized indefinite article
       return Send(self,@LookupCapitalArticle,#article_num=viIndefinite);
    }
 
    LookupCapitalArticle(article_num = $)
    {
-      % returns resource of the article, given as an integer
+      // returns resource of the article, given as an integer
 
       if article_num = ARTICLE_THE
       {
@@ -431,11 +778,10 @@ messages:
          return object_article_cap_some_rsc;
       }
 
-      debug("Invalid article num",article_num);
+      Debug("Invalid article num",article_num);
 
       return object_article_none_rsc;
    }
-
 
    GetIcon()
    {
@@ -444,8 +790,8 @@ messages:
 
    SendAnimation()
    {
-      % Send animation info to user.  Default is no animation, display with
-      %  group 1.
+      // Send animation info to user.  Default is no animation, display with
+      //  group 1.
       AddPacket(1, ANIMATE_NONE, 2, 1);
 
       return;
@@ -453,7 +799,7 @@ messages:
 
    SendLookAnimation()
    {
-      % Send animation info to user for when the user looks at the object.
+      // Send animation info to user for when the user looks at the object.
       Send(self,@SendAnimation);
 
       return;
@@ -461,8 +807,8 @@ messages:
 
    SendMoveAnimation()
    {
-      % Send animation when object moves smoothly from one square to another.
-      % Default is no animation, which is indicated by giving 0 for the speed.
+      // Send animation when object moves smoothly from one square to another.
+      // Default is no animation, which is indicated by giving 0 for the speed.
       AddPacket(1,ANIMATE_NONE, 2,1);
 
       return;
@@ -470,8 +816,8 @@ messages:
 
    SendMoveOverlays()
    {
-      % Send overlays when object moves smoothly from one square to another.
-      % Default is leave overlays alone
+      // Send overlays when object moves smoothly from one square to another.
+      // Default is leave overlays alone
       AddPacket(1,0);
 
       return;
@@ -479,7 +825,7 @@ messages:
 
    SendOverlays()
    {
-      % Send overlay bitmap info to user.  Default is no overlays.
+      // Send overlay bitmap info to user.  Default is no overlays.
       AddPacket(1, 0);
 
       return;
@@ -487,7 +833,7 @@ messages:
 
    SendLookOverlays()
    {
-      % Send overlay info to user for when the user looks at the object
+      // Send overlay info to user for when the user looks at the object
       Send(self,@SendOverlays);
 
       return;
@@ -509,13 +855,18 @@ messages:
 
    SendLightingInformation()
    {
-      % Default: No lighting
+      // Default: No lighting
       AddPacket(2,0);
 
       return;
    }
 
    MsgSendUser()
+   {
+      return;
+   }
+
+   MsgSendUserCallback()
    {
       return;
    }
@@ -545,6 +896,11 @@ messages:
       return;
    }
 
+   SectorChangeSendUser()
+   {
+      return;
+   }
+
    SectorLightSendUser()
    {
       return;
@@ -560,26 +916,31 @@ messages:
       return FALSE;
    }
 
-   % Stuff that used to be in active. but no longer since passive isn't under
-   %  it any more.
+   UpdateHeight()
+   {
+      return;
+   }
+    
+   // Stuff that used to be in active. but no longer since passive isn't under
+   //  it any more.
 
    ReqSomethingEntered(where = $,what = $)
    {
       return TRUE;
    }
-   
+
    SomethingEntered(where = $,what = $)
    {
       return;
    }
-   
+
    ReqSomethingLeft(where = $,what = $)
-   {      
+   {
       return TRUE;
    }
 
    SomethingLeft(where = $,what = $)
-   {      
+   {
       return;
    }
 
@@ -618,6 +979,11 @@ messages:
       return;
    }
 
+   SomethingHelped(what = $, target = $, oSpell = $, iAmount = 0)
+   {
+      return;
+   }
+
    SomethingKilled(what = $,victim = $)
    {
       return;
@@ -648,6 +1014,11 @@ messages:
       return;
    }
 
+   SomethingChangedFlags(what = $)
+   {
+      return;
+   }
+
    ReqSpellCast(who = $, oSpell = $, lItems = $)
    {
       return TRUE;
@@ -663,6 +1034,12 @@ messages:
       return;
    }
 
+   SomethingShotRadius(who=$,projectile=$,flags=PROJ_FLAG_NONE,
+                 iLightIntensity=0,iLightColor=0,range=0,number=0,speed=0)
+   {
+      return;
+   }
+
    SomethingDidAction(what = $, action = $)
    {
       return;
@@ -673,8 +1050,34 @@ messages:
       return FALSE;
    }
 
-   % These two messages are generated by the room, triggered by other messages
-   %  (NewHold and LeaveHold)
+   SomethingPhasedOut(what = $, iHealth = $, iMaxHealth = $)
+   "Sent by the Phase spell to an object's owner whenever the object phases out."
+   {
+      return;
+   }
+
+   SomethingPhasedIn(what = $)
+   "Sent by the Phase spell to an object's owner whenever the object phases in."
+   {
+      return;
+   }
+
+   SomethingSpectatedOut(what = $)
+   "Sent by the Spectate spell to an object's owner whenever the object "
+   "is spectated out (leaves)."
+   {
+      return;
+   }
+
+   SomethingSpectatedIn(what = $)
+   "Sent by the Spectate spell to an object's owner whenever the object "
+   "is spectated in (returns)."
+   {
+      return;
+   }
+
+   // These two messages are generated by the room, triggered by other messages
+   //  (NewHold and LeaveHold)
 
    FirstUserEntered(what = $,new_row = $,new_col = $)
    {
@@ -699,6 +1102,12 @@ messages:
       return;
    }
 
+   WeatherChanged()
+   "This is sent when the room weather changes."
+   {
+      return;
+   }
+
    CanAcceptOffer()
    "Returns TRUE if the object should 'hear' when a player makes an offer."
    "Returns FALSE for most things."
@@ -706,9 +1115,94 @@ messages:
       return FALSE;
    }
 
+   GetMoveOnType()
+   {
+      return viMoveOn_type;
+   }
+
    GetObjectFlags()
    {
-      return viObject_flags;
+      return viObject_flags | piDrawEffectFlag;
+   }
+
+   GetMinimapDotFlags()
+   "If the object should display a dot on the minimap, override this message "
+   "and return the flags to be displayed.  Default is no dot."
+   {
+      return MM_NONE;
+   }
+
+   GetDrawingEffects()
+   "This returns any special drawing effect the object has. Default is "
+   "no drawing effect."
+   {
+      return piDrawfx;
+   }
+
+   GetDrawType()
+   "This returns any special drawing type the object has. Default is "
+   "no drawing type. Drawing types are phasing, flickering, flashing "
+   "and bouncing, stored separately from object flags and drawing effects."
+   {
+      return piDrawEffectFlag;
+   }
+
+   GetClientObjectType()
+   "This is an enum of object types. Returns 0 for most objects for now."
+   {
+      return 0;
+   }
+
+   GetPlayerNameColor(rgb=FALSE)
+   "Returns the name color property, or if sent rgb TRUE, returns "
+   "a list with the int RGB value of piNameColor."
+   {
+      local lColor;
+
+      if rgb
+      {
+         lColor = Cons((piNameColor & 0x0000FF), lColor); // Blue
+         lColor = Cons((piNameColor  & 0x00FF00) / 256, lColor); // Green
+         lColor = Cons((piNameColor & 0xFF0000) / 65536, lColor); // Red
+
+         return lColor;
+      }
+
+      return piNameColor;
+   }
+
+   SetNameColor(red=0,green=0,blue=0,rgb=$)
+   "Can set the name color for any object. Currently, only objects "
+   "with OF_DISPLAY_NAME set to TRUE will display a name. Can change color "
+   "by red, green and blue value, or alternatively by rgb value."
+   {
+      if rgb <> $
+         AND rgb >= 0
+         AND rgb <= NC_COLOR_MAX
+      {
+         piNameColor = rgb;
+         if poOwner <> $
+         {
+            Send(poOwner,@SomethingChanged,#what=self);
+         }
+
+         return TRUE;
+      }
+
+      if (red >= 0 AND red <= 255)
+         AND (green >= 0 AND green <= 255)
+         AND (blue >= 0 AND blue <= 255)
+      {
+         piNameColor = red * green * blue;
+         if poOwner <> $
+         {
+            Send(poOwner,@SomethingChanged,#what=self);
+         }
+
+         return TRUE;
+      }
+
+      return FALSE;
    }
 
    GetGender()
@@ -720,7 +1214,7 @@ messages:
    {
       local iGender;
 
-      iGender = send(self,@GetGender);
+      iGender = Send(self,@GetGender);
       if cap
       {
          if iGender = GENDER_MALE
@@ -753,7 +1247,7 @@ messages:
    {
       local iGender;
 
-      iGender = send(self,@GetGender);
+      iGender = Send(self,@GetGender);
       if cap
       {
          if iGender = GENDER_MALE
@@ -786,7 +1280,7 @@ messages:
    {
       local iGender;
 
-      iGender = send(self,@GetGender);
+      iGender = Send(self,@GetGender);
       if cap
       {
          if iGender = GENDER_MALE
@@ -819,9 +1313,9 @@ messages:
    {
       local iGender;
 
-      iGender = send(self,@GetGender);
+      iGender = Send(self,@GetGender);
       if cap
-      {     
+      {
          if iGender = GENDER_MALE
          {
             return object_cap_he;
@@ -833,7 +1327,7 @@ messages:
          }
 
          return object_cap_it;
-      }    
+      }
 
       if iGender = GENDER_MALE
       {
@@ -853,9 +1347,9 @@ messages:
    {
       local iGender;
 
-      iGender = send(self,@GetGender);
+      iGender = Send(self,@GetGender);
       if cap
-      {     
+      {
          if iGender = GENDER_MALE
          {
             return object_cap_lord;
@@ -867,7 +1361,7 @@ messages:
          }
 
          return object_cap_lord;
-      }    
+      }
 
       if iGender = GENDER_MALE
       {
@@ -880,6 +1374,12 @@ messages:
       }
 
       return object_lord;
+   }
+
+   OwnerKilled()
+   "Called when the object's owner is killed."
+   {
+      return;
    }
 
    ObjectCorpseFading()
@@ -898,6 +1398,12 @@ messages:
       return FALSE;
    }
 
+   IsStackable()
+   "TRUE for objects that stack, e.g. NumberItems, ThrownWeapons."
+   {
+      return FALSE;
+   }
+
    CanEditInscription()
    {
       return FALSE;
@@ -908,6 +1414,55 @@ messages:
       return FALSE;
    }
 
+   CountsAsMonster()
+   {
+      return FALSE;
+   }
+
+   CountsAsHero()
+   {
+      return FALSE;
+   }
+
+   SetSpawnLoc()
+   "Stub, only monsters should do something here but other objects may be "
+   "placed on a spawn point."
+   {
+      return;
+   }
+
+   AddObjectAttribute(attribute=$)
+   {
+      if attribute <> $
+         AND (plObject_attributes = $
+         OR FindListElem(plObject_attributes, attribute) = 0)
+      {
+         plObject_attributes = Cons(attribute,plObject_attributes);
+
+         return TRUE;
+      }
+
+      return FALSE;
+   }
+
+   RemoveObjectAttribute(attribute=$)
+   {
+      if attribute <> $
+         AND plObject_attributes <> $
+         AND FindListElem(plObject_attributes, attribute) <> 0
+      {
+         plObject_attributes = DelListElem(plObject_attributes,attribute);
+
+         return TRUE;
+      }
+
+      return FALSE;
+   }
+
+   GetObjectAttributes()
+   {
+      return plObject_attributes;
+   }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

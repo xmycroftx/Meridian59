@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 OutdoorsKB4 is KCForest
 
 constants:
@@ -16,9 +16,11 @@ constants:
 
 resources:
 
-   room_name_OutdoorsKB4 ="Path to the Ruins"
-   room_OutdoorsKB4 = KB4.roo
-   OutdoorsKB4_music = orcbeg.mid
+   include kb4.lkod
+
+   room_name_OutdoorsKB4 = "Path to the Ruins"
+   room_OutdoorsKB4 = kb4.roo
+   OutdoorsKB4_music = orcbeg.ogg
 
 classvars:
 
@@ -27,6 +29,9 @@ classvars:
    viTeleport_row = 16
    viTeleport_col = 5
    viTerrain_type = TERRAIN_JUNGLE
+
+   viWeatherZone = WEATHER_ZONE_KOC_TOWN
+   viWeatherMask = WEATHER_MASK_JUNGLE
 
 properties:
 
@@ -39,7 +44,9 @@ properties:
 
    piDirectional_percent = DIRECTIONAL_PERCENT_OUTDOORS
 
-   piGen_time = 90000
+   pbSnowGroundTexture = TRUE
+
+   piGen_time = 30000
    piGen_percent = 70
 
    piInit_count_min = 5
@@ -52,18 +59,30 @@ messages:
    Constructed()
    {
       plMonsters = [ [&Kriipa, 100] ];
-      plGenerators = [ [16,7], [9,13], [40,39], [29,44], [13,37],
-                       [11,23], [46,17], [30,24]
-                     ];
 
       propagate;
    }
 
-   CreateJungleItemCoords()
-   {      
-      plItem_coords = [ [&RainbowFern,42,39], [&RainbowFern,16,4], [&RainbowFern,7,13] ];
+   SetMonsterGenPoints(bRandomGen = TRUE)
+   {
+      if (bRandomGen)
+      {
+         return;
+      }
 
-      % Do not propagate
+      plGenerators = [ [16,7], [9,13], [40,39], [29,44], [13,37],
+                       [11,23], [46,17], [30,24]
+                     ];
+
+      return;
+   }
+
+   CreateJungleItemCoords()
+   {
+      plItem_coords = [ [&RainbowFern,42,39], [&RainbowFern,16,4],
+                        [&RainbowFern,7,13] ];
+
+      // Do not propagate
       return;
    }
 
@@ -114,19 +133,20 @@ messages:
       plEdge_Exits = $;
       plEdge_Exits = Cons([LEAVE_NORTH, RID_KB3, 49, 27, ROTATE_NONE], plEdge_exits);
       plEdge_Exits = Cons([LEAVE_EAST, RID_KC3, 55,1 , ROTATE_NONE], plEdge_exits);
-      plEdge_Exits = Cons([LEAVE_WEST, RID_KA5, 4, 63, ROTATE_NONE], plEdge_exits);      
+      plEdge_Exits = Cons([LEAVE_WEST, RID_KA5, 4, 63, ROTATE_NONE], plEdge_exits);
 
       propagate;
    }
 
    GetClan()
    {
-      if random(1,2) = 1
-      {  return AVARCLAN_PROMAGIC;  }
-      
+      if Random(1,2) = 1
+      {
+         return AVARCLAN_PROMAGIC;
+      }
+
       return AVARCLAN_ANTIMAGIC;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+///////////////////////////////////////////////////////////////////////////////////
 LichMaze is MonsterRoom
 
 constants:
@@ -21,12 +21,14 @@ constants:
 
 resources:
 
+   include lichmaze.lkod
+
    LichMaze_room_name = "The Dungeon of Castle Brax"
    LichMaze_room = lichmaze.roo
-   LichMaze_music = nec03.mid
+   LichMaze_music = nec03.ogg
 
-   LichMaze_door_sound = necmaze.wav
-   LichMaze_loop = necloop2.wav
+   LichMaze_door_sound = necmaze.ogg
+   LichMaze_loop = necloop2.ogg
 
    LichMaze_guildwarning = "Your amulet vibrates for a moment, startling you."
 
@@ -61,8 +63,6 @@ messages:
 
       plMonsters = [ [&DaemonSkeleton, 50], [&TuskedSkeleton, 50] ];
 
-      include lichmaze.kmn ;
-
       plLooping_sounds = [[ LichMaze_loop, 0, 0, 200, 100 ]];
 
       lSectorIDs = [ [1,2],[3,4],[5,6],[7,8],[9,10],
@@ -70,7 +70,7 @@ messages:
                    ];
 
       plSectors = $;
-      for IDs in lSectorIDs
+      foreach IDs in lSectorIDs
       {
          lTemp = $;
          oMovingSector = Create(&MovingSector,#sectorroom=self,#sectorID=Nth(IDs,1),
@@ -176,7 +176,7 @@ messages:
          return;
       }
 
-      for oSector in Nth(plSectors,Nth(plLeverEffects,num))
+      foreach oSector in Nth(plSectors,Nth(plLeverEffects,num))
       {
          Send(oSector,@Toggle,#toggleback=FALSE);
       }
@@ -187,7 +187,7 @@ messages:
          num = 1;
       }
 
-      for oSector in Nth(plSectors,Nth(plLeverEffects,num))
+      foreach oSector in Nth(plSectors,Nth(plLeverEffects,num))
       {
          Send(oSector,@Toggle,#toggleback=FALSE);
       }
@@ -232,9 +232,9 @@ messages:
    {
       local i,j;
 
-      for i in plSectors
+      foreach i in plSectors
       {
-         for j in i
+         foreach j in i
          {
             Send(j,@Delete);
          }
@@ -245,7 +245,21 @@ messages:
       propagate;
    }
 
+   GetSpawnRadius()
+   {
+      return 0;
+   }
+
+   IsValidSpawnLocation(iRow=0,iCol=0,iFineRow=0,iFineCol=0)
+   {
+      if NOT ((iRow < 33) AND (iCol > 18) AND (iRow > 14) AND (iCol < 53))
+      {
+         return FALSE;
+      }
+
+      propagate;
+   }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 

@@ -12,10 +12,7 @@
 #ifndef _INTRFACE_H
 #define _INTRFACE_H
 
-// Default text area height as a percentage of the height of the client.
-#define TEXT_AREA_HEIGHT 20
-#define TEXT_AREA_HEIGHT_MIN 0.15
-#define TEXT_AREA_HEIGHT_MAX 0.75
+#define TEXT_AREA_MIN_HEIGHT 96
 
 /* Grid view area */
 #define GRID_TOP_BORDER  5
@@ -43,10 +40,13 @@
 #define GRAPHICS_TOP_HEIGHT 24
 
 /* Inventory area */
-#define INVENTORY_MIN_WIDTH (215 + LEFT_BORDER + 67)
+//#define INVENTORY_MIN_WIDTH (170 + LEFT_BORDER)
+#define INVENTORY_MIN_WIDTH (185 + LEFT_BORDER + 67)
+#define INVENTORY_MAX_WIDTH (250 + LEFT_BORDER)
 
-/* MiniMap area */
-#define MINIMAP_MAX_AREA 9000
+//	MiniMap area.
+#define MINIMAP_MAX_WIDTH	( INVENTORY_MAX_WIDTH + 3 ) & ~3
+#define MINIMAP_MAX_HEIGHT	MINIMAP_MAX_WIDTH
 
 //	How much of the minimap/stats box area goes to the minimap.
 #define PROPORTION_MINIMAP		.4
@@ -85,7 +85,7 @@ enum { A_NOACTION = 0,
 	  A_TEXTINSERT, A_USERACTION, A_LOOKINSIDE, A_ACTIVATE,
 	  A_ACTIVATEMOUSE, A_CHANGEPASSWORD, 
 	  A_TARGETPREVIOUS, A_TARGETNEXT, A_TARGETCLEAR, A_TARGETSELF,
-	  A_CURSOR_ESC,
+	  A_CURSOR_ESC, A_TEXTINSERT_MERINTR_RSC,
     };
 
 /* Modules should use action codes starting at A_MODULE to avoid conflicts with client */
@@ -93,19 +93,24 @@ enum { A_NOACTION = 0,
 
 
 #define IsMoveAction(action)   ((( (action) >= A_FORWARD &&          \
-                                   (action) <= A_SLIDERIGHTBACKWARDFAST)))
-#define IsTurnAction(action)   ((( (action) >= A_TURNLEFT && (action) <= A_TURNFASTRIGHT)))
+				  (action) <= A_SLIDERIGHTBACKWARDFAST))  \
+				|| ((action) == A_MOUSEMOVE))
+#define IsTurnAction(action)   ((( (action) >= A_TURNLEFT && (action) <= A_TURNFASTRIGHT)) \
+				|| ((action) == A_MOUSEMOVE))
 #define IsMoveFastAction(action)   ((( (action) >= A_FORWARDFAST &&          \
-                                       (action) <= A_SLIDERIGHTBACKWARDFAST)))
-#define IsTurnFastAction(action)   ((( (action) >= A_FORWARDTURNFASTLEFT && (action) <= A_TURNFASTRIGHT)))
+				  (action) <= A_SLIDERIGHTBACKWARDFAST))  \
+				|| ((action) == A_MOUSEMOVE))
+#define IsTurnFastAction(action)   ((( (action) >= A_FORWARDTURNFASTLEFT && (action) <= A_TURNFASTRIGHT)) \
+				|| ((action) == A_MOUSEMOVE))
 #define IsCursorAction(action) ( (action) >= A_CURSORLEFT && (action) <= A_CURSORDOWNLEFT)
 #define IsAttackAction(action) ( (action) == A_ATTACK || (action) == A_ATTACKCLOSEST)
 #define IsViewAction(action)   ( (action) == A_LOOKUP || (action) == A_LOOKDOWN)
 #define IsMapMoveAction(action)      ( (action) == A_MAPZOOMIN || (action) == A_MAPZOOMOUT)
-
+#define IsTabAction(action) ( (action) == A_TABFWD || (action) == A_TABBACK)
+#define IsMouseLookAction(action) ( (action) == A_MOUSELOOK)
 // True iff action should cause auto-repeat
 #define RepeatAction(a) (IsMoveAction(a) || IsTurnAction(a) || IsCursorAction(a) || \
-			 IsViewAction(a) || IsMapMoveAction(a))
+			 IsViewAction(a) || IsMapMoveAction(a) || IsTabAction(a) || IsMouseLookAction(a))
 
 #ifdef __cplusplus
 extern "C" {

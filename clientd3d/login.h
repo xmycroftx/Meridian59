@@ -12,24 +12,23 @@
 #ifndef _LOGIN_H
 #define _LOGIN_H
 
- /* Maximum length of username, password and email. */
+/* Maximum length of username and password */
 #define MAXUSERNAME 50
 #define MAXPASSWORD 32
-#define MAXEMAIL    256
 
 /* User types */
-enum { USER_NORMAL = 0, USER_ADMIN = 1, USER_GUEST = 2 };
+enum { USER_NORMAL = 0, USER_ADMIN = 1 };
 
 void LoginInit(void);
 void LoginExit(void);
 
 void LoginSendInfo(void);
 Bool GetLogin(void);
-void LoginOk(BYTE type);
+int  GetSessionID(void);
+void LoginOk(BYTE type, int sessionid);
 void LoginError(int err_string);
-void LoginErrorMessage(const char *message, BYTE action);
+void LoginErrorMessage(char *message, BYTE action);
 void LoginTimeout(void);
 void EnterGame(void);
-void CheckAccountActivation(void);
 
 #endif /* #ifndef _LOGIN_H */

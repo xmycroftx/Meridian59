@@ -17,8 +17,7 @@
 
 #include "blakserv.h"
 
-void AppendTextFile(session_node *s,const char *filename,
-                    int len,const char *text)
+void AppendTextFile(session_node *s,char *filename,int len,char *text)
 {
    FILE *appendfile;
    char save_name[MAX_PATH+FILENAME_MAX];

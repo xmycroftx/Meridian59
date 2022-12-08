@@ -26,25 +26,27 @@ static FILE *debug_file = NULL;
 char *szAppName;
 
 /************************************************************************/
-void _cdecl dprintf(char *fmt, ...)
+void _cdecl dprintf(char *fmt,...)
 {
-	const int bufferSize = 256;
-	const char s[bufferSize]{ 0 };
+	char s[1024];
 	va_list marker;
 	DWORD written;
 
 	va_start(marker,fmt);
-	vsnprintf((char*)s, bufferSize, fmt, marker);
+	vsprintf(s,fmt,marker);
 	va_end(marker);
 
+	assert(strlen(s)<1024);	/* overflowed local stack buffer, increase sizeof s buffer */
+
 	_RPT1(_CRT_WARN,"dprintf() says : %s",s);
+
 
 	if (!config.debug)
 		return;
 
 	WriteFile(hStdout, s, strlen(s), &written, NULL);
-	if (debug_file != NULL)
-		fputs(s, debug_file);
+  if (debug_file != NULL)
+    fputs(s, debug_file);
 }
 
 unsigned short gCRC16=0;
@@ -91,11 +93,10 @@ static unsigned short crc16( char *name)
 	return retval ;
 }
 
-static void GenerateCRC16( void )
+static void GenerateCRC16(void)
 {
-	gCRC16 = crc16( __argv[0] );
+   gCRC16 = crc16(__argv[0]);
 }
-
 /************************************************************************/
 long CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -164,25 +165,9 @@ long CALLBACK WndProc (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		HANDLE_MSG(hwnd, WM_CTLCOLORSTATIC, MainCtlColor);
 		HANDLE_MSG(hwnd, WM_CTLCOLORSCROLLBAR, MainCtlColor);
 
-		/* Wave mixer has finished playing file */
-		HANDLE_MSG(hwnd, MM_WOM_DONE, SoundDone);
-
 	case BK_SOCKETEVENT:
 		MainReadSocket(hwnd, WSAGETSELECTEVENT(lParam), (SOCKET) wParam, WSAGETSELECTERROR(lParam));
 		return 0;
-
-#ifndef M59_MSS
-	case MM_MCINOTIFY:  /* MIDI file has finished playing */
-		if (wParam != MCI_NOTIFY_SUCCESSFUL)
-			break;
-
-		MusicDone(LOWORD(lParam));
-		break;
-#endif
-
-	case BK_NEWSOUND:
-		NewMusic(wParam, lParam);
-		break;
 
 	case BK_NORESOURCE:
 		MissingResource();
@@ -269,8 +254,8 @@ void ClearMessageQueue(void)
 	}
 }
 /************************************************************************/
-int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdParam,
-				   int nCmdShow)
+int PASCAL WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
+                   _In_ LPSTR lpszCmdParam, _In_ int nCmdShow)
 {
 	MSG msg;
 	WINDOWPLACEMENT w;
@@ -308,7 +293,8 @@ int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
 	if (config.debug)
 		CreateDebugWindow();
 
-  ConfigOverride(lpszCmdParam);
+	if (lpszCmdParam && strlen(lpszCmdParam) > 0)
+		ConfigOverride(lpszCmdParam);
 
 	w.length = sizeof(WINDOWPLACEMENT);
 	WindowSettingsLoad(&w);
@@ -316,8 +302,9 @@ int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
 
 	D3DRenderInit(hMain);
 
-	ModulesInit();   // Set up data structures for modules
+	AudioInit();
 
+	ModulesInit();   // Set up data structures for modules
 
 /* attempt make a crc16 on the meridian.exe */
 	GenerateCRC16();
@@ -325,34 +312,38 @@ int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
 	MainInitState(STATE_OFFLINE);
 
 	UpdateWindow(hMain);
-
+   
 	while (!bQuit)
 	{
 		MainIdle();
+      if (MsgWaitForMultipleObjects(0, NULL, 0, (DWORD)1, QS_ALLINPUT) == WAIT_OBJECT_0)
+      {
+         while (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
+         {
+            if (!GetMessage(&msg, NULL, 0, 0))
+            {
+               bQuit = TRUE;
+               break;
+            }
 
-		while (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
-		{
-			if (!GetMessage(&msg, NULL, 0, 0))
-			{
-				bQuit = TRUE;
-				break;
-			}
+            // Forward appropriate messages for tooltips
+            if (state == STATE_GAME)
+               TooltipForwardMessage(&msg);
 
-			// Forward appropriate messages for tooltips
-			if (state == STATE_GAME)
-				TooltipForwardMessage(&msg);
-
-			/* Handle modeless dialog messages separately */
-			if ((hCurrentDlg == NULL || !IsDialogMessage(hCurrentDlg, &msg)))
-			{
-				TranslateMessage(&msg);
-				DispatchMessage(&msg);
-			}
-		}
+            /* Handle modeless dialog messages separately */
+            if ((hCurrentDlg == NULL || !IsDialogMessage(hCurrentDlg, &msg)))
+            {
+               TranslateMessage(&msg);
+               DispatchMessage(&msg);
+            }
+         }
+      }
 	}
 
 	/* Unregister our custom classes--not good to leave them around */
 	UnregisterWindowClasses();
+
+	AudioShutdown();
 
 	return msg.wParam;  // Return value of PostQuitMessage
 }
@@ -365,4 +356,64 @@ void GetGamePath( char *szGamePath )
 {
   if (!GetWorkingDirectory(szGamePath, MAX_PATH))
     debug(("Unable to get current directory!\n"));
+}
+
+LARGE_INTEGER watch;
+void StartWatch()
+{
+   static LARGE_INTEGER microFrequency;
+
+   if (microFrequency.QuadPart == 0)
+      QueryPerformanceFrequency(&microFrequency);
+
+   if (microFrequency.QuadPart == 0)
+      return;
+
+   QueryPerformanceCounter(&watch);
+}
+double StopWatch()
+{
+   static LARGE_INTEGER microFrequency, end, diff;
+
+   if (microFrequency.QuadPart == 0)
+      QueryPerformanceFrequency(&microFrequency);
+
+   if (microFrequency.QuadPart == 0)
+      return -1.0;
+   QueryPerformanceCounter(&end);
+
+   diff.QuadPart = end.QuadPart - watch.QuadPart;
+   return ((double)diff.QuadPart * (1000000.0 / (double)microFrequency.QuadPart));
+}
+
+double GetMicroCountDouble()
+{
+   static LARGE_INTEGER microFrequency;
+   LARGE_INTEGER now;
+
+   if (microFrequency.QuadPart == 0)
+      QueryPerformanceFrequency(&microFrequency);
+
+   if (microFrequency.QuadPart == 0)
+      return 0;
+
+   QueryPerformanceCounter(&now);
+
+   return (double)(now.QuadPart * 1000000 / (double)microFrequency.QuadPart);
+}
+
+double GetMilliCountDouble()
+{
+   static LARGE_INTEGER microFrequency;
+   LARGE_INTEGER now;
+
+   if (microFrequency.QuadPart == 0)
+      QueryPerformanceFrequency(&microFrequency);
+
+   if (microFrequency.QuadPart == 0)
+      return 0;
+
+   QueryPerformanceCounter(&now);
+
+   return (double)(now.QuadPart * 1000) / (double)microFrequency.QuadPart;
 }

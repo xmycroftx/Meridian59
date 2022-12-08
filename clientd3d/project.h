@@ -14,6 +14,8 @@
 
 /* Flags bit values for Projectile structure */
 #define PROJ_FLAG_FOLLOWGROUND	 0x0001
+#define PROJ_FLAG_LIGHT_SOURCE    0x0002
+#define PROJ_FLAG_TRANSPARENT50   0x0004
 
 typedef struct {
    ID      icon_res;             // Icon resource of bitmap
@@ -29,5 +31,5 @@ typedef struct {
 
 void ProjectileAdd(Projectile *p, ID source_obj, ID dest_obj, BYTE speed, WORD flags, WORD reserved);
 Bool ProjectilesMove(int dt);
-
+void RadiusProjectileAdd(Projectile *p, ID source_obj, BYTE speed, WORD flags, WORD reserved, BYTE range, BYTE number);
 #endif /* #ifndef _PROJECT_H */

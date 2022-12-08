@@ -67,7 +67,6 @@ ishash_type load_game_resources;
 } 
 
 #define LoadGameReadInt(buf) LoadGameRead(buf,4)
-#define LoadGameReadInt64(buf) LoadGameRead(buf,8)
 #define LoadGameReadChar(buf) LoadGameRead(buf,1)
 
 #define LoadGameReadString(buf,max_len) \
@@ -93,21 +92,23 @@ ishash_type load_game_resources;
 	buf[len] = 0; \
 }
 
+
 /* local function prototypes */
 
 Bool LoadGameOpen(char *fname);
 Bool LoadGameParse(char *filename);
 void LoadGameClose(void);
+Bool LoadGameVersion(void);
+Bool LoadGameBuiltInObjects();
 
-Bool LoadGameSystem(void);
-Bool LoadGameObject(int file_version);
-Bool LoadGameListNodes(int file_version);
-Bool LoadGameTimer(int file_version);
+Bool LoadGameObject(void);
+Bool LoadGameListNodes(void);
+Bool LoadGameTables(void);
+Bool LoadGameTimer(void);
 Bool LoadGameUser(void);
 Bool LoadGameClass(void);
 void LoadAddPropertyName(load_game_class_node *lgc,int prop_old_id,char *prop_name);
 Bool LoadGameResource(void);
-Bool LoadGameReadInt32To64(val_type *prop_val);
 
 load_game_class_node * CreateLoadGameClass(int class_old_id,char *class_name,int num_props);
 void CreateLoadGameResource(int resource_old_id,char *resource_name);
@@ -117,6 +118,9 @@ char * GetLoadGamePropertyNameByID(load_game_class_node *lgc,int prop_old_id);
 const char * GetLoadGameResourceByID(int resource_old_id);
 
 void LoadGameTranslateVal(val_type *pval);
+
+// Save game version number.
+int savegame_version;
 
 Bool LoadGame(char *filename)
 {
@@ -145,9 +149,12 @@ Bool LoadGame(char *filename)
 			filename);
 		return False;
 	}
-	
+	savegame_version = 0;
 	ret_val = LoadGameParse(filename);
-	
+
+   // Print any missing properties to error log.
+   PrintStartupMissingProp();
+
 	LoadGameClose();
 	
 	/* now free load game memory */
@@ -200,24 +207,7 @@ void LoadGameClose(void)
 Bool LoadGameParse(char *filename)
 {
 	char cmd;
-
-  // File versions:
-  // 0 - original save game, everything is 32 bits
-  // 1 - object properties are 64 bits
-  int file_version = 0;
-
-  char sentinel;
-  LoadGameReadChar(&sentinel);
-  if (sentinel == 'V') {
-    LoadGameReadInt(&file_version);
-    if (file_version < 0 || file_version > 1) {
-      eprintf("LoadGameParse got unknown save game version %i\n", file_version);
-      return False;
-    }
-  } else {
-    rewind(loadfile.file);
-  }
-
+	
 	while (true)
 	{
       if (fread(&cmd, 1, 1, loadfile.file) != 1)
@@ -241,20 +231,28 @@ Bool LoadGameParse(char *filename)
 			if (!LoadGameResource())
 				return False;
 			break;
-		case SAVE_GAME_SYSTEM :
-			if (!LoadGameSystem())
+		case SAVE_GAME_BUILTINOBJ :
+			if (!LoadGameBuiltInObjects())
+				return False;
+			break;
+		case SAVE_GAME_VERSION :
+			if (!LoadGameVersion())
 				return False;
 			break;
 		case SAVE_GAME_OBJECT :
-			if (!LoadGameObject(file_version))
+			if (!LoadGameObject())
 				return False;
 			break;
 		case SAVE_GAME_LIST_NODES :
-			if (!LoadGameListNodes(file_version))
+			if (!LoadGameListNodes())
+				return False;
+			break;
+		case SAVE_GAME_TABLES :
+			if (!LoadGameTables())
 				return False;
 			break;
 		case SAVE_GAME_TIMER :
-			if (!LoadGameTimer(file_version))
+			if (!LoadGameTimer())
 				return False;
 			break;
 		case SAVE_GAME_USER :
@@ -271,17 +269,44 @@ Bool LoadGameParse(char *filename)
 	return True;
 }
 
-Bool LoadGameSystem(void)
+Bool LoadGameVersion(void)
 {
-	int system_id;
-	
-	LoadGameReadInt(&system_id);
-	SetSystemObjectID(system_id);
-	
-	return True;
+   int temp;
+
+   LoadGameReadInt(&temp);
+   savegame_version = temp;
+
+   return True;
 }
 
-Bool LoadGameObject(int file_version)
+Bool LoadGameBuiltInObjects()
+{
+   int obj_id, num_builtins, obj_constant;
+
+   // Old save games just had system built-in object.
+   if (savegame_version == 0)
+   {
+      LoadGameReadInt(&obj_id);
+      SetSystemObjectID(obj_id);
+      return True;
+   }
+
+   // Save game version 1 handles any number of built-ins.
+   if (savegame_version == 1)
+   {
+      LoadGameReadInt(&num_builtins);
+      for (int i = 0; i < num_builtins; ++i)
+      {
+         LoadGameReadInt(&obj_constant);
+         LoadGameReadInt(&obj_id);
+         SetBuiltInObjectID(obj_constant, obj_id);
+      }
+   }
+
+   return True;
+}
+
+Bool LoadGameObject(void)
 {
 	int object_id,class_old_id,num_props,i;
 	val_type prop_val;
@@ -309,13 +334,7 @@ Bool LoadGameObject(int file_version)
 
 	for (i=1;i<=num_props;i++)
 	{
-    if (file_version == 0) {
-      if (!LoadGameReadInt32To64(&prop_val)) {
-         return False;
-      }
-    } else {
-      LoadGameReadInt64(&prop_val);
-    }
+		LoadGameReadInt(&prop_val);
 		// eprintf("loading object %i\n",object_id);
 
 		LoadGameTranslateVal(&prop_val);
@@ -329,17 +348,16 @@ Bool LoadGameObject(int file_version)
 
 		if (!SetObjectPropertyByName(current_object_id,property_str,prop_val))
 		{
-			eprintf("LoadGameObject object %i class %s property %s can't set object property\n",
-				object_id,lgc->class_name,property_str);
+			//eprintf("LoadGameObject object %i class %s property %s can't set object property\n",
+			//	object_id,lgc->class_name,property_str);
 			// it's usually ok, property just eliminated in new kod
 		}
-
 	}
 	
 	return True;
 }
 
-Bool LoadGameListNodes(int file_version)
+Bool LoadGameListNodes(void)
 {
 	int num_list_nodes,i;
 	val_type first_val,rest_val;
@@ -348,15 +366,8 @@ Bool LoadGameListNodes(int file_version)
 	
 	for (i=0;i<num_list_nodes;i++)
 	{
-		if (file_version == 0) {
-		  if (!LoadGameReadInt32To64(&first_val) ||
-		      !LoadGameReadInt32To64(&rest_val)) {
-		    return False;
-		  }
-		} else {
-		  LoadGameReadInt64(&first_val);
-		  LoadGameReadInt64(&rest_val);
-		}
+		LoadGameReadInt(&first_val.int_val);
+		LoadGameReadInt(&rest_val.int_val);
 		
 		LoadGameTranslateVal(&first_val);
 		LoadGameTranslateVal(&rest_val);
@@ -371,22 +382,67 @@ Bool LoadGameListNodes(int file_version)
 	return True;
 }
 
-Bool LoadGameTimer(int file_version)
+Bool LoadGameTables(void)
 {
-	int timer_id,object_id,milliseconds32,milliseconds64;
+   int num_tables, size, num_entries, table_id;
+   val_type key_val, data_val;
+   table_node *t;
+
+   LoadGameReadInt(&num_tables);
+
+   for (int i = 0; i < num_tables; ++i)
+   {
+      LoadGameReadInt(&size);
+      LoadGameReadInt(&num_entries);
+
+      table_id = CreateTable(size);
+      t = GetTableByID(table_id);
+      if (t == NULL)
+      {
+         eprintf("LoadGameTables can't set table %i\n",i);
+         return False;
+      }
+
+      if (table_id != i)
+      {
+         eprintf("LoadGameTables got incorrect table id %i, expected %i\n",
+            table_id, i);
+         return False;
+      }
+
+      if (t->size != size)
+      {
+         eprintf("LoadGameTables got invalid table size %i, expected %i\n",
+            t->size, size);
+         return False;
+      }
+
+      for (int j = 0; j < num_entries; ++j)
+      {
+         LoadGameReadInt(&key_val.int_val);
+         LoadGameReadInt(&data_val.int_val);
+
+         LoadGameTranslateVal(&key_val);
+         LoadGameTranslateVal(&data_val);
+
+         InsertTable(i, key_val, data_val);
+      }
+   }
+
+   return True;
+}
+
+Bool LoadGameTimer(void)
+{
+	int timer_id,object_id,milliseconds;
 	char buf[100];
 	
 	LoadGameReadInt(&timer_id);
 	LoadGameReadInt(&object_id);
 	LoadGameReadString(buf,sizeof(buf));
-	if (file_version == 0) {
-	  LoadGameReadInt(&milliseconds32);
-	  milliseconds64 = milliseconds32;
-	} else {
-	  LoadGameReadInt64(&milliseconds64);
-	}
+	LoadGameReadInt(&milliseconds);
 	
-	if (!LoadTimer(timer_id,object_id,buf,milliseconds64))
+	if (!LoadTimer(timer_id,object_id,buf,milliseconds))
 	{
 		eprintf("LoadGameTimer can't set timer %i\n",timer_id);
 		/* still ok */
@@ -573,14 +629,3 @@ void LoadGameTranslateVal(val_type *pval)
 		pval->v.data = r->resource_id;
 	}
 }
-
-// Read a 32-bit Blakod value, storing it in our internal 64-bit value
-__inline Bool LoadGameReadInt32To64(val_type *prop_val) {
-  // Convert 32-bit saved value to 64 bits internally
-  v0_val_type v0_val;
-  LoadGameReadInt(&v0_val);
-  prop_val->v.tag = v0_val.v.tag;
-  prop_val->v.data = v0_val.v.data;
-  return True;
-}
-

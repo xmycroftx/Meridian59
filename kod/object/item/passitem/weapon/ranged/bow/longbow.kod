@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Longbow is Bow
 
 constants:
@@ -16,7 +16,9 @@ constants:
 
 resources:
 
-   Longbow_name_rsc = "longbow"
+   include longbow.lkod
+
+   Longbow_name_rsc = "long bow"
    Longbow_desc_rsc = \
       "Expertly carved for flexibility and range, this bow gives you the "
       "envious advantage of a long ranged attack." 
@@ -27,7 +29,7 @@ classvars:
    vrDesc = Longbow_desc_rsc
 
    viWeaponDamage = 0
-   viRange = 100
+   viRange = 100 * FINENESS
    viHit_roll_modifier = 100
 
    viValue_average = 2500
@@ -36,13 +38,12 @@ classvars:
 
    viSpell_modifier = -20
 
-   % What's the basic color of the wood?
+   // What's the basic color of the wood?
    viBaseXLAT = XLAT_TO_SKIN2
 
 properties:
 
 messages:
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

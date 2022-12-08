@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Ammo is NumberItem
 
 constants:
@@ -16,9 +16,11 @@ constants:
 
 resources:
 
+   include ammo.lkod
+
    ammo_name_rsc = "ammunition"
-   % Generic default image.  Something strange so it is visually obvious if
-   %  we didn't set something.
+   // Generic default image.  Something strange so it is visually obvious if
+   //  we didn't set something.
    ammo_icon_rsc = fireball.bgf
    ammo_desc_rsc = "This is a bit of ammunition for something or other.."
 
@@ -32,33 +34,39 @@ classvars:
    viUse_amount = 1
 
    viItem_type = ITEMTYPE_AMMO
-   viAmmo_type = AMMO_ARROW     
+   viAmmo_type = AMMO_ARROW
 
    viGround_group = 2
-   viInventory_group = 1   
+   viInventory_group = 1
+
+   viMinDamage = 1
+   viMaxDamage = 5
+
+   // Projectile lighting information (none normally).
+   viProjectileLightFlags = LIGHT_FLAG_NONE
+   viProjectileLightIntensity = 0
+   viProjectileLightColor = 0
 
 properties:
 
    piNumber = 20
-   piAttack_type = ATCK_WEAP_PIERCE
-   piAttack_spell = 0
+   piAttack_type = ATK_TYPE_PIERCE
+   piSpell_type = 0
+
+   viObject_flags = OF_GETTABLE
 
 messages:
 
    ReqUseSomething(what = $)
    {
-      if IsClass(what, &Ammo)
+      if IsClass(what,&Ammo)
       {
-         if Send(poOwner,@TryUnuseItem,#what=self)
+         if NOT Send(poOwner,@TryUnuseItem,#what=self)
          {
-            propagate;
-         }
-         else
-         {
-             return FALSE;
+            return FALSE;
          }
       }
-      
+
       propagate;
    }
 
@@ -81,13 +89,22 @@ messages:
 
    GetProjectileLightFlags()
    {
-      % No lighting information.
-      return LIGHT_FLAG_NONE;
+      return viProjectileLightFlags;
+   }
+
+   GetProjectileLightIntensity()
+   {
+      return viProjectileLightIntensity;
+   }
+
+   GetProjectileLightColor()
+   {
+      return viProjectileLightColor;
    }
 
    GetDamage()
    {
-      return Random(1,5);
+      return Random(viMinDamage,viMaxDamage);
    }
 
    GetAmmoType()
@@ -95,13 +112,33 @@ messages:
       return viAmmo_type;
    }
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Magic Arrow Stuff          %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-   GetAttackSpell()
+   GetMinDamage()
    {
-      return piAttack_spell;
+      return viMinDamage;
+   }
+   
+   GetMaxDamage()
+   {
+      return viMaxDamage;
+   }
+
+   GetMinSpecialDamage()
+   {
+      return 0;
+   }
+
+   GetMaxSpecialDamage()
+   {
+      return 0;
+   }
+
+///////////////////////////////
+// Magic Arrow Stuff          //
+///////////////////////////////
+
+   GetSpellType()
+   {
+      return piSpell_type;
    }
 
    GetAttackType()
@@ -119,7 +156,7 @@ messages:
       {
          piAttack_type = piAttack_type & ~flag;
       }
-      
+
       return;
    }
 
@@ -132,21 +169,20 @@ messages:
    {
       if value = True
       {
-         piAttack_spell = piAttack_spell | flag;
+         piSpell_type = piSpell_type | flag;
       }
       else
       {
-         piAttack_spell = piAttack_spell & ~flag;
+         piSpell_type = piSpell_type & ~flag;
       }
-      
+
       return;
    }
 
    CheckSpellFlag(flag = 0)
    {
-      return  (piAttack_spell & flag);
+      return  (piSpell_type & flag);
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

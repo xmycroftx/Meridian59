@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 InscriptionItem is PassiveItem
 
 constants:
@@ -16,15 +16,16 @@ constants:
 
 resources:
 
+   include inscript.lkod
+
    inscript_name_rsc = "slip of parchment"
    inscript_icon_rsc = scroll.bgf
-   inscript_desc_blank_rsc = "A fresh bit of parchment paper, without a mark on it."
+   inscript_desc_blank_rsc = \
+      "A fresh bit of parchment paper, without a mark on it."
    inscript_desc_written_rsc = \
       "A small sheet of parchment paper, with something scrawled across it."
-
    inscript_emote_write_third_rsc = "%s scribbles something on %s%s."
-
-   inscript_blank_rsc = " "
+   inscript_blank_rsc = ""
    inscript_q = "%q"
 
 classvars:
@@ -58,8 +59,7 @@ messages:
    {
       if (string = GetTempString())
       {
-         psInscription = CreateString();
-         SetString(psInscription, string);
+         psInscription = SetString($,string);
       }
       else
       {
@@ -73,40 +73,37 @@ messages:
 
    ReqNewApply()
    {
-      local oOwner;
-
-      oOwner=send(self,@GetOwner);
-
-      if IsClass(self,&BallotItem) or IsClass(self,&Book)
+      if IsClass(self,&BallotItem)
+         OR IsClass(self,&Book)
+         OR IsClass(self,&NameChangeScroll)
+         OR IsClass(self,&BlankScroll)
       {
          return FALSE;
       }
 
-      if send(oOwner,@IsActor)
+      if poOwner <> $
+         AND IsClass(poOwner,&DM)
       {
          return TRUE;
       }
-      
+
       return FALSE;
    }
 
-   NewApplied()  
+   NewApplied()
    {
-      local oOwner,oletter,rString;
+      local oOwner;
 
-      rString=psInscription;
-      if rString = $
+      if psInscription = $
       {
          return;
       }
 
-      oOwner=send(self,@GetOwner);
-      if send(oOwner,@IsActor)
+      oOwner = Send(self,@GetOwner);
+      if IsClass(oOwner,&DM)
       {
-         oLetter=create(&bardletter);
-         send(oLetter,@SetDesc,#desc=rString);
-         send(oOwner,@NewHold,#what=oLetter);
-         send(self,@Delete);
+         Send(oOwner,@NewHold,#what=Create(&BardLetter,#desc=psInscription));
+         Send(self,@Delete);
       }
 
       return;
@@ -146,6 +143,5 @@ messages:
       return;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

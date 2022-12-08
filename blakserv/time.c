@@ -21,11 +21,27 @@
 
 void InitTime()
 {
+/* I use the multimedia timers (set to accuracy of 1ms here) because
+for millisecond timing because they are more accurate than 
+	GetTickCount().
+	
+	timeBeginPeriod(1);
+    */
 }
 
-time_t GetTime()
+int GetTime()
 {
-	return time(NULL);
+	return (int)time(NULL);
+}
+
+const char * GetShortMonthStr(int month)
+{
+   static const char * months[13] =
+   { "Err", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+
+   if (month < 1 || month > 12)
+      return months[0];
+   return months[month];
 }
 
 const char * TimeStr(time_t time)
@@ -91,13 +107,13 @@ const char * FileTimeStr(time_t time)
 	return s;
 }
 
-const char * RelativeTimeStr(time_t time)
+const char * RelativeTimeStr(int time)
 {
 	static char s[80];
 	int amount;
 	s[0] = 0;
 	
-	amount = (int) (time / (24*60*60));
+	amount = time / (24*60*60);
 	if (amount != 0)
 		sprintf(s,"%i day%s ",amount,amount != 1 ? "s" : "");
 	
@@ -117,6 +133,23 @@ const char * RelativeTimeStr(time_t time)
 		sprintf(s,"0 sec");
 	
 	return s;
+}
+
+// Use GetTickCount64 since higher resolution not required, and return value
+// is independent of OS time changes/updates (important for not incorrectly
+// kicking users off for inactivity if OS time updates.
+// GetTickCount64 could fit in int (time since system boot) but handling time
+// in 64 bit types is future proof/handles implementation changes.
+UINT64 GetSecondCount()
+{
+#ifdef BLAK_PLATFORM_WINDOWS
+   return GetTickCount64() / 1000;
+#else
+   struct timeval tv;
+   gettimeofday(&tv, NULL);
+
+   return tv.tv_sec;
+#endif
 }
 
 UINT64 GetMilliCount()
@@ -150,3 +183,33 @@ UINT64 GetMilliCount()
 #endif
 }
 
+double GetMicroCountDouble()
+{
+#ifdef BLAK_PLATFORM_WINDOWS
+
+   static LARGE_INTEGER microFrequency;
+   LARGE_INTEGER now;
+
+   if (microFrequency.QuadPart == 0)
+      QueryPerformanceFrequency(&microFrequency);
+
+   if (microFrequency.QuadPart == 0)
+   {
+      eprintf("GetMicroCount can't get frequency\n");
+      return 0;
+   }
+
+   QueryPerformanceCounter(&now);
+   return ((double)now.QuadPart * 1000000.0) / (double)microFrequency.QuadPart;
+
+#else
+
+   struct timeval tv;
+   gettimeofday(&tv, NULL);
+
+   double time_in_us = tv.tv_sec * 1000000.0 + tv.tv_usec;
+
+   return time_in_us;
+
+#endif
+}

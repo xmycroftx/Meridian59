@@ -16,11 +16,9 @@
 #define CLIMB_VELOCITY_0   (FINENESS * 9 / 2)	// climb velocity set to be 3x faster than fall, to keep people from seeing through the floor
 #define FALL_VELOCITY_0    (-FINENESS * 2 / 3)
 
-#define IsInRoom(row, col, room) \
-((row) >= 0 && (row) < (room).rows && (col) >= 0 && (col) < (room).cols)
-
 void ResetPlayerPosition(void);
 
+void UserTryGo();
 void UserMovePlayer(int action);
 Bool ObjectsMove(int dt);
 Bool MoveSingle(Motion *m, int dt);
@@ -34,10 +32,11 @@ int  PlayerGetHeightOffset(void);
 void ServerMovedPlayer(void);
 void MoveUpdateServer(void);
 void MoveSetValidity(Bool valid);
-void MoveUpdatePosition(void);
+Bool MoveUpdatePosition(void);
 
 void UserTurnPlayer(int action);
 void UserTurnPlayerMouse(int delta);
 void UserFlipPlayer(void);
+void SetMovementSpeedPct(int speed);
 
 #endif /* #ifndef _MOVE_H */

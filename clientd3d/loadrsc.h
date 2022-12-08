@@ -14,17 +14,19 @@
 #define _LOADRSC_H
 
 #define MAXNAME      256    /* Maximum name resource length */
-#define MAXRSCSTRING 4096   /* Maximum string length in resources */
+#define MAXRSCSTRING 8192   /* Maximum string length in resources */
+
 
 typedef struct {
    ID    idnum;
-   char *data;
+   char *resource[MAX_LANGUAGE_ID];
 } *resource_type, resource_struct;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+void LoadRSBHash(void);
 Bool LoadResources(void);
 void FreeResources(void);
 void ChangeResource(ID res, char *value);
@@ -33,10 +35,12 @@ M59EXPORT char *GetString(HINSTANCE hModule, ID idnum);
 void MissingResource(void);
 void DeleteRscFiles(list_type files);
 void DeleteAllRscFiles(void);
-
+unsigned char *GetRSBHash(void);
+M59EXPORT Bool *GetAvailableLanguages(void);
 M59EXPORT char *LookupRsc(ID idnum);
 M59EXPORT char *LookupNameRsc(ID idnum);
 M59EXPORT char *LookupRscNoError(ID idnum);
+M59EXPORT char *LookupRscRedbook(ID idnum);
 
 #ifdef __cplusplus
 };

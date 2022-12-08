@@ -1,41 +1,37 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 ToughTreasure is TreasureType
 
 constants:
-   
+
    include blakston.khd
-   
+
 classvars:
 
+   viTreasure_num = TID_TOUGH
 
 properties:
-   
-   piTreasure_num = TID_TOUGH
 
-   %% some great stuff, but generates rarely.
+   /// some great stuff, but generates rarely.
 
    piDiff_seed = 5
    piItem_att_chance = 2
 
 messages:
-   
-   constructed()
+
+   Constructed()
    {
-    plTreasure = [ [ &RedMushroom, 25 ],
-                   [ &BlueMushroom, 20 ],
-                   [ &Snack, 16],
-                   [ &Emerald, 10 ],
-                   [ &Sapphire, 8 ],
-                   [ &Diamond,  6 ],
+    plTreasure = [ [ &Sapphire, 25 ],
+                   [ &Emerald, 25 ],
+                   [ &Snack, 35],
                    [ &BlueDragonScale, 6],
                    [ &Ruby, 4],
                    [ &InkyCap, 4],
@@ -46,4 +42,4 @@ messages:
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

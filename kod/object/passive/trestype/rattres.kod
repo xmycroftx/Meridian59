@@ -1,35 +1,33 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 RatTreasure is TreasureType
 
 constants:
-   
+
    include blakston.khd
-   
+
 classvars:
 
+   viTreasure_num = TID_RAT
 
 properties:
-   
-   piTreasure_num = TID_RAT
 
 messages:
-   
-   constructed()
+
+   Constructed()
    {
       plTreasure = [ [ &Herbs, 30 ],
-                     [ &Mushroom, 20],
-                     [ &Elderberry, 15 ],
+                     [ &Mushroom, 25],
+                     [ &Elderberry, 20 ],
                      [ &Snack, 15],
-                     [ &Money, 10],
                      [ &BlueMushroom, 5],
                      [ &RedMushroom, 5 ] ];
 
@@ -37,4 +35,4 @@ messages:
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

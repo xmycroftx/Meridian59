@@ -19,7 +19,7 @@
 
 #include "blakserv.h"
 
-#define BOF_EXTENSION ".bof"
+#define BOF_SPEC "*.bof"
 
 static unsigned char magic_num[] = { 'B', 'O', 'F', 0xFF };
 #define BOF_MAGIC_LEN sizeof(magic_num)
@@ -46,9 +46,10 @@ void LoadBof(void)
 	
 	int files_loaded = 0;
 	
-	StringVector files;
-	if (FindMatchingFiles(ConfigStr(PATH_BOF), BOF_EXTENSION, &files))
-	{
+	sprintf(file_load_path,"%s%s",ConfigStr(PATH_BOF),BOF_SPEC);
+   StringVector files;
+   if (FindMatchingFiles(file_load_path, &files))
+   {
       for (StringVector::iterator it = files.begin(); it != files.end(); ++it)
       {
 			sprintf(file_load_path,"%s%s",ConfigStr(PATH_BOF), it->c_str());
@@ -66,10 +67,11 @@ void LoadBof(void)
 	//dprintf("starting to load bof files\n");
 	files_loaded = 0;
 	
-	if (FindMatchingFiles(ConfigStr(PATH_MEMMAP), BOF_EXTENSION, &files))
-	{
-		for (StringVector::iterator it = files.begin(); it != files.end(); ++it)
-		{
+	sprintf(file_load_path,"%s%s",ConfigStr(PATH_MEMMAP),BOF_SPEC);
+   if (FindMatchingFiles(file_load_path, &files))
+   {
+      for (StringVector::iterator it = files.begin(); it != files.end(); ++it)
+      {
 			sprintf(file_load_path,"%s%s",ConfigStr(PATH_MEMMAP), it->c_str());
 			
 			if (LoadBofName(file_load_path))
@@ -83,7 +85,7 @@ void LoadBof(void)
 	SetClassVariables();
 	SetMessagesPropagate();
 
-	//dprintf("LoadBof loaded %i of %i found .bof files\n",files_loaded,files.size());
+	dprintf("LoadBof loaded %i of %i found .bof files\n",files_loaded,files.size());
 }
 
 void ResetLoadBof(void)
@@ -105,51 +107,49 @@ void ResetLoadBof(void)
 
 Bool LoadBofName(char *fname)
 {
-   FILE *f = fopen(fname, "rb");
-	if (f == NULL)
+   int fileno = open(fname, O_BINARY | O_RDONLY);
+
+   if (fileno == -1)
    {
       eprintf("LoadBofName can't open %s\n", fname);
-		return False;
-   }
-
-   for (int i = 0; i < BOF_MAGIC_LEN; ++i)
-   {
-      unsigned char c;
-      if (fread(&c, 1, 1, f) != 1 || c != magic_num[i])
-      {
-         eprintf("LoadBofName %s is not in BOF format\n", fname);
-         fclose(f);
-         return False;
-      }
-   }
-   
-   int version;
-   if (fread(&version, 1, 4, f) != 4 || version != 5)
-	{
-		eprintf("LoadBofName %s can't understand bof version != 5\n",fname);
-      fclose(f);
-		return False;
-	}
-   
-   // Go back to start of file and read the whole thing into memory.
-   fseek(f, 0, SEEK_SET);
-   
-   struct stat st;
-   stat(fname, &st);
-   int file_size = st.st_size;
-
-	char *ptr = (char *)AllocateMemory(MALLOC_ID_LOADBOF,file_size);
-   if (fread(ptr, 1, file_size, f) != file_size)
-   {
-      fclose(f);
       return False;
    }
 
-   fclose(f);
+   int file_size = lseek(fileno, 0L, SEEK_END);
 
-	AddFileMem(fname,ptr,file_size);
-	
-	return True;
+   // Go back to start of file and read the whole thing into memory.
+   lseek(fileno, 0, SEEK_SET);
+
+   char *ptr = (char *)AllocateMemory(MALLOC_ID_LOADBOF, file_size);
+   if (read(fileno, ptr, file_size) != file_size)
+   {
+      close(fileno);
+      return False;
+   }
+
+   close(fileno);
+
+   for (int i = 0; i < BOF_MAGIC_LEN; ++i)
+   {
+      if ((unsigned char)ptr[i] != magic_num[i])
+      {
+         eprintf("LoadBofName %s is not in BOF format\n", fname);
+         FreeMemory(MALLOC_ID_LOADBOF, ptr, file_size);
+         return False;
+      }
+   }
+   int version = (int)ptr[BOF_MAGIC_LEN];
+   if (version != BOF_VERSION)
+   {
+      eprintf("LoadBofName %s can't understand bof version %i\n",
+         fname, version);
+      FreeMemory(MALLOC_ID_LOADBOF, ptr, file_size);
+      return False;
+   }
+
+   AddFileMem(fname, ptr, file_size);
+
+   return True;
 }
 
 /* add a filename and mapped ptr to the list of loaded files */
@@ -164,11 +164,19 @@ void AddFileMem(char *fname,char *ptr,int size)
 	lf->length = size;
 	
 	/* we store the fname so the class structures can point to it, but kill the path */
-	
+
+#ifdef BLAK_PLATFORM_WINDOWS
 	if (strrchr(lf->fname,'\\') == NULL)
 		FindClasses(lf->mem,lf->fname); 
 	else
 		FindClasses(lf->mem,strrchr(lf->fname,'\\')+1); 
+#else
+    if (strrchr(lf->fname,'/') == NULL)
+        FindClasses(lf->mem,lf->fname);
+    else
+        FindClasses(lf->mem,strrchr(lf->fname,'/')+1);
+
+#endif
 	
 	/* add to front of list */
 	lf->next = mem_files;

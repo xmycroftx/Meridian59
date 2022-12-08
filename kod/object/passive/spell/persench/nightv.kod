@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 NightVision is PersonalEnchantment
 
 constants:
@@ -16,12 +16,14 @@ constants:
 
 resources:
 
+   include nightv.lkod
+
    nightvision_name_rsc = "night vision"
    nightvision_icon_rsc = nitvsico.bgf
    nightvision_desc_rsc = \
-      "Magically enhances the vision of the target.  "
-	   "Requires elderberry to cast."
-   
+      "Magically enhances the vision of the target."
+   nightvision_enchantment_rsc = \
+      "\n\nYour current %s enchantment adds %i visual light."
    nightvision_already_enchanted_rsc = "You already have night vision."
 
    nightvision_on_rsc = "Your eyes burn with magical energy."
@@ -45,10 +47,16 @@ classvars:
    viMana = 6
 
    viChance_To_Increase = 35
-   
+   viMeditate_ratio = 10
+
    viFlash = FLASH_GOOD_SELF
 
 properties:
+
+   // The effectiveness of purge on the target spell as a percentage.
+   // 100 will cause purge to remove its entire spellpower, 0 will
+   // prevent purge from removing this spell.
+   viPurgeFactor = 80
 
 messages:
 
@@ -60,31 +68,31 @@ messages:
       return;
    }
 
-   GetStateValue(who = $, iSpellPower = 0,target=$)
+   GetStateValue(who=$,iSpellPower=0,target=$)
    {
       local iState;
 
       iState = iSpellPower + 50;
       Send(target,@GainLight,#amount=iState);
-      
+
       return iState;
    }
-   
-   GetDuration(iSpellpower = 0)
+
+   GetDuration(iSpellpower=0)
    {
       local iDuration;
-      
-      iDuration = 1500 + 25 * iSpellPower;
+
+      iDuration = 1500 + 10 * iSpellPower;
       iDuration = iDuration * 1000;
-      
-      return random(iDuration/2,iDuration);
+
+      return iDuration;
    }
 
 
-   EndEnchantment(who = $, report = TRUE, state = 0)
+   EndEnchantment(who=$,report=TRUE,state=0)
    {
       Send(who,@LoseLight,#amount=state);
-      
+
       propagate;
    }
 
@@ -93,6 +101,13 @@ messages:
       return &NightVisionPotion;
    }
 
-end
+   EffectDesc(who=$)
+   {
+      AddPacket(4,nightvision_enchantment_rsc, 4,Send(self,@GetName),
+                4,Send(who,@GetEnchantedState,#what=self));
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      return;
+   }
+
+end
+////////////////////////////////////////////////////////////////////////////////

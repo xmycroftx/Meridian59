@@ -3,13 +3,13 @@
 TOPDIR=..
 !include $(TOPDIR)\common.mak
 
-MODULES = admin char mailnews merintr intro dm chess
+MODULES = admin char mailnews merintr intro dm chess stats
 
 all:
-	-@for %i in ($(MODULES)) do @if EXIST %i (cd %i && $(MAKE) /$(MAKEFLAGS) && cd ..)
+	-@for %i in ($(MODULES)) do @if EXIST %i (cd %i & $(MAKE) /$(MAKEFLAGS) & cd ..)
 
 release:
-	-@for %i in ($(MODULES)) do @if EXIST %i (cd %i && $(MAKE) /$(MAKEFLAGS) RELEASE=1 && cd ..)
+	-@for %i in ($(MODULES)) do @if EXIST %i (cd %i & $(MAKE) /$(MAKEFLAGS) RELEASE=1 & cd ..)
 
 clean:
-	-@for %i in ($(MODULES)) do @if EXIST %i (cd %i && $(MAKE) /$(MAKEFLAGS) clean && cd ..)
+	-@for %i in ($(MODULES)) do @if EXIST %i (cd %i & $(MAKE) /$(MAKEFLAGS) clean & cd ..)

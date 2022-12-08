@@ -103,9 +103,7 @@ int
 archive_read_open_filename(struct archive *a, const char *filename,
     size_t block_size)
 {
-	const char *filenames[2];
-	filenames[0] = filename;
-	filenames[1] = NULL;
+	const char *filenames[2] = { filename, NULL };
 	return archive_read_open_filenames(a, filenames, block_size);
 }
 
@@ -178,7 +176,7 @@ archive_read_open_filename_w(struct archive *a, const wchar_t *wfilename,
 #else
 		/*
 		 * POSIX system does not support a wchar_t interface for
-		 * open() system call, so we have to translate a wchar_t
+		 * open() system call, so we have to translate a whcar_t
 		 * filename to multi-byte one and use it.
 		 */
 		struct archive_string fn;
@@ -222,7 +220,7 @@ file_open(struct archive *a, void *client_data)
 	void *buffer;
 	const char *filename = NULL;
 	const wchar_t *wfilename = NULL;
-	int fd = -1;
+	int fd;
 	int is_disk_like = 0;
 #if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
 	off_t mediasize = 0; /* FreeBSD-specific, so off_t okay here. */
@@ -277,7 +275,7 @@ file_open(struct archive *a, void *client_data)
 #else
 		archive_set_error(a, ARCHIVE_ERRNO_MISC,
 		    "Unexpedted operation in archive_read_open_filename");
-		goto fail;
+		return (ARCHIVE_FATAL);
 #endif
 	}
 	if (fstat(fd, &st) != 0) {
@@ -287,7 +285,7 @@ file_open(struct archive *a, void *client_data)
 		else
 			archive_set_error(a, errno, "Can't stat '%s'",
 			    filename);
-		goto fail;
+		return (ARCHIVE_FATAL);
 	}
 
 	/*
@@ -356,9 +354,11 @@ file_open(struct archive *a, void *client_data)
 		mine->block_size = new_block_size;
 	}
 	buffer = malloc(mine->block_size);
-	if (buffer == NULL) {
+	if (mine == NULL || buffer == NULL) {
 		archive_set_error(a, ENOMEM, "No memory");
-		goto fail;
+		free(mine);
+		free(buffer);
+		return (ARCHIVE_FATAL);
 	}
 	mine->buffer = buffer;
 	mine->fd = fd;
@@ -370,14 +370,6 @@ file_open(struct archive *a, void *client_data)
 		mine->use_lseek = 1;
 
 	return (ARCHIVE_OK);
-fail:
-	/*
-	 * Don't close file descriptors not opened or ones pointing referring
-	 * to `FNT_STDIN`.
-	 */
-	if (fd != -1 && fd != 0)
-		close(fd);
-	return (ARCHIVE_FATAL);
 }
 
 static ssize_t

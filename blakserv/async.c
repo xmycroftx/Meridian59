@@ -11,76 +11,44 @@
 
   This module contains functions to handle asynchronous socket events
   (i.e. new connections, reading/writing, and closing.
-
+  
 	Every function here is called from the interface thread!
-
+	
 */
 
 #include "blakserv.h"
 
+static HANDLE name_lookup_handle;
+
+static char   udpbuf[BUFFER_SIZE + HEADERBYTES]; // same size as bufpool buffers!
+static SOCKET udpsock = INVALID_SOCKET;
+static int last_udp_read_time = 0; // track this for errors.
+
 /* local function prototypes */
 void AcceptSocketConnections(int socket_port,int connection_type);
+void AcceptUDP(int socket_port);
 void AsyncEachSessionNameLookup(session_node *s);
 
-Bool CheckMaintenanceMask(SOCKADDR_IN *addr,int len_addr);
-
-void AsyncSocketClose(SOCKET sock);
-void AsyncSocketWrite(SOCKET sock);
-void AsyncSocketRead(SOCKET sock);
-
-#define MAX_MAINTENANCE_MASKS 15
-char *maintenance_masks[MAX_MAINTENANCE_MASKS];
-int num_maintenance_masks = 0;
-char *maintenance_buffer = NULL;
-
-void InitAsyncConnections(void)
+void ResetUDP(void)
 {
-#ifdef BLAK_PLATFORM_WINDOWS
-	WSADATA WSAData;
-
-	if (WSAStartup(MAKEWORD(1,1),&WSAData) != 0)
-	{
-		eprintf("InitAsyncConnections can't open WinSock!\n");
-		return;
-	}
-#endif
-
-	maintenance_buffer = (char *)malloc(strlen(ConfigStr(SOCKET_MAINTENANCE_MASK)) + 1);
-	strcpy(maintenance_buffer,ConfigStr(SOCKET_MAINTENANCE_MASK));
-
-	// now parse out each maintenance ip
-	maintenance_masks[num_maintenance_masks] = strtok(maintenance_buffer,";");
-	while (maintenance_masks[num_maintenance_masks] != NULL)
-	{
-		num_maintenance_masks++;
-		if (num_maintenance_masks == MAX_MAINTENANCE_MASKS)
-			break;
-		maintenance_masks[num_maintenance_masks] = strtok(NULL,";");
-	}
-
-	/*
-	{
-		int i;
-		for (i=0;i<num_maintenance_masks;i++)
-		{
-			dprintf("mask %i is [%s]\n",i,maintenance_masks[i]);
-		}
-	}
-	*/
+   // Potential threading issues?
+   closesocket(udpsock);
+   // WSACleanup(); Not sure if we need to do this
+   AcceptUDP(ConfigInt(SOCKET_PORT));
 }
 
-void ExitAsyncConnections(void)
+int GetLastUDPReadTime(void)
 {
-#ifdef BLAK_PLATFORM_WINDOWS
-	if (WSACleanup() == SOCKET_ERROR)
-		eprintf("ExitAsyncConnections can't close WinSock!\n");
-#endif
+   return last_udp_read_time;
 }
 
 void AsyncSocketStart(void)
 {
 	AcceptSocketConnections(ConfigInt(SOCKET_PORT),SOCKET_PORT);
 	AcceptSocketConnections(ConfigInt(SOCKET_MAINTENANCE_PORT),SOCKET_MAINTENANCE_PORT);
+
+   // accept udp datagrams on same port
+   AcceptUDP(ConfigInt(SOCKET_PORT));
 }
 
 /* connection_type is either SOCKET_PORT or SOCKET_MAINTENANCE_PORT, so we
@@ -88,58 +56,70 @@ keep track of what state to send clients into. */
 void AcceptSocketConnections(int socket_port,int connection_type)
 {
 	SOCKET sock;
-	SOCKADDR_IN sin;
+	SOCKADDR_IN6 sin;
 	struct linger xlinger;
-	int opt;
-
-	sock = socket(AF_INET,SOCK_STREAM,0);
-	if (sock == INVALID_SOCKET)
+	int xxx;
+	
+	sock = socket(AF_INET6,SOCK_STREAM,0);
+	if (sock == INVALID_SOCKET) 
 	{
 		eprintf("AcceptSocketConnections socket() failed WinSock code %i\n",
 			GetLastError());
 		closesocket(sock);
 		return;
 	}
+	
+	/* Make sure this is a IPv4/IPv6 dual stack enabled socket */
+	
+	xxx = 0;
+	if (setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&xxx, sizeof(xxx)) < 0)
+	{
+		eprintf("AcceptSocketConnections error setting sock opts: IPV6_V6ONLY\n");
+		return;
+	}
 
 	/* Set a couple socket options for niceness */
+	
 	xlinger.l_onoff=0;
 	if (setsockopt(sock,SOL_SOCKET,SO_LINGER,(char *)&xlinger,sizeof(xlinger)) < 0)
 	{
-		eprintf("AcceptSocketConnections error setting sock opts 1\n");
+		eprintf("AcceptSocketConnections error setting sock opts: SO_LINGER\n");
 		return;
 	}
-
-	opt=1;
-	if (setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,(char *)&opt,sizeof opt) < 0)
+	
+	xxx=1;
+	if (setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,(char *)&xxx,sizeof xxx) < 0)
 	{
-		eprintf("AcceptSocketConnections error setting sock opts 2\n");
+		eprintf("AcceptSocketConnections error setting sock opts: SO_REUSEADDR\n");
 		return;
 	}
-
+	
 	if (!ConfigBool(SOCKET_NAGLE))
 	{
 		/* turn off Nagle algorithm--improve latency? */
-		opt = true;
-		if (setsockopt(sock,IPPROTO_TCP,TCP_NODELAY,(char *)&opt,sizeof opt))
+		xxx = true;
+		if (setsockopt(sock,IPPROTO_TCP,TCP_NODELAY,(char *)&xxx,sizeof xxx))
 		{
-			eprintf("AcceptSocketConnections error setting sock opts 3\n");
+			eprintf("AcceptSocketConnections error setting sock opts: TCP_NODELAY\n");
 			return;
 		}
 	}
-
-	memset(&sin,0,sizeof sin);
-	sin.sin_family = AF_INET;
-	sin.sin_addr.s_addr = htonl(INADDR_ANY);
-	sin.sin_port = htons((short)socket_port);
-
-	if (bind(sock,(struct sockaddr *) &sin,sizeof(sin)) == SOCKET_ERROR)
+	
+	memset(&sin, 0, sizeof(sin));
+	sin.sin6_family = AF_INET6;
+	sin.sin6_addr = in6addr_any;
+	sin.sin6_flowinfo = 0;
+	sin.sin6_scope_id = 0;
+	sin.sin6_port = htons((short)socket_port);
+	
+	if (bind(sock,(struct sockaddr *) &sin,sizeof(sin)) == SOCKET_ERROR) 
 	{
 		eprintf("AcceptSocketConnections bind failed, WinSock error %i\n",
 			GetLastError());
 		closesocket(sock);
 		return;
-	}
-
+	}	  
+	
 	if (listen(sock,5) < 0) /* backlog of 5 connects by OS */
 	{
 		eprintf("AcceptSocketConnections listen failed, WinSock error %i\n",
@@ -147,416 +127,380 @@ void AcceptSocketConnections(int socket_port,int connection_type)
 		closesocket(sock);
 		return;
 	}
-
+	
 	StartAsyncSocketAccept(sock,connection_type);
 	/* when we get a connection, it'll call AsyncSocketAccept */
 }
 
-void AsyncSocketAccept(SOCKET sock,int event,int error,int connection_type)
+void AcceptUDP(int socket_port)
 {
-	SOCKET new_sock;
-	SOCKADDR_IN acc_sin;    /* Accept socket address - internet style */
-	socklen_t acc_sin_len;        /* Accept socket address length */
-	SOCKADDR_IN peer_info;
-	socklen_t peer_len;
-	struct in_addr peer_addr;
-	connection_node conn;
-	session_node *s;
+   SOCKADDR_IN6 addr;
 
-	if (event != FD_ACCEPT)
-	{
-		eprintf("AsyncSocketAccept got non-accept %i\n",event);
-		return;
-	}
+   // listen on all interfaces
+   memset(&addr, 0, sizeof(addr));
+   addr.sin6_family = AF_INET6;
+   addr.sin6_addr = in6addr_any;
+   addr.sin6_flowinfo = 0;
+   addr.sin6_scope_id = 0;
+   addr.sin6_port = htons((short)socket_port);
 
-	if (error != 0)
-	{
-		eprintf("AsyncSocketAccept got error %i\n",error);
-		return;
-	}
+   // try to create IPV6 UDP socket
+   udpsock = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+   if (udpsock == INVALID_SOCKET)
+   {
+      int error = WSAGetLastError();
+      eprintf("AcceptUDP error creating udp socket - %i \n", error);
+      return;
+   }
 
-	acc_sin_len = sizeof acc_sin;
+   // set IPv6 DualStack to also support IPv4
+   int yesno = 0;
+   if (setsockopt(udpsock, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&yesno, sizeof(yesno)) < 0)
+   {
+      int error = WSAGetLastError();
+      eprintf("AcceptUDP error setting sock opts: IPV6_V6ONLY - %i \n", error);
+      return;
+   }
 
-	new_sock = accept(sock,(struct sockaddr *) &acc_sin,&acc_sin_len);
-	if (new_sock == SOCKET_ERROR)
-	{
-		eprintf("AcceptSocketConnections accept failed, error %i\n",
-			GetLastError());
-		return;
-	}
+   // bind socket
+   int rc = bind(udpsock, (SOCKADDR*)&addr, sizeof(addr));
 
-#ifdef BLAK_PLATFORM_LINUX
-    int flags = fcntl(new_sock,F_GETFL,0);
-    flags |= O_NONBLOCK;
-    if (fcntl(new_sock,F_SETFL,flags) < 0) {
-        eprintf("AcceptSocketConnections error setting non-blocking\n");
-        return;
-    }
-#endif
+   if (rc == SOCKET_ERROR)
+   {
+      int error = WSAGetLastError();
+      eprintf("AcceptUDP error binding socket - %i \n", error);
+      return;
+   }
 
-	peer_len = sizeof peer_info;
-	if (getpeername(new_sock,(SOCKADDR *)&peer_info,&peer_len) < 0)
-	{
-		eprintf("AcceptSocketConnections getpeername failed error %i\n",
-			GetLastError());
-		return;
-	}
-
-	memcpy(&peer_addr,(long *)&(peer_info.sin_addr),sizeof(struct in_addr));
-	memcpy(&conn.addr, &peer_addr, sizeof(struct in_addr));
-	sprintf(conn.name,"%s",inet_ntoa(peer_addr));
-
-	if (connection_type == SOCKET_MAINTENANCE_PORT)
-	{
-		if (!CheckMaintenanceMask(&peer_info,peer_len))
-		{
-			lprintf("Blocked maintenance connection from %s.\n", conn.name);
-			closesocket(new_sock);
-			return;
-		}
-	}
-	else
-	{
-		if (!CheckBlockList(&peer_addr))
-		{
-			lprintf("Blocked connection from %s.\n", conn.name);
-			closesocket(new_sock);
-			return;
-		}
-	}
-
-	conn.type = CONN_SOCKET;
-	conn.socket = new_sock;
-
-	EnterServerLock();
-
-	s = CreateSession(conn);
-	if (s != NULL)
-	{
-		StartAsyncSession(s);
-
-		switch (connection_type)
-		{
-		case SOCKET_PORT :
-			InitSessionState(s,STATE_SYNCHED);
-			break;
-		case SOCKET_MAINTENANCE_PORT :
-			InitSessionState(s,STATE_MAINTENANCE);
-			break;
-		default :
-			eprintf("AcceptSocketConnections got invalid connection type %i\n",connection_type);
-		}
-
-		/* need to do this AFTER s->conn is set in place, because the async
-		call writes to that mem address */
-
-		if (ConfigBool(SOCKET_DNS_LOOKUP))
-		{
-			s->conn.hLookup = StartAsyncNameLookup((char *)&peer_addr,s->conn.peer_data);
-		}
-		else
-		{
-			s->conn.hLookup = 0;
-		}
-	}
-
-	LeaveServerLock();
+   StartAsyncSocketUDPRead(udpsock);
+   /* when we get a udp datagram, it'll call AsyncSocketReadUDP */
 }
 
-#ifdef BLAK_PLATFORM_WINDOWS
-#define IN_ADDR_HELPER(x) x.S_un.S_addr
-#elif BLAK_PLATFORM_LINUX
-#define IN_ADDR_HELPER(x) x.s_addr
-#endif
-
-Bool CheckMaintenanceMask(SOCKADDR_IN *addr,int len_addr)
-{
-	IN_ADDR mask;
-	int i;
-
-	for (i=0;i<num_maintenance_masks;i++)
-	{
-		IN_ADDR_HELPER(mask) = inet_addr(maintenance_masks[i]);
-		if (IN_ADDR_HELPER(mask) == INADDR_NONE)
-		{
-			eprintf("CheckMaintenanceMask has invalid configured mask %s\n",
-					  maintenance_masks[i]);
-			continue;
-		}
-
-		unsigned char b1 = (unsigned char)((IN_ADDR_HELPER(mask) & 0xff000000) >> 24);
-		unsigned char b2 = (unsigned char)((IN_ADDR_HELPER(mask) & 0x00ff0000) >> 16);
-		unsigned char b3 = (unsigned char)((IN_ADDR_HELPER(mask) & 0x0000ff00) >> 8);
-		unsigned char b4 = (unsigned char)(IN_ADDR_HELPER(mask) & 0xff);
-		/* for each byte of the mask, if it's non-zero, the client must match it */
-
-		unsigned char addr_b1 = (unsigned char)((IN_ADDR_HELPER(addr->sin_addr) & 0xff000000) >> 24);
-		unsigned char addr_b2 = (unsigned char)((IN_ADDR_HELPER(addr->sin_addr) & 0x00ff0000) >> 16);
-		unsigned char addr_b3 = (unsigned char)((IN_ADDR_HELPER(addr->sin_addr) & 0x0000ff00) >> 8);
-		unsigned char addr_b4 = (unsigned char)((IN_ADDR_HELPER(addr->sin_addr) & 0xff));
-
-		if ((b1 != 0) && (addr_b1 != b1))
-			continue;
-
-		if ((b2 != 0) && (addr_b2 != b2))
-			continue;
-
-		if ((b3 != 0) && (addr_b3 != b3))
-			continue;
-
-		if ((b4 != 0) && (addr_b4 != b4))
-			continue;
-
-		/*
-		dprintf("%u\n",addr_b1);
-		dprintf("%u\n",addr_b2);
-		dprintf("%u\n",addr_b3);
-		dprintf("%u\n",addr_b4);
-
-		  dprintf("----\n");
-
-			dprintf("%u\n",b1);
-			dprintf("%u\n",b2);
-			dprintf("%u\n",b3);
-			dprintf("%u\n",b4);
-	*/
-		return True;
-	}
-	return False;
-}
-
-static HANDLE name_lookup_handle;
 void AsyncNameLookup(HANDLE hLookup,int error)
 {
-	if (error != 0)
-	{
-		/* eprintf("AsyncSocketNameLookup got error %i\n",error); */
-		return;
-	}
-
-	name_lookup_handle = hLookup;
-
-	EnterServerLock();
-	ForEachSession(AsyncEachSessionNameLookup);
-	LeaveServerLock();
-
+   if (error != 0)
+   {
+      /* eprintf("AsyncSocketNameLookup got error %i\n",error); */
+      return;
+   }
+   
+   name_lookup_handle = hLookup;
+   
+   EnterServerLock();
+   ForEachSession(AsyncEachSessionNameLookup);
+   LeaveServerLock();
+   
 }
 
 void AsyncEachSessionNameLookup(session_node *s)
 {
 	if (s->conn.type != CONN_SOCKET)
 		return;
-
+	
 	if (s->conn.hLookup == name_lookup_handle)
 	{
 		sprintf(s->conn.name,"%s",((struct hostent *)&(s->conn.peer_data))->h_name);
 		InterfaceUpdateSession(s);
-	}
-}
-
-void AsyncSocketSelect(SOCKET sock,int event,int error)
-{
-	session_node *s;
-
-	EnterSessionLock();
-
-	if (error != 0)
-	{
-		LeaveSessionLock();
-		s = GetSessionBySocket(sock);
-		if (s != NULL)
-		{
-		/* we can get events for sockets that have been closed by main thread
-			(and hence get NULL here), so be aware! */
-
-			/* eprintf("AsyncSocketSelect got error %i session %i\n",error,s->session_id); */
-
-			HangupSession(s);
-			return;
-		}
-
-		/* eprintf("AsyncSocketSelect got socket that matches no session %i\n",sock); */
-
-		return;
-	}
-
-	switch (event)
-	{
-	case FD_CLOSE :
-		AsyncSocketClose(sock);
-		break;
-
-	case FD_WRITE :
-		AsyncSocketWrite(sock);
-		break;
-
-	case FD_READ :
-		AsyncSocketRead(sock);
-		break;
-
-	default :
-		eprintf("AsyncSocketSelect got unknown event %i\n",event);
-		break;
-	}
-
-	LeaveSessionLock();
+	}      
 }
 
 void AsyncSocketClose(SOCKET sock)
 {
 	session_node *s;
-
+	
 	s = GetSessionBySocket(sock);
 	if (s == NULL)
 		return;
-
+	
 	/* dprintf("async socket close %i\n",s->session_id); */
 	HangupSession(s);
-
+	
 }
 
 void AsyncSocketWrite(SOCKET sock)
 {
-	int bytes;
-	session_node *s;
-	buffer_node *bn;
+   int bytes;  
+   session_node *s;
+   buffer_node *bn;
 
-	s = GetSessionBySocket(sock);
-	if (s == NULL)
-		return;
+   s = GetSessionBySocket(sock);
+   if (s == NULL)
+      return;
 
-	if (s->hangup)
-		return;
+   if (s->hangup)
+      return;
 
-	/* dprintf("got async write session %i\n",s->session_id); */
-	if (!MutexAcquireWithTimeout(s->muxSend,10000))
-	{
-		eprintf("AsyncSocketWrite couldn't get session %i muxSend\n",s->session_id);
-		return;
+   /* dprintf("got async write session %i\n",s->session_id); */
+   if (!MutexAcquireWithTimeout(s->muxSend,10000))
+   {
+      eprintf("AsyncSocketWrite couldn't get session %i muxSend\n",s->session_id);
+      return;
 	}
 
-	while (s->send_list != NULL)
-	{
-		bn = s->send_list;
-		/* dprintf("async writing %i\n",bn->len_buf); */
-		bytes = send(s->conn.socket,bn->buf,bn->len_buf,0);
-		if (bytes == SOCKET_ERROR)
-		{
-			if (GetLastError() != WSAEWOULDBLOCK)
-			{
-				/* eprintf("AsyncSocketWrite got send error %i\n",GetLastError()); */
-				if (!MutexRelease(s->muxSend))
-					eprintf("File %s line %i release of non-owned mutex\n",__FILE__,__LINE__);
-				HangupSession(s);
-				return;
-			}
+   while (s->send_list != NULL)
+   {
+      bn = s->send_list;
+      /* dprintf("async writing %i\n",bn->len_buf); */
+      bytes = send(s->conn.socket,bn->buf,bn->len_buf,0);
+      if (bytes == SOCKET_ERROR)
+      {
+         if (GetLastError() != WSAEWOULDBLOCK)
+         {
+            /* eprintf("AsyncSocketWrite got send error %i\n",GetLastError()); */
+            if (!MutexRelease(s->muxSend))
+               eprintf("File %s line %i release of non-owned mutex\n",__FILE__,__LINE__);
 
-			/* dprintf("got write event, but send would block\n"); */
-			break;
-		}
-		else
-		{
-			if (bytes != bn->len_buf)
-				dprintf("async write wrote %i/%i bytes\n",bytes,bn->len_buf);
-
-			transmitted_bytes += bn->len_buf;
-
-			s->send_list = bn->next;
-			DeleteBuffer(bn);
-		}
-	}
-	if (!MutexRelease(s->muxSend))
-		eprintf("File %s line %i release of non-owned mutex\n",__FILE__,__LINE__);
+            HangupSession(s);
+            return;
+         }
+			
+         /* dprintf("got write event, but send would block\n"); */
+         break;
+      }
+      else
+      {
+         if (bytes != bn->len_buf)
+            dprintf("async write wrote %i/%i bytes\n",bytes,bn->len_buf);
+			
+         transmitted_bytes += bn->len_buf;
+			
+         s->send_list = bn->next;
+         DeleteBuffer(bn);
+      }
+   }
+   if (!MutexRelease(s->muxSend))
+      eprintf("File %s line %i release of non-owned mutex\n",__FILE__,__LINE__);
 }
 
 void AsyncSocketRead(SOCKET sock)
 {
-	int bytes;
-	session_node *s;
-	buffer_node *bn;
+   int bytes;
+   session_node *s;
+   buffer_node *bn;
 
-	s = GetSessionBySocket(sock);
-	if (s == NULL)
-		return;
+   s = GetSessionBySocket(sock);
+   if (s == NULL)
+      return;
 
-	if (s->hangup)
-		return;
+   if (s->hangup)
+      return;
 
-	if (!MutexAcquireWithTimeout(s->muxReceive,10000))
-	{
-		eprintf("AsyncSocketRead couldn't get session %i muxReceive",s->session_id);
-		return;
-	}
+   if (!MutexAcquireWithTimeout(s->muxReceive,10000))
+   {
+      eprintf("AsyncSocketRead couldn't get session %i muxReceive",s->session_id);
+      return;
+   }
 
-	if (s->receive_list == NULL)
-	{
-		s->receive_list = GetBuffer();
-		/* dprintf("Read0x%08x\n",s->receive_list); */
-	}
+   if (s->receive_list == NULL)
+   {
+      s->receive_list = GetBuffer();
+      /* dprintf("Read0x%08x\n",s->receive_list); */
+   }
+	
+   // find the last buffer in the receive list
+   bn = s->receive_list;
+   while (bn->next != NULL)
+      bn = bn->next;
+	
+   // if that buffer is filled to capacity already, get another and append it
+   if (bn->len_buf >= BUFFER_SIZE_TCP_NOHEADER)
+   {
+      bn->next = GetBuffer();
+      /* dprintf("ReadM0x%08x\n",bn->next); */
+      bn = bn->next;
+   }
+	
+   // read from the socket, up to the remaining capacity of this buffer
+   bytes = recv(s->conn.socket,bn->buf + bn->len_buf, BUFFER_SIZE_TCP_NOHEADER - bn->len_buf,0);
+   if (bytes == SOCKET_ERROR)
+   {
+      if (GetLastError() != WSAEWOULDBLOCK)
+      {
+         /* eprintf("AsyncSocketRead got read error %i\n",GetLastError()); */
+         if (!MutexRelease(s->muxReceive))
+            eprintf("File %s line %i release of non-owned mutex\n",__FILE__,__LINE__);
 
-	// find the last buffer in the receive list
-	bn = s->receive_list;
-	while (bn->next != NULL)
-		bn = bn->next;
-
-	// if that buffer is filled to capacity already, get another and append it
-	if (bn->len_buf >= bn->size_buf)
-	{
-		bn->next = GetBuffer();
-		/* dprintf("ReadM0x%08x\n",bn->next); */
-		bn = bn->next;
-	}
-
-	// read from the socket, up to the remaining capacity of this buffer
-	bytes = recv(s->conn.socket,bn->buf + bn->len_buf,bn->size_buf - bn->len_buf,0);
-	if (bytes == SOCKET_ERROR)
-	{
-		if (GetLastError() != WSAEWOULDBLOCK)
-		{
-			/* eprintf("AsyncSocketRead got read error %i\n",GetLastError()); */
-			if (!MutexRelease(s->muxReceive))
-				eprintf("File %s line %i release of non-owned mutex\n",__FILE__,__LINE__);
-			HangupSession(s);
-			return;
-		}
-		if (!MutexRelease(s->muxReceive))
-			eprintf("File %s line %i release of non-owned mutex\n",__FILE__,__LINE__);
-	}
-	if (bytes == 0)
-	{
-		// read of 0 bytes means it's been closed; on windows we're
-		// sent a specific close event instead
+         HangupSession(s);
+         return;
+      }
       if (!MutexRelease(s->muxReceive))
          eprintf("File %s line %i release of non-owned mutex\n",__FILE__,__LINE__);
-		HangupSession(s);
-		return;
-	}
+   }
 
+   if (bytes == 0)
+   {
+      if (!MutexRelease(s->muxReceive))
+         eprintf("File %s line %i release of non-owned mutex\n",__FILE__,__LINE__);
 
-	if (bytes < 0 || bytes > bn->size_buf - bn->len_buf)
-	{
-		eprintf("AsyncSocketRead got %i bytes from recv() when asked to stop at %i\n",bytes,bn->size_buf - bn->len_buf);
-		FlushDefaultChannels();
-		bytes = 0;
-	}
+      HangupSession(s);
 
-	bn->len_buf += bytes;
+      return;
+   } 
 
-	/*
-	dprintf("read %i bytes sess %i from %i\n",bytes,s->session_id,s->num_receiving,
-	   s->num_receiving-bytes);
+   if (bytes < 0 || bytes > BUFFER_SIZE_TCP_NOHEADER - bn->len_buf)
+   {
+      eprintf("AsyncSocketRead got %i bytes from recv() when asked to stop at %i\n",bytes, BUFFER_SIZE_TCP_NOHEADER - bn->len_buf);
+      FlushDefaultChannels();
+      bytes = 0;
+   }
 
-		 if (s->num_receiving > 0)
-		 {
-		 int i;
-		 dprintf("read got in %s\n",GetStateName(s));
-		 for (i=s->num_receiving-bytes;i<s->num_receiving;i++)
-		 dprintf("%5u",s->receiving_buf[i]);
-		 dprintf("\n");
-		 }
-	*/
-	if (!MutexRelease(s->muxReceive))
-		eprintf("File %s line %i release of non-owned mutex\n",__FILE__,__LINE__);
-
+   bn->len_buf += bytes;
+	
+   if (!MutexRelease(s->muxReceive))
+      eprintf("File %s line %i release of non-owned mutex\n",__FILE__,__LINE__);  
+	
 	SignalSession(s->session_id);
+}
+
+void AsyncSocketReadUDP(SOCKET sock)
+{
+   /************* THIS IS EXECUTED BY THE UI/NETWORK THREAD *************/
+
+   SOCKADDR_IN6 senderaddr;
+   int          bytesReceivd = 0;
+   int          flags = 0;
+   int          lplen = sizeof(senderaddr);
+
+   // Record time.
+   last_udp_read_time = GetTime();
+
+   ///////////////////////////////////////////////////////////////////////
+   // try to receive the new udp datagram from socket
+   ///////////////////////////////////////////////////////////////////////
+   
+   bytesReceivd = recvfrom(sock, (char*)&udpbuf, sizeof(udpbuf), flags,
+      (SOCKADDR*)&senderaddr, &lplen);
+
+   if (bytesReceivd == SOCKET_ERROR)
+   {
+      eprintf("AsyncSocketReadUDP error receiving UDP from socket - %i \n", 
+         WSAGetLastError());
+      return;
+   }
+
+   ///////////////////////////////////////////////////////////////////////
+   // checks #1
+   ///////////////////////////////////////////////////////////////////////
+
+   // 1) not at least full header with byte, discard it
+   if (bytesReceivd < SIZE_HEADER_UDP + 1)
+   {
+      eprintf("AsyncSocketReadUDP error udp with size below headersize \n");
+      return;
+   }
+
+   // 2) todo?: check blacklisted ip by comparing senderaddr
+
+   ///////////////////////////////////////////////////////////////////////
+   // parse header and type
+   ///////////////////////////////////////////////////////////////////////
+
+   int sessionid      = *((int*)&udpbuf[0]);
+   unsigned int seqno = *((unsigned int*)&udpbuf[4]);
+   short crc          = *((short*)&udpbuf[8]);
+   char epoch         = udpbuf[10];
+   char type          = udpbuf[11];
+   
+   // try to get that session
+   session_node* session = GetSessionByID(sessionid);
+
+   ///////////////////////////////////////////////////////////////////////
+   // checks #2
+   ///////////////////////////////////////////////////////////////////////
+
+   // Print errors/info?
+   bool debug_udp = ConfigBool(DEBUG_UDP);
+
+   // 1) invalid session or hangup
+   if (!session || session->hangup)
+   {
+      if (debug_udp)
+         dprintf("AsyncSocketReadUDP error unknown session-Id or hangup session \n");
+      return;
+   }
+
+   // 2) important: udp sender ip must match tcp session ip to prevent attacks!
+   for (unsigned int i = 0; i < 8; i++)
+   {
+      if (session->conn.addr.u.Word[i] != senderaddr.sin6_addr.u.Word[i])
+      {
+         if (debug_udp)
+            eprintf("AsyncSocketReadUDP warning received session-Id from different IP\n");
+         return;
+      }
+   }
+
+   // 3) validate crc (calculated over type + data)
+   short validcrc = (short)GetCRC16(udpbuf + SIZE_HEADER_UDP, bytesReceivd - SIZE_HEADER_UDP);
+   if (crc != validcrc)
+   {
+      eprintf("AsyncSocketReadUDP error crc mismatch \n");
+      return;
+   }
+
+   // 4) out of sequence order or duplicated UDP datagram
+   if (seqno <= session->receive_seqno_udp)
+   {
+      if (debug_udp)
+         dprintf("AsyncSocketReadUDP discarding out of sequence UDP on Session %i \n", session->session_id);
+      return;
+   }
+   else
+   {
+      // Don't print, happens a bit too often and as a result of normal packet loss.
+      // log missed or malformed UDP
+      // if (seqno > session->receive_seqno_udp + 1)
+      //    dprintf("AsyncSocketReadUDP detected lost or malformed UDP on Session %i", session->session_id);
+
+      // update seqno
+      session->receive_seqno_udp = seqno;
+   }
+
+   // 4) epoch: see GameProcessSessionBufferUDP()
+
+   ///////////////////////////////////////////////////////////////////////
+   // debug
+   ///////////////////////////////////////////////////////////////////////
+
+   //dprintf("Received valid UDP Session: %i Type: %i \n",
+   //   sessionid, type);
+
+   ///////////////////////////////////////////////////////////////////////
+   // save data on session struct
+   ///////////////////////////////////////////////////////////////////////
+
+   // lock
+   if (!MutexAcquireWithTimeout(session->muxReceive, 10000))
+   {
+      eprintf("AsyncSocketReadUDP couldn't get session %i muxReceive", 
+         session->session_id);
+      return;
+   }
+
+   // create first udp datagram buffer if none yet
+   if (session->receive_list_udp == NULL)
+      session->receive_list_udp = GetBuffer();
+
+   // find the last buffer in the udp receive list
+   buffer_node* bn = session->receive_list_udp;
+   while (bn->next != NULL)
+      bn = bn->next;
+
+   // copy udp datagram into udp buffer list of session
+   // note: this is simply 1 UDP datagram per buffer !
+   bn->len_buf = bytesReceivd;
+   memcpy(bn->prebuf, udpbuf, bytesReceivd);
+
+   // unlock
+   if (!MutexRelease(session->muxReceive))
+      eprintf("File %s line %i release of non-owned mutex\n", __FILE__, __LINE__);
+
+   ///////////////////////////////////////////////////////////////////////
+   // signal mainthread (blakserv) to process data (thread transition here)
+   ///////////////////////////////////////////////////////////////////////
+
+   if (debug_udp)
+      dprintf("Signalling main thread with UDP read for session %i\n", session->session_id);
+
+   SignalSession(session->session_id);
 }

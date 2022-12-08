@@ -105,7 +105,6 @@ void TTipControlBar::EvLButtonDown (UINT modKeys, const TPoint& point)
 	TControlBar::EvLButtonDown (modKeys, point);
 }
 
-
 void TTipControlBar::EvLButtonUp (UINT modKeys, const TPoint& point)
 {
 	// Hide hint text
@@ -165,7 +164,7 @@ void TTipStatusBar::SetHintText (const char *lpszText)
 	if (lpszText != NULL)
 	{
 		static char	buf[128];
-      int n;
+		int n;
 
 		lstrcpy (buf, lpszText);
 
@@ -268,7 +267,6 @@ void TTipStatusBar::DrawHintText (const char *lpszText)
 	dc.DrawText(lpszText, -1, rc1, DT_LEFT);
 }
 
-
 void TTipStatusBar::EvMouseMove (UINT modKeys, const TPoint& point)
 {
 	if (bShowTips)
@@ -348,11 +346,7 @@ TToolTip::TToolTip (Tip::Style _style, TFont* _font) : TWindow (NULL, "")
 	uiTimer			= NULL;
 	bEnabled		= TRUE;
 
-#ifdef __WIN32__
 	::hookKbd		= SetWindowsHookEx (WH_KEYBOARD, KbdProc, NULL, GetCurrentThreadId ());
-#else
-	::hookKbd		= SetWindowsHookEx (WH_KEYBOARD, KbdProc, GetApplication ()->GetInstance (), GetCurrentTask ());
-#endif
 	::ptTooltip		= this;
 
 	Create ();
@@ -382,7 +376,7 @@ LPSTR TToolTip::GetClassName ()
 	return "WinDEUTooltip";
 }
 
-void TToolTip::Paint (TDC &dc, BOOL, TRect &)
+void TToolTip::Paint (TDC &dc, bool, TRect &)
 {
 	char	szText[50];
 	TRect	client;
@@ -435,7 +429,7 @@ void TToolTip::Paint (TDC &dc, BOOL, TRect &)
 	dc.DrawText (szText, -1, client, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
 }
 
-void TToolTip::SetCaption (const char far* title)
+void TToolTip::SetCaption (const char* title)
 {
 	static DWORD dwTickCount = 0;
 

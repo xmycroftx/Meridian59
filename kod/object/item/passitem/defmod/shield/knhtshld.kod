@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Knightshield is Shield
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include knhtshld.lkod
 
    knightshield_name_rsc = "knight's shield"
    knightshield_icon_rsc = mtlshld.bgf
@@ -55,11 +57,15 @@ messages:
 
    GetResistanceModifiers()
    {
-      return [ [-ATCK_SPELL_ALL,-20],
-               [ATCK_WEAP_PIERCE,10]
+      return [ [-SPL_TYPE_ALL,-20],
+               [ATK_TYPE_PIERCE,10]
              ];
    }
 
+   GetHeatDamage()
+   {
+      return 3;
+   }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

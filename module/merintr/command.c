@@ -100,6 +100,36 @@ void CommandHelp(char *args)
 }
 /************************************************************************/
 /*
+ * CommandInvite: "(guild)invite" command ("invite" for less collisions)
+ */
+void CommandInvite(char *args)
+{
+   char *name = GetPlayerName(args, NULL);
+   if (!name)
+   {
+      debug(("Missing name to invite\n"));
+      return;
+   }
+
+   ID player = FindPlayerByName(name);
+
+   // 'Tell' error messages are similar enough to use here.
+   if (player == 0)
+   {
+      GameMessage(GetString(hInst, IDS_NOTELLNAME));
+      return;
+   }
+
+   if (player == INVALID_ID)
+   {
+      GameMessage(GetString(hInst, IDS_DUPLICATETELLNAME));
+      return;
+   }
+
+   RequestInvite(player);
+}
+/************************************************************************/
+/*
  * CommandTell: "tell" command
  */
 void CommandTell(char *args)
@@ -309,7 +339,37 @@ void CommandCast(char *args)
 
    PerformAction(A_CASTSPELL, sp);
 }
+/************************************************************************/
+/*
+ * CommandPerform: "perform" command; find skill name and perform it
+ */
+void CommandPerform(char *args)
+{
+   skill *sk;
+   char *skill_name;
 
+   skill_name = GetSkillName(args, NULL);
+   if (skill_name == NULL)
+   {
+      PerformAction(A_PERFORM, NULL);
+      return;
+   }
+
+   sk = FindSkillByName(skill_name);
+   if (sk == SKILL_NOMATCH)
+   {
+      GameMessage(GetString(hInst, IDS_NOSKILLNAME));
+      return;
+   }
+
+   if (sk == SKILL_AMBIGUOUS)
+   {
+      GameMessage(GetString(hInst, IDS_DUPLICATESKILLNAME));
+      return;
+   }
+
+   PerformAction(A_PERFORMSKILL, sk);
+}
 /************************************************************************/
 /*
  * TellGroup:  Send message to a group of people.
@@ -551,7 +611,7 @@ void CommandActivate(char *args)
  */
 void CommandSafetyOn(char *args)
 {
-   SendSafety(1);
+   SendPreferences(cinfo->config->preferences &= ~CF_SAFETY_OFF);
 }
 /************************************************************************/
 /*
@@ -559,7 +619,103 @@ void CommandSafetyOn(char *args)
  */
 void CommandSafetyOff(char *args)
 {
-   SendSafety(0);
+   SendPreferences(cinfo->config->preferences |= CF_SAFETY_OFF);
+}
+/************************************************************************/
+/*
+ * SendTempSafeOn: "tempSafeOn" command
+ */
+void CommandTempSafeOn(char *args)
+{
+   SendPreferences(cinfo->config->preferences |= CF_TEMPSAFE);
+}
+/************************************************************************/
+/*
+ * SendTempSafeOff: "tempSafeoff" command
+ */
+void CommandTempSafeOff(char *args)
+{
+   SendPreferences(cinfo->config->preferences &= ~CF_TEMPSAFE);
+}
+/************************************************************************/
+/*
+ * SendGroupingOn: "groupingon" command
+ */
+void CommandGroupingOn(char *args)
+{
+   SendPreferences(cinfo->config->preferences |= CF_GROUPING);
+}
+/************************************************************************/
+/*
+ * SendGroupingOff: "groupingoff" command
+ */
+void CommandGroupingOff(char *args)
+{
+   SendPreferences(cinfo->config->preferences &= ~CF_GROUPING);
+}
+/************************************************************************/
+/*
+ * SendAutoLootOn: "autoloot on" command
+ */
+void CommandAutoLootOn(char *args)
+{
+   SendPreferences(cinfo->config->preferences |= CF_AUTOLOOT);
+}
+/************************************************************************/
+/*
+ * SendAutoLootOff: "autoloot off" command
+ */
+void CommandAutoLootOff(char *args)
+{
+   SendPreferences(cinfo->config->preferences &= ~CF_AUTOLOOT);
+}
+/************************************************************************/
+/*
+ * SendAutoCombineOn: "autocombine on" command
+ */
+void CommandAutoCombineOn(char *args)
+{
+   SendPreferences(cinfo->config->preferences |= CF_AUTOCOMBINE);
+}
+/************************************************************************/
+/*
+ * SendAutoCombineOff: "autocombine off" command
+ */
+void CommandAutoCombineOff(char *args)
+{
+   SendPreferences(cinfo->config->preferences &= ~CF_AUTOCOMBINE);
+}
+/************************************************************************/
+/*
+ * SendReagentBagOn: "reagentbag on" command
+ */
+void CommandReagentBagOn(char *args)
+{
+   SendPreferences(cinfo->config->preferences |= CF_REAGENTBAG);
+}
+/************************************************************************/
+/*
+ * SendReagentBagOff: "reagentbag off" command
+ */
+void CommandReagentBagOff(char *args)
+{
+   SendPreferences(cinfo->config->preferences &= ~CF_REAGENTBAG);
+}
+/************************************************************************/
+/*
+ * SendReagentBagOn: "spellpower on" command
+ */
+void CommandSpellPowerOn(char *args)
+{
+   SendPreferences(cinfo->config->preferences |= CF_SPELLPOWER);
+}
+/************************************************************************/
+/*
+ * SendReagentBagOff: "spellpower off" command
+ */
+void CommandSpellPowerOff(char *args)
+{
+   SendPreferences(cinfo->config->preferences &= ~CF_SPELLPOWER);
 }
 /************************************************************************/
 /*
@@ -652,3 +808,13 @@ void CommandTellGuild(char *args)
       return;
    SendSay(SAY_GUILD, args);
 }
+
+/************************************************************************/
+/*
+ * CommandTime: "time" command
+ */
+void CommandTime(char *args)
+{
+   RequestTime();
+}
+/************************************************************************/

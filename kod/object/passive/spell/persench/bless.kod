@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%S%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+//////////////////////////S///////////////////////////////////////////////////////
 Bless is PersonalEnchantment
 
 constants:
@@ -16,18 +16,19 @@ constants:
 
 resources:
 
+   include bless.lkod
+
    bless_name_rsc = "bless"
    bless_icon_rsc = blessico.bgf
    bless_desc_rsc = \
       "Invokes Kraanan's blessing, increasing the accuracy "
-      "and damage of attacks.  "
-      "Requires mushrooms and sapphires to cast."
-   
+      "and damage of attacks."
+   bless_enchantment_rsc = \
+      "\n\nYour current %s enchantment adds %i offense and 0-%i attack damage."
    bless_already_enchanted_rsc = "You are already blessed."
    bless_on_rsc = "Kraanan fills you with the spirit of battle."
    bless_off_rsc = "The spirit of battle has left you."
    bless_success_rsc = "Kraanan fills %s%s with the spirit of battle."
-
    bless_spell_intro = \
       "Kraanan Lv. 2: Bestows the Warrior God's blessing, improving your"
       "combat abilities."
@@ -55,11 +56,19 @@ classvars:
    viSchool = SS_KRAANAN
 
    viChance_To_Increase = 25
+   viMeditate_ratio = 20
 
    viFlash = FLASH_GOOD_SELF
 
+   viOffensive = TRUE
+
 properties:
-   
+
+   // The effectiveness of purge on the target spell as a percentage.
+   // 100 will cause purge to remove its entire spellpower, 0 will
+   // prevent purge from removing this spell.
+   viPurgeFactor = 80
+
 messages:
 
    ResetReagents()
@@ -71,15 +80,10 @@ messages:
       return;
    }
 
-   CastSpell(who = $,iSpellPower= 0,ltargets=$)
+   GetStateValue(iSpellpower=$,who=$,target=$)
    {
-      Send(First(lTargets),@AddAttackModifier,#what=self);       
+      Send(target,@AddAttackModifier,#what=self);
 
-      propagate;
-   }
-
-   GetStateValue(iSpellpower=$)
-   {
       return iSpellpower;
    }
 
@@ -87,31 +91,42 @@ messages:
    {
       local iDuration;
 
-      % Base duration is 40-640 seconds.
+      // Base duration is 40-640 seconds.
       iDuration = (40 + (iSpellPower*6)) * 1000;
 
-      return Random(iDuration/2,iDuration);
+      return iDuration;
    }
 
-   EndEnchantment(who=$, report=TRUE, state=0)
+   EndEnchantment(who=$,report=TRUE,state=0)
    {
       Send(who,@RemoveAttackModifier,#what=self);
-      
+
       propagate;
    }
 
-   % stuff we handle to be an attack modifier
+   // Stuff we handle to be an attack modifier
 
-   ModifyHitRoll(who = $,what = $,hit_roll = $)
+   ModifyHitRoll(who=$,what=$,hit_roll=$)
    {
       return hit_roll + Send(who,@GetEnchantedState,#what=self);
    }
    
-   ModifyDamage(who = $,what = $,damage = $)
+   ModifyDamage(who=$,what=$,damage=$)
    {
       return damage + Random(0,send(who,@GetEnchantedState,#what=self)/33);
    }
 
+   EffectDesc(who=$)
+   {
+      local iState;
+
+      iState = Send(who,@GetEnchantedState,#what=self);
+
+      AddPacket(4,bless_enchantment_rsc, 4,Send(self,@GetName),
+                4,iState, 4,iState/33);
+
+      return;
+   }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Block is Skill
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include block.lkod
    Block_name_rsc = "block"
    Block_icon_rsc = iblock.bgf
    Block_desc_rsc = "Block is a basic skill, allowing people in combat to block blows with a shield.  "
@@ -35,9 +37,10 @@ classvars:
    viDefinite = ARTICLE_NONE
 
    viSkill_num = SKID_BLOCK
-   viSchool = SKS_FENCING
+   viSchool = SKS_WEAPONCRAFT
    viSkill_Level = 1
    viChance_to_Increase = 60
+   viMeditate_ratio = 20
 
    viSkillExertion = 0
    vbCheck_exertion = FALSE
@@ -49,4 +52,4 @@ properties:
 messages:
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

@@ -13,6 +13,7 @@
 /************************************************************************/
 #include "blakcomp.h"
 #include "bkod.h"
+#include "resource.h"
 
 extern function_type Functions[];
 extern int numfuncs;
@@ -22,6 +23,217 @@ extern int lineno;
 
 static int loop_depth = 0;
 SymbolTable st;
+static const_struct nil_const;
+
+typedef struct {
+   int in_use; // True if this file is in use.
+   char *filename;
+   Table constants;
+} include_constant_file;
+
+// A list of parsed included constant files (containing only constants)
+// saved so that they don't have to be parsed again. If they are encountered
+// in future files, the constants can be added from this list instead.
+list_type const_files;
+
+// If this is set to true, we are parsing an included constants file.
+// Used so that constants can be saved to the constants list.
+int parsing_included_constants;
+
+typedef struct {
+  char   *two_letter_code;
+  char   *language_name;
+  int    languageid;
+} lang_table;
+
+// Table of all languages we could possibly use.
+static lang_table language_id_table[] = {
+   { "en", "English",      0,   },
+   { "de", "German",       1,   },
+   { "ko", "Korean",       2,   },
+   { "ru", "Russian",      3,   },
+   { "sv", "Swedish",      4,   },
+   { "ab", "Abkhazian",    5,   },
+   { "aa", "Afar",         6,   },
+   { "af", "Afrikaans",    7,   },
+   { "ak", "Akan",         8,   },
+   { "sq", "Albanian",     9,   },
+   { "am", "Amharic",      10,  },
+   { "ar", "Arabic",       11,  },
+   { "an", "Aragonese",    12,  },
+   { "hy", "Armenian",     13,  },
+   { "as", "Assamese",     14,  },
+   { "av", "Avaric",       15,  },
+   { "ae", "Avestan",      16,  },
+   { "ay", "Aymara",       17,  },
+   { "az", "Azerbaijani",  18,  },
+   { "bm", "Bambara",      19,  },
+   { "ba", "Bashkir",      20,  },
+   { "eu", "Basque",       21,  },
+   { "be", "Belarusian",   22,  },
+   { "bn", "Bengali",      23,  },
+   { "bh", "Bihari",       24,  },
+   { "bi", "Bislama",      25,  },
+   { "nb", "Bokmål",       26,  },
+   { "bs", "Bosnian",      27,  },
+   { "br", "Breton",       28,  },
+   { "bg", "Bulgarian",    29,  },
+   { "my", "Burmese",      30,  },
+   { "ca", "Catalan",      31,  },
+   { "ch", "Chamorro",     32,  },
+   { "ce", "Chechen",      33,  },
+   { "zh", "Chinese",      34,  },
+   { "cv", "Chuvash",      35,  },
+   { "kw", "Cornish",      36,  },
+   { "co", "Corse",        37,  },
+   { "cr", "Cree",         38,  },
+   { "hr", "Croatian",     39,  },
+   { "cs", "Czech",        40,  },
+   { "da", "Danish",       41,  },
+   { "dv", "Divehi",       42,  },
+   { "nl", "Dutch",        43,  },
+   { "dz", "Dzongkha",     44,  },
+   { "eo", "Esperanto",    45,  },
+   { "et", "Estonian",     46,  },
+   { "ee", "Ewe",          47,  },
+   { "fo", "Faroese",      48,  },
+   { "fj", "Fijian",       49,  },
+   { "fi", "Finnish",      50,  },
+   { "fr", "Français",     51,  },
+   { "fy", "Frisian",      52,  },
+   { "ff", "Fulah",        53,  },
+   { "gd", "Gaelic",       54,  },
+   { "gl", "Gallegan",     55,  },
+   { "lg", "Ganda",        56,  },
+   { "ka", "Georgian",     57,  },
+   { "el", "Greek",        58,  },
+   { "kl", "Greenlandic",  59,  },
+   { "gn", "Guarani",      60,  },
+   { "gu", "Gujarati",     61,  },
+   { "ha", "Hausa",        62,  },
+   { "he", "Hebrew",       63,  },
+   { "hz", "Herero",       64,  },
+   { "hi", "Hindi",        65,  },
+   { "ho", "Hiri Motu",    66,  },
+   { "hu", "Hungarian",    67,  },
+   { "is", "Icelandic",    68,  },
+   { "io", "Ido",          69,  },
+   { "ig", "Igbo",         70,  },
+   { "id", "Indonesian",   71,  },
+   { "ia", "Interlingua",  72,  },
+   { "ie", "Interlingue",  73,  },
+   { "iu", "Inuktitut",    74,  },
+   { "ik", "Inupiaq",      75,  },
+   { "ga", "Irish",        76,  },
+   { "it", "Italian",      77,  },
+   { "ja", "Japanese",     78,  },
+   { "jv", "Javanese",     79,  },
+   { "kn", "Kannada",      80,  },
+   { "kr", "Kanuri",       81,  },
+   { "ks", "Kashmiri",     82,  },
+   { "kk", "Kazakh",       83,  },
+   { "km", "Khmer",        84,  },
+   { "ki", "Kikuyu",       85,  },
+   { "rw", "Kinyarwanda",  86,  },
+   { "ky", "Kirghiz",      87,  },
+   { "kv", "Komi",         88,  },
+   { "kg", "Kongo",        89,  },
+   { "kj", "Kuanyama",     90,  },
+   { "ku", "Kurdish",      91,  },
+   { "lo", "Lao",          92,  },
+   { "la", "Latin",        93,  },
+   { "lv", "Latvian",      94,  },
+   { "lb", "Letzeburgesch",95,  },
+   { "li", "Limburgan",    96,  },
+   { "ln", "Lingala",      97,  },
+   { "lt", "Lithuanian",   98,  },
+   { "lu", "Luba-Katanga", 99,  },
+   { "mk", "Macedonian",   100, },
+   { "mg", "Malagasy",     101, },
+   { "ms", "Malay",        102, },
+   { "ml", "Malayalam",    103, },
+   { "mt", "Maltese",      104, },
+   { "gv", "Manx",         105, },
+   { "mi", "Maori",        106, },
+   { "mr", "Marathi",      107, },
+   { "mh", "Marshallese",  108, },
+   { "mo", "Moldavian",    109, },
+   { "mn", "Mongolian",    110, },
+   { "na", "Nauru",        111, },
+   { "nv", "Navaho",       112, },
+   { "nd", "Ndebele North",113, },
+   { "nr", "Ndebele South",114, },
+   { "ng", "Ndonga",       115, },
+   { "ne", "Nepali",       116, },
+   { "se", "Northern Sami",117, },
+   { "no", "Norwegian",    118, },
+   { "nn", "Nynorsk",      119, },
+   { "ny", "Nyanja",       120, },
+   { "oc", "Provençal",    121, },
+   { "oj", "Ojibwa",       122, },
+   { "cu", "Old Bulgarian",123, },
+   { "or", "Oriya",        124, },
+   { "om", "Oromo",        125, },
+   { "os", "Ossetian",     126, },
+   { "pi", "Pali",         127, },
+   { "pa", "Panjabi",      128, },
+   { "fa", "Persian",      129, },
+   { "pl", "Polish",       130, },
+   { "pt", "Portuguese",   131, },
+   { "ps", "Pushto",       132, },
+   { "qu", "Quechua",      133, },
+   { "rm", "Raeto-Romance",134, },
+   { "ro", "Romanian",     135, },
+   { "rn", "Rundi",        136, },
+   { "sm", "Samoan",       137, },
+   { "sg", "Sango",        138, },
+   { "sa", "Sanskrit",     139, },
+   { "sc", "Sardinian",    140, },
+   { "sr", "Serbian",      141, },
+   { "sn", "Shona",        142, },
+   { "ii", "Sichuan Yi",   143, },
+   { "sd", "Sindhi",       144, },
+   { "si", "Sinhalese",    145, },
+   { "sk", "Slovak",       146, },
+   { "sl", "Slovenian",    147, },
+   { "so", "Somali",       148, },
+   { "st", "Sotho",        149, },
+   { "es", "Spanish",      150, },
+   { "su", "Sundanese",    151, },
+   { "sw", "Swahili",      152, },
+   { "ss", "Swati",        153, },
+   { "tl", "Tagalog",      154, },
+   { "ty", "Tahitian",     155, },
+   { "tg", "Tajik",        156, },
+   { "ta", "Tamil",        157, },
+   { "tt", "Tatar",        158, },
+   { "te", "Telugu",       159, },
+   { "th", "Thai",         160, },
+   { "bo", "Tibetan",      161, },
+   { "ti", "Tigrinya",     162, },
+   { "to", "Tonga",        163, },
+   { "ts", "Tsonga",       164, },
+   { "tn", "Tswana",       165, },
+   { "tr", "Turkish",      166, },
+   { "tk", "Turkmen",      167, },
+   { "tw", "Twi",          168, },
+   { "ug", "Uighur",       169, },
+   { "uk", "Ukrainian",    170, },
+   { "ur", "Urdu",         171, },
+   { "uz", "Uzbek",        172, },
+   { "ve", "Venda",        173, },
+   { "vi", "Vietnamese",   174, },
+   { "vo", "Volapük",      175, },
+   { "wa", "Walloon",      176, },
+   { "cy", "Welsh",        177, },
+   { "wo", "Wolof",        178, },
+   { "xh", "Xhosa",        179, },
+   { "yi", "Yiddish",      180, },
+   { "yo", "Yoruba",       181, },
+   { "za", "Zhuang",       182, },
+   { "zu", "Zulu",         183, },
+   {NULL,   NULL,          184  }
+};
 
 /* Miscellaneous procedures */
 /************************************************************************/
@@ -29,10 +241,13 @@ void initialize_parser(void)
 {
    int i;
 
+   nil_const.type = C_NIL;
+
    st.globalvars = table_create(TABLESIZE);
    st.classvars = table_create(TABLESIZE);
    st.localvars = table_create(TABLESIZE);
    st.missingvars = table_create(TABLESIZE);
+   st.constants = table_create(TABLESIZE);
 
    /* Add function names to table of global identifiers */
    for (i=0; i < numfuncs; i++)
@@ -44,7 +259,7 @@ void initialize_parser(void)
       if (table_insert(st.globalvars, (void *) id, id_hash, id_compare) != 0)
          simple_error("Duplicate built-in function name %s", id->name);
    }
-   
+
    /* Add builtin identifiers to appropriate symbol tables */
    for (i=0; i < numbuiltins; i++)
       switch (BuiltinIds[i].type)
@@ -53,17 +268,17 @@ void initialize_parser(void)
          if (table_insert(st.missingvars, (void *) &BuiltinIds[i], id_hash, id_compare) != 0)
             simple_error("Duplicate builtin identifier name %s", BuiltinIds[i].name);
          break;
-         
+
       case I_PROPERTY:
          if (table_insert(st.globalvars, (void *) &BuiltinIds[i], id_hash, id_compare) != 0)
             simple_error("Duplicate builtin identifier name %s", BuiltinIds[i].name);
          break;
-         
+
       default:
          simple_error("Bad type on builtin identifier %s", BuiltinIds[i].name);
          break;
       }
-   
+
    st.maxid = IDBASE; /* Base for user-defined ids; builtins have lower #s */
    st.maxresources = RESOURCEBASE;
    st.maxlocals = -1; /* So that first local is numbered 0 */
@@ -72,12 +287,55 @@ void initialize_parser(void)
 #if 0
    st.maxproperties = -1; /* So that first property is numbered 0 */
 #endif
-   
+
    st.recompile_list = NULL;
-   st.constants = NULL;
    st.num_strings = 0;
    st.strings = NULL;
    st.override_classvars = NULL;
+   const_files = NULL;
+}
+/************************************************************************/
+/* include_const_file_parse: Determine if we have to parse this file.
+ *   Also set a boolean so after parsing the file, the original can use it.
+ */
+int include_const_file_parse(char *filename)
+{
+   for (list_type l = const_files; l != NULL; l = l->next)
+   {
+      include_constant_file* f = (include_constant_file*)l->data;
+      if (stricmp(f->filename, filename) == 0)
+      {
+         // Mark this constants file as in use so it can be searched.
+         f->in_use = True;
+
+         // Return false == do not open/parse file.
+         return False;
+      }
+   }
+
+   // Add the new constant file to the list.
+   // Must be at the beginning.
+   include_constant_file *i = (include_constant_file *)SafeMalloc(sizeof(include_constant_file));
+   i->filename = strdup(filename);
+   i->constants = table_create(TABLESIZE);
+
+   // Parsing this one now so must be using it.
+   i->in_use = True;
+
+   list_type new_file = list_create(i);
+   const_files = list_append(new_file, const_files);
+
+   // Set parsing_included_constants so we save the constants.
+   parsing_included_constants = True;
+
+   return True;
+}
+/************************************************************************/
+/* include_const_file_parse_finished: Unset the var used to track parsing.
+*/
+void include_const_file_parse_finished()
+{
+   parsing_included_constants = False;
 }
 /************************************************************************/
 /* Hash on an indentifier's name */
@@ -131,6 +389,28 @@ int is_parent(class_type parent, class_type child)
    return is_parent(parent, child->superclass);
 }
 /************************************************************************/
+/*
+ * is_unary_list_op: returns True if opcode is a unary list op.
+ */
+int is_unary_list_op(int op)
+{
+   return (op == FIRST_OP || op == REST_OP);
+}
+/************************************************************************/
+/*
+* get_list_op_name: returns string name for list opcodes, for errors.
+*/
+char * get_unarycall_op_name(int op)
+{
+   switch (op)
+   {
+   case FIRST_OP: return "First";
+   case REST_OP: return "Rest";
+   case GETCLASS_OP: return "GetClass";
+   }
+   return "Unknown";
+}
+/************************************************************************/
 id_type duplicate_id(id_type id)
 {
    id_type temp = (id_type) SafeMalloc(sizeof(id_struct));
@@ -139,14 +419,17 @@ id_type duplicate_id(id_type id)
    temp->type = id->type;
    temp->ownernum = id->ownernum;
    temp->idnum = id->idnum;
+   temp->reference_num = id->reference_num;
+   temp->is_string_rsc = id->is_string_rsc;
    return temp;
 }
 /************************************************************************/
 /* 
  * lookup_id: Translate from an identifier name to an ID number.
  *   Returns id that matches the given id, or NULL if none is in table.
+ *   refcount is true if we should increment the ref number for this var.
  */
-id_type lookup_id(id_type id)
+id_type lookup_id(id_type id, bool refcount = true)
 {
    id_type record;
 
@@ -164,6 +447,9 @@ id_type lookup_id(id_type id)
       id->idnum = record->idnum;
       id->ownernum = record->ownernum;
       id->source = record->source;
+      if (refcount)
+         record->reference_num++;
+      id->reference_num = record->reference_num;
       return record;
    }
 
@@ -175,6 +461,9 @@ id_type lookup_id(id_type id)
       id->idnum = record->idnum;
       id->ownernum = record->ownernum;
       id->source = record->source;
+      if (refcount)
+         record->reference_num++;
+      id->reference_num = record->reference_num;
       return record;
    }
 
@@ -186,6 +475,10 @@ id_type lookup_id(id_type id)
       id->idnum = record->idnum;
       id->ownernum = record->ownernum;
       id->source = record->source;
+      id->is_string_rsc = record->is_string_rsc;
+      if (refcount)
+         record->reference_num++;
+      id->reference_num = record->reference_num;
       return record;
    }
 
@@ -197,7 +490,46 @@ id_type lookup_id(id_type id)
       id->idnum = record->idnum;
       id->ownernum = record->ownernum;
       id->source = record->source;
+      id->is_string_rsc = record->is_string_rsc;
+      if (refcount)
+         record->reference_num++;
+      id->reference_num = record->reference_num;
       return record;
+   }
+
+   /* Check constants table */
+   record = (id_type)table_lookup(st.constants, (void *)id, id_hash, id_compare);
+   if (record != NULL)
+   {
+      id->type = record->type;
+      id->idnum = record->idnum;
+      id->ownernum = record->ownernum;
+      id->source = record->source;
+      if (refcount)
+         record->reference_num++;
+      id->reference_num = record->reference_num;
+      return record;
+   }
+
+   // Check any include constants files in use.
+   for (list_type l = const_files; l != NULL; l = l->next)
+   {
+      include_constant_file* f = (include_constant_file*)l->data;
+      if (f->in_use)
+      {
+         record = (id_type)table_lookup(f->constants, (void *)id, id_hash, id_compare);
+         if (record != NULL)
+         {
+            id->type = record->type;
+            id->idnum = record->idnum;
+            id->ownernum = record->ownernum;
+            id->source = record->source;
+            if (refcount)
+               record->reference_num++;
+            id->reference_num = record->reference_num;
+            return record;
+         }
+      }
    }
 
    /* Couldn't find the identifier name */
@@ -233,7 +565,7 @@ int add_identifier(id_type id, int type)
 
    case I_CONSTANT:
       /* Don't give constants id #s */
-      if (table_insert(st.classvars, (void *) id, id_hash, id_compare) != 0)
+      if (table_insert(st.constants, (void *) id, id_hash, id_compare) != 0)
 	 return 1;
       break;
       
@@ -250,8 +582,8 @@ int add_identifier(id_type id, int type)
       break;
 
    case I_PROPERTY:
-      if (table_insert(st.classvars, (void *) id, id_hash, id_compare) == 0)
-	 id->idnum = ++st.maxproperties;
+      if (table_insert(st.classvars, (void *)id, id_hash, id_compare) == 0)
+         id->idnum = ++st.maxproperties;
       else return 1;
       break;
 
@@ -298,10 +630,11 @@ const_type make_numeric_constant(int num)
 /************************************************************************/
 const_type make_nil_constant(void)
 {
-   const_type c = (const_type) SafeMalloc(sizeof(const_struct));
-
-   c->type = C_NIL;
-   return c;
+   // Return a global nil object here, as this function is called many times.
+   // As there is no deleting of IDs anywhere, this is safe (for now).
+   //const_type c = (const_type) SafeMalloc(sizeof(const_struct));
+   //c->type = C_NIL;
+   return &nil_const;
 }
 /************************************************************************/
 const_type make_number_from_constant_id(id_type id)
@@ -367,6 +700,8 @@ id_type make_identifier(char *name)
 {
    id_type id = (id_type) SafeMalloc(sizeof(id_struct));
 
+   id->reference_num = 0;
+   id->is_string_rsc = false;
    id->type = I_UNDEFINED;   /* Type is undefined until it's looked up */
    id->name = name;
    id->source = COMPILE;     /* Id came from a newly compiled file */
@@ -427,6 +762,36 @@ const_type make_literal_message(id_type id)
    return c;
 }
 /************************************************************************/
+const_type make_literal_variable(id_type id)
+{
+   const_type c = (const_type) SafeMalloc(sizeof(const_struct));
+
+   lookup_id(id);
+   switch (id->type)
+   {
+   case I_LOCAL:
+      break;
+
+   case I_MISSING:
+      if (id->source != I_LOCAL)
+      action_error("Identifier %s was referenced earlier with different type",
+         id->name);
+      break;
+
+   default:
+      // Can't use these without having them referenced previously.
+      action_error("Identifier %s literal was referenced before being defined",
+         id->name);
+      break;
+   }
+
+   /* Make a constant expression whose value is the id # */
+   c->type = C_NUMBER;
+   c->value.numval = id->idnum;
+
+   return c;
+}
+/************************************************************************/
 expr_type make_expr_from_id(id_type id)
 {
    expr_type e = (expr_type) SafeMalloc(sizeof(expr_struct));
@@ -458,13 +823,11 @@ expr_type make_expr_from_id(id_type id)
    case I_CONSTANT:
    {
       const_type c = (const_type) SafeMalloc(sizeof(const_struct));
-      id_type temp;
 
       /* Turn constant id reference into the constant itself */
       c->type = C_NUMBER;
 
-      temp = (id_type) list_find_item(st.constants, id, id_compare);
-      c->value.numval = temp->source; /* Value is stored in source field */
+      c->value.numval = id->source; /* Value is stored in source field */
 
       e->type = E_CONSTANT;
       e->value.constval = c;
@@ -521,6 +884,86 @@ expr_type make_bin_op(expr_type expr1, int op, expr_type expr2)
    return e;
 }
 /************************************************************************/
+expr_type make_isclass_op(expr_type expr1, expr_type expr2)
+{
+   // These are binary ops since they share the same structure:
+   // Take two inputs (object, class ID) and store boolean result
+   // into local or property.
+
+   expr_type e = (expr_type)SafeMalloc(sizeof(expr_struct));
+
+   e->type = E_BINARY_OP;
+   e->value.binary_opval.left_exp = expr1;
+   e->value.binary_opval.right_exp = expr2;
+   e->lineno = lineno;
+
+   // Separate opcode if we can type-check the class at compile time.
+   if (expr2->type == E_CONSTANT)
+   {
+      // Only class constants (literals) allowed.
+      if (expr2->value.constval->type != C_CLASS)
+      {
+         action_error("IsClass call with non-class constant!");
+         return e;
+      }
+      e->value.binary_opval.op = ISCLASS_CONST_OP;
+
+      // Check if we're making a comparison on self that can
+      // be resolved to true.
+      if (expr1->type == E_IDENTIFIER
+         && (expr1->value.idval->type == I_PROPERTY
+            && expr1->value.idval->idnum == 0)
+         && st.curclass == expr2->value.constval->value.numval)
+      {
+         action_error("Found IsClass call always evaluating to true!");
+      }
+   }
+   else if (expr2->type == E_CALL
+      || expr2->type == E_IDENTIFIER
+      || (expr2->type == E_UNARY_OP
+         && (is_unary_list_op(expr2->value.unary_opval.op)
+         || expr2->value.unary_opval.op == GETCLASS_OP)))
+   {
+      // These are valid ways of obtaining class ID at runtime.
+      e->value.binary_opval.op = ISCLASS_OP;
+   }
+   else
+   {
+      // Anything else is invalid.
+      action_error("IsClass call must have class literal, identifier or call for class field.");
+   }
+
+   // Check LHS also - must be call, ID or First unary OP.
+   if (expr1->type == E_CONSTANT)
+      action_error("IsClass call cannot use constant for object field.");
+   else if (expr1->type == E_BINARY_OP)
+      action_error("IsClass call cannot use binary op for object field.");
+   else if (expr1->type == E_UNARY_OP && !is_unary_list_op(expr1->value.unary_opval.op))
+      action_error("IsClass call cannot use unary op for object field.");
+
+   return e;
+}
+/************************************************************************/
+expr_type make_unarycall_op(int op, expr_type expr1)
+{
+   expr_type e = (expr_type)SafeMalloc(sizeof(expr_struct));
+
+   // Expr1 must be call, ID or list (First/Rest) unary OP.
+   if (expr1->type == E_CONSTANT)
+      action_error("%s call cannot use constant as an argument.", get_unarycall_op_name(op));
+   else if (expr1->type == E_BINARY_OP)
+      action_error("%s call cannot use binary op as an argument.", get_unarycall_op_name(op));
+   else if (expr1->type == E_UNARY_OP && !is_unary_list_op(expr1->value.unary_opval.op))
+      action_error("%s call cannot use unary op as an argument.", get_unarycall_op_name(op));
+
+   e->type = E_UNARY_OP;
+   e->value.unary_opval.exp = expr1;
+   e->value.unary_opval.op = op;
+   e->lineno = lineno;
+
+   return e;
+}
+/************************************************************************/
 expr_type make_un_op(int op, expr_type expr1)
 {
    expr_type e = (expr_type) SafeMalloc(sizeof(expr_struct));
@@ -555,19 +998,29 @@ arg_type make_arg_from_setting(id_type id, expr_type expr)
    return arg;
 }
 /************************************************************************/
+id_type make_constant_id_noeol(id_type id, expr_type expr)
+{
+   // Returns error for no newline character after a constant declaration.
+   // e.g. constants include file without a blank line at the end.
+   action_error("Missing newline after constant declaration for %s", id->name);
+
+   return make_constant_id(id, expr);
+}
+/************************************************************************/
 id_type make_constant_id(id_type id, expr_type expr)
 {
-   int numeric_val;
+   int numeric_val = 0;
 
    /* Right hand side must be a number or a negative number */
    switch (expr->type)
    {
    case E_CONSTANT:
    {
-      const_type c = (const_type) expr->value.constval;
+      const_type c = (const_type)expr->value.constval;
       if (c->type == C_NUMBER)
-	 numeric_val = c->value.numval;
-      else action_error("Right hand side must be a numeric constant");
+         numeric_val = c->value.numval;
+      else
+         action_error("Right hand side must be a numeric constant");
       break;
    }
    case E_UNARY_OP:
@@ -575,23 +1028,22 @@ id_type make_constant_id(id_type id, expr_type expr)
       const_type c;
       expr_type sub_expr = expr->value.unary_opval.exp;
       int op = expr->value.unary_opval.op;
-      
+
       if (op != NEG_OP || sub_expr->type != E_CONSTANT)
       {
          action_error("Right hand side must be a numeric constant");
          break;
       }
-      
-      c = (const_type) sub_expr->value.constval;
+
+      c = (const_type)sub_expr->value.constval;
       if (c->type == C_NUMBER)
-         numeric_val = - c->value.numval;
+         numeric_val = -c->value.numval;
       else action_error("Right hand side must be a numeric constant");
       break;
    }
    default:
       action_error("Right hand side must be a numeric constant");
    }
-   
 
    lookup_id(id);
 
@@ -600,20 +1052,25 @@ id_type make_constant_id(id_type id, expr_type expr)
    {
    case I_UNDEFINED:
       id->ownernum = st.curclass;
-      /* Store value in source field.  This is kind of a hack, but now we can 
-	 insert just the id in st.constants, making it easy to find later. */
+      /* Store value in source field.  This is kind of a hack, but now we can
+         insert just the id in st.constants, making it easy to find later. */
       id->source = numeric_val;
       add_identifier(id, I_CONSTANT);
       break;
-      
+
    default:
       action_error("Duplicate identifier %s", id->name);
       break;
    }
 
-   /* Add to list of constants in this class */
-   st.constants = list_add_item(st.constants, id);
-   
+   // If this is a parsed include file, also save the constant to the const_files
+   // table so we don't have to parse this file again.
+   if (parsing_included_constants)
+   {
+      include_constant_file* f = (include_constant_file*)const_files->data;
+      table_insert(f->constants, (void *)id, id_hash, id_compare);
+   }
+
    return id;
 }
 /************************************************************************/
@@ -627,7 +1084,7 @@ param_type make_parameter(id_type id, expr_type e)
       return p;
    }
 
-   lookup_id(id);
+   lookup_id(id, false);
 
    /* Left-hand side must not have appeared before, except perhaps as a parameter */
    switch (id->type) {
@@ -652,14 +1109,13 @@ param_type make_parameter(id_type id, expr_type e)
       break;
 
    case I_UNDEFINED:   /* New parameter # */
-      id->ownernum = st.curmessage;
+      id->ownernum = st.curmessage; // Invalid, but replaced later.
       add_identifier(id, I_PARAMETER);
       break;
 
    case I_PARAMETER:
-      /* Legal only if it hasn't yet appeared in this message */
-      if (id->ownernum == st.curmessage && id->source == COMPILE)
-	 action_error("Parameter %s appears twice", id->name);
+      // Can't check for duplicates here, current message ID is invalid
+      // due to parameters being parsed before message name.
       break;
 
    default:            /* Other types indicate name already used */
@@ -674,7 +1130,7 @@ param_type make_parameter(id_type id, expr_type e)
 id_type make_var(id_type id)
 {
    /* Add to list of local variables, if it hasn't been defined */
-   lookup_id(id);
+   lookup_id(id, false);
 
    switch(id->type)
    {
@@ -702,7 +1158,7 @@ classvar_type make_classvar(id_type id, expr_type e)
       return cv;
    }
 
-   lookup_id(id);
+   lookup_id(id, false);
    switch(id->type) 
    {
    case I_CONSTANT:
@@ -746,7 +1202,7 @@ property_type make_property(id_type id, expr_type e)
 
    /* Left-hand side must not have appeared as a property before, except possibly as a
     * property of one of our superclasses.  Properties shadow other global names. */
-   lookup_id(id);
+   lookup_id(id, false);
    switch(id->type) {
 
    case I_CONSTANT:
@@ -809,38 +1265,135 @@ property_type make_property(id_type id, expr_type e)
    p->rhs = e->value.constval;
    return p;   
 }
-/************************************************************************/
-resource_type make_resource(id_type id, const_type c)
+/*******************************************************************************/
+/*  
+ * make_language_id: Compares str to an array of 2 - letter ISO - 639 - 1
+ * language codes, and returns an identifying integer.
+ */
+/******************************************************************************/
+int make_language_id(char *str)
 {
-   resource_type r = (resource_type) SafeMalloc(sizeof(resource_struct));
+   int lid = 0;
+
+   for(int i = 0; i < MAX_LANGUAGE_ID; i++)
+   {
+      if(!strcmp(language_id_table[i].two_letter_code, str))
+      {
+         lid = language_id_table[i].languageid;
+
+         return lid;
+      }
+   }
+
+   // If we get here, lid should be 0 and we can log an error.
+   if (lid == 0)
+      action_error("Invalid language code %s!", str);
+
+   return lid;
+}
+/************************************************************************/
+resource_type make_resource_noeol(id_type id, const_type c, int la_id)
+{
+   // Returns error for no newline character after a resource declaration.
+   // e.g. language resource include file without a blank line at the end.
+   action_error("Missing newline after resource declaration for %s",id->name);
+
+   return make_resource(id, c, la_id);
+}
+/************************************************************************/
+resource_type make_resource(id_type id, const_type c, int la_id)
+{
    id_type old_id;
+   list_type l;
+   class_type cl = NULL;
+   resource_type r = NULL;
 
    id->ownernum = st.curclass;
 
-   /* Left-hand side must not have appeared before, except maybe in dbase */
-   old_id = lookup_id(id);
+   /* Left-hand side must not have appeared before, except maybe in dbase
+      This is an initial assignment so don't increment ref count. */
+   old_id = lookup_id(id, false);
+
+   /* Check if this resource is already present in another class.
+    * old_id will be NULL if it isn't, and if it is defined in the
+    * same class, old_id->ownernum is st.curclass (class ID). */
+   if (old_id != NULL && old_id->ownernum != st.curclass)
+      action_error("Resource already defined in another class!\n");
+
    switch(id->type) {
    case I_UNDEFINED:
       id->source = COMPILE;
+      // Keep track of whether this rsc ID is for a string, in case
+      // we are tracking string rsc references (hacky, but useful).
+      if (c->type == C_STRING)
+         id->is_string_rsc = true;
       add_identifier(id, I_RESOURCE);
       break;
 
    case I_RESOURCE:
       /* Allow redefinition of resources listed in database file */
-      if (id->source == COMPILE)
-	 action_error("Resource %s is defined twice", id->name);
-      else
-	 old_id->source = COMPILE;
+      if (id->source != COMPILE)
+         old_id->source = COMPILE;
 
       id->source = COMPILE;
       break;
       
    default:
-      action_error("Duplicate identifier %s", id->name);
+      action_error("Resource defined without type I_UNDEFINED or I_RESOURCE! %s",
+         id->name);
    }
 
-   r->lhs = id;
-   r->rhs = c;
+   // Get data for this class
+   for (l = st.classes; l != NULL; l = l->next)
+   {
+      cl = (class_type) (l->data);
+      if (st.curclass == cl->class_id->idnum)
+         break;
+   }
+
+   // Try to get the old resource if present.
+   for (l = cl->resources; l != NULL; l = l->next)
+   {
+      r = (resource_type) (l->data);
+      if (r->lhs->idnum == id->idnum)
+         break;
+      r = NULL;
+   }
+
+   // If the resource list for this class is empty and thus we don't have
+   // a resource, allocate a new one and put our data in it. Also add this
+   // to the resources list for this class, so we can check other resources
+   // against it.
+   if (!cl->resources || !r)
+   {
+      r = (resource_type)SafeMalloc(sizeof(resource_struct));
+      r->lhs = id;
+      for (int i = 0; i < MAX_LANGUAGE_ID; i++)
+      {
+         if (i == la_id)
+            r->resource[i] = c;
+         else
+         {
+            //r->resource[i] = (const_type) SafeMalloc(sizeof(const_struct));
+            r->resource[i] = NULL;
+         }
+      }
+      cl->resources = list_add_item(cl->resources, r);
+   }
+   else
+   {
+      // If we have a valid resource from the class resource list,
+      // check the appropriate language ID in this resource and if
+      // empty, store our data in it. Working with the resource list
+      // so don't return this resource (will be duplicated).
+      if (r->resource[la_id])
+         action_error("Resource already defined with language ID %i\n",la_id);
+      else
+         r->resource[la_id] = c;
+
+      return NULL;
+   }
+
    return r;
 }
 /************************************************************************/
@@ -856,7 +1409,7 @@ void check_continue(void)
       action_error("Continue statement must appear inside a loop");
 }
 /************************************************************************/
-stmt_type make_if_stmt(expr_type condition, list_type then_stmts, list_type else_stmts)
+stmt_type make_if_stmt(expr_type condition, list_type then_stmts, list_type else_stmts, stmt_type elseif_stmts)
 {
    stmt_type stmt = (stmt_type) SafeMalloc(sizeof(stmt_struct));
    if_stmt_type s = (if_stmt_type) SafeMalloc(sizeof(if_stmt_struct));
@@ -864,6 +1417,7 @@ stmt_type make_if_stmt(expr_type condition, list_type then_stmts, list_type else
    s->condition = condition;
    s->then_clause = then_stmts;
    s->else_clause = else_stmts;
+   s->elseif_clause = (void *) elseif_stmts;
 
    stmt->type = S_IF;
    stmt->value.if_stmt_val = s;
@@ -895,10 +1449,10 @@ stmt_type make_assign_stmt(id_type id, expr_type expr)
    return stmt;
 }
 /************************************************************************/
-stmt_type make_for_stmt(id_type id, expr_type expr, list_type stmts)
+stmt_type make_foreach_stmt(id_type id, expr_type expr, list_type stmts)
 {
    stmt_type stmt = (stmt_type) SafeMalloc(sizeof(stmt_struct));
-   for_stmt_type s = (for_stmt_type) SafeMalloc(sizeof(for_stmt_struct));
+   foreach_stmt_type s = (foreach_stmt_type) SafeMalloc(sizeof(foreach_stmt_struct));
 
    /* Loop variable must be a local, property or parameter */
    lookup_id(id);
@@ -912,8 +1466,8 @@ stmt_type make_for_stmt(id_type id, expr_type expr, list_type stmts)
    s->condition = expr;
    s->body = stmts;
 
-   stmt->type = S_FOR;
-   stmt->value.for_stmt_val = s;
+   stmt->type = S_FOREACH;
+   stmt->value.foreach_stmt_val = s;
    return stmt;
 }
 /************************************************************************/
@@ -930,15 +1484,83 @@ stmt_type make_while_stmt(expr_type condition, list_type stmts)
    return stmt;
 }
 /************************************************************************/
+stmt_type make_do_while_stmt(expr_type condition, list_type stmts)
+{
+   stmt_type stmt = (stmt_type) SafeMalloc(sizeof(stmt_struct));
+   while_stmt_type s = (while_stmt_type) SafeMalloc(sizeof(while_stmt_struct));
+
+   s->condition = condition;
+   s->body = stmts;
+
+   stmt->type = S_DOWHILE;
+   stmt->value.while_stmt_val = s;
+   return stmt;
+}
+/************************************************************************/
+stmt_type make_case_stmt(expr_type condition, list_type stmts, bool defaultcase)
+{
+   stmt_type stmt = (stmt_type) SafeMalloc(sizeof(stmt_struct));
+   case_stmt_type s = (case_stmt_type) SafeMalloc(sizeof(case_stmt_struct));
+
+   s->body = stmts;
+
+   if (defaultcase)
+   {
+      stmt->type = S_DEFAULTCASE;
+      s->condition = condition;
+   }
+   else
+   {
+      if (condition->type != E_CONSTANT)
+         action_error("Case expressions can only be constants!");
+
+      stmt->type = S_CASE;
+      s->condition = condition;
+   }
+   stmt->value.case_stmt_val = s;
+   return stmt;
+}
+/************************************************************************/
+stmt_type make_switch_stmt(expr_type condition, list_type stmts)
+{
+   stmt_type stmt = (stmt_type) SafeMalloc(sizeof(stmt_struct));
+   switch_stmt_type s = (switch_stmt_type) SafeMalloc(sizeof(switch_stmt_struct));
+
+   s->condition = condition;
+   s->body = stmts;
+
+   stmt->type = S_SWITCH;
+   stmt->value.switch_stmt_val = s;
+   return stmt;
+}
+/************************************************************************/
+stmt_type make_for_stmt(list_type init_assign, expr_type condition, list_type assign, list_type stmts)
+{
+   stmt_type stmt = (stmt_type) SafeMalloc(sizeof(stmt_struct));
+   for_stmt_type s = (for_stmt_type) SafeMalloc(sizeof(for_stmt_struct));
+
+   s->condition = condition;
+   s->body = stmts;
+   s->initassign = init_assign;
+   s->assign = assign;
+
+   stmt->type = S_FOR;
+   stmt->value.for_stmt_val = s;
+   return stmt;
+}
+/************************************************************************/
 /* Make a call to the LIST function from a list of expressions */
 stmt_type make_list_call(list_type l)
 {
    stmt_type stmt = (stmt_type) SafeMalloc(sizeof(stmt_struct));
    call_stmt_type s = (call_stmt_type) SafeMalloc(sizeof(call_stmt_struct));
    
-   s->function = LIST;
+   s->function = MLIST;
    s->args = NULL;
-   
+
+   // Must store result of call.
+   s->store_required = STORE_REQUIRED;
+
    for ( ; l != NULL; l = l->next)
       s->args = list_add_item(s->args, make_arg_from_expr((expr_type) l->data));
 
@@ -949,12 +1571,13 @@ stmt_type make_list_call(list_type l)
 /************************************************************************/
 stmt_type make_call(id_type function_id, list_type args)
 {
-   stmt_type stmt = (stmt_type) SafeMalloc(sizeof(stmt_struct));
-   call_stmt_type s = (call_stmt_type) SafeMalloc(sizeof(call_stmt_struct));
+   stmt_type stmt = (stmt_type)SafeMalloc(sizeof(stmt_struct));
+   call_stmt_type s = (call_stmt_type)SafeMalloc(sizeof(call_stmt_struct));
    int argnum = 0, argtype, continuation = ANONE, minargs = 0, i, index;
    const char *fname;
    arg_type arg;
    id_type id, new_id;
+   Bool check_settings = False;
 
    s->args = NULL;
 
@@ -971,144 +1594,183 @@ stmt_type make_call(id_type function_id, list_type args)
 
    fname = Functions[index].name;
    s->function = Functions[index].opcode;
-      
+
+   // Keep track of whether the function requires a destvar.
+   s->store_required = Functions[index].store_required;
+
    /* Check that types of arguments match "function prototype" in table */
-   for ( ; args != NULL; args = args->next)
+   for (; args != NULL; args = args->next)
    {
       argtype = Functions[index].params[argnum];
 
       /* See if we are looking for one or more expressions or parameters */
       if (continuation != ANONE)
-	 argtype = continuation;
+         argtype = continuation;
 
-      arg = (arg_type) args->data;
-      switch (argtype) 
+      arg = (arg_type)args->data;
+      switch (argtype)
       {
       case ANONE:
-	 action_error("Extra argument #%d to function %s", argnum+1, fname);
-	 return stmt; /* Ignore additional extra arguments */
-	 break;
+         action_error("Extra argument #%d to function %s", argnum + 1, fname);
+         return stmt; /* Ignore additional extra arguments */
+         break;
 
       case AEXPRESSIONS:
-	 continuation = AEXPRESSION;
-	 /* fall through */
+         continuation = AEXPRESSION;
+         /* fall through */
       case AEXPRESSION:
-	 /* Must have an expression here */
-	 if (arg->type != ARG_EXPR)
-	    action_error("Expecting expression in argument #%d",
-			 argnum+1, fname);
-	 else
-	    s->args = list_add_item(s->args, (void *) arg);
-	 break;
+         /* Must have an expression here */
+         if (arg->type != ARG_EXPR)
+            action_error("Expecting expression in argument #%d",
+               argnum + 1, fname);
+         else
+            s->args = list_add_item(s->args, (void *)arg);
+         break;
 
       case ASETTINGS:
-	 continuation = ASETTING;
-	 /* fall through */
+         continuation = ASETTING;
+         /* fall through */
       case ASETTING:
-	 if (arg->type != ARG_SETTING)
-	 {
-	    action_error("Expecting setting (i.e. #a=b ) in argument #%d",
-			 argnum+1, fname);
-	    break;
-	 }
-	 
-	 /* Find parameter id */
-	 id = arg->value.setting_val->id;
-	 lookup_id(id);
-	 
-	 switch(id->type)
-	 {
-	 case I_UNDEFINED:
-	    /* If parameter hasn't been defined yet, put on missing list */
-	    add_identifier(id, I_MISSING);
+         check_settings = True;
+         if (arg->type != ARG_SETTING)
+         {
+            action_error("Expecting setting (i.e. #a=b ) in argument #%d",
+               argnum + 1, fname);
+            break;
+         }
 
-	    /* Use source field to indicate where id came from for later checking */
-	    id->source = I_PARAMETER;
+         /* Find parameter id */
+         id = arg->value.setting_val->id;
+         lookup_id(id);
 
-	    s->args = list_add_item(s->args, (void *) arg);
-	    break;
-	    
-	 case I_MISSING:
-	    if (id->source != I_PARAMETER)
-	    {
-	       action_error("Duplicate identifier %s", id->name);
-	       break;
-	    }
-	    s->args = list_add_item(s->args, (void *) arg);
-	    break;
+         switch (id->type)
+         {
+         case I_UNDEFINED:
+            /* If parameter hasn't been defined yet, put on missing list */
+            add_identifier(id, I_MISSING);
 
-	    /* The tag here should be I_PARAMETER, but parameters also inserted as locals.
-	     */
-	 case I_LOCAL: 
-	    /* Unfortunately, we want the parameter id #, and not the local id #.  So
-	     * we have to look up the id again in the global table. */
-	    new_id = (id_type) table_lookup(st.globalvars, (void *) id, id_hash, id_compare);
+            /* Use source field to indicate where id came from for later checking */
+            id->source = I_PARAMETER;
 
-	    /* If it isn't there, then there happens to be a local variable of the same
-	     * name as this parameter, and the parameter hasn't appeared before.  Thus the
-	     * parameter id should be added as a missing variable.  We can't use the normal
-	     * lookup_id and add_identifier procs, since the local variable will mask
-	     * the missing one.
-	     */
-	    if (new_id == NULL)
-	    {
-	       /* Of course, the id might already have been inserted as a missing var */
-	       new_id = (id_type) table_lookup(st.missingvars, (void *) id, id_hash, id_compare);
-	       if (new_id == NULL)
-	       {
-		  id->source = I_PARAMETER;
-		  id->type = I_MISSING;
-		  id->idnum = ++st.maxid;
-		  table_insert(st.missingvars, (void *) id, id_hash, id_compare);
-	       }
-	       else 
-	       {
-		  /* If it was already there, make sure that it was a parameter */
-		  if (new_id->source != I_PARAMETER)
-		     action_error("Duplicate identifier %s", id->name);
-		  id->source = new_id->source;
-		  id->type = I_MISSING;
-		  id->source = I_PARAMETER;
-		  id->idnum = new_id->idnum;
-	       }
-	       
-	    }
-	    else 
-	    {
-	       id = new_id;
-	       if (id->type != I_PARAMETER)
-		  action_error("Can't find parameter %s", id->name);
-	    }
+            s->args = list_add_item(s->args, (void *)arg);
+            break;
 
-	    arg->value.setting_val->id = id;
-	    /* If literal exists, proceed normally */
-	    s->args = list_add_item(s->args, (void *) arg);
-	    break;
+         case I_MISSING:
+            if (id->source != I_PARAMETER)
+            {
+               action_error("Duplicate identifier %s", id->name);
+               break;
+            }
+            s->args = list_add_item(s->args, (void *)arg);
+            break;
 
-	    /* But if the identifier is from another handler, might not be local */
-	 case I_PARAMETER:
-	    s->args = list_add_item(s->args, (void *) arg);
-	    break;
+            /* The tag here should be I_PARAMETER, but parameters also inserted as locals.
+             */
+         case I_LOCAL:
+            /* Unfortunately, we want the parameter id #, and not the local id #.  So
+             * we have to look up the id again in the global table. */
+            new_id = (id_type)table_lookup(st.globalvars, (void *)id, id_hash, id_compare);
 
-	 default:
-	    action_error("Literal %s is a duplicate identifier", id->name);
-	 }
-	 break;
+            /* If it isn't there, then there happens to be a local variable of the same
+             * name as this parameter, and the parameter hasn't appeared before.  Thus the
+             * parameter id should be added as a missing variable.  We can't use the normal
+             * lookup_id and add_identifier procs, since the local variable will mask
+             * the missing one.
+             */
+            if (new_id == NULL)
+            {
+               /* Of course, the id might already have been inserted as a missing var */
+               new_id = (id_type)table_lookup(st.missingvars, (void *)id, id_hash, id_compare);
+               if (new_id == NULL)
+               {
+                  id->source = I_PARAMETER;
+                  id->type = I_MISSING;
+                  id->idnum = ++st.maxid;
+                  table_insert(st.missingvars, (void *)id, id_hash, id_compare);
+               }
+               else
+               {
+                  /* If it was already there, make sure that it was a parameter */
+                  if (new_id->source != I_PARAMETER)
+                     action_error("Duplicate identifier %s", id->name);
+                  id->source = new_id->source;
+                  id->type = I_MISSING;
+                  id->source = I_PARAMETER;
+                  id->idnum = new_id->idnum;
+               }
+
+            }
+            else
+            {
+               id = new_id;
+               if (id->type != I_PARAMETER)
+                  action_error("Can't find parameter %s", id->name);
+            }
+
+            arg->value.setting_val->id = id;
+            /* If literal exists, proceed normally */
+            s->args = list_add_item(s->args, (void *)arg);
+            break;
+
+            /* But if the identifier is from another handler, might not be local */
+         case I_PARAMETER:
+            s->args = list_add_item(s->args, (void *)arg);
+            break;
+
+         default:
+            action_error("Literal %s is a duplicate identifier", id->name);
+         }
+         break;
       }
-      
+
       argnum++;
    }
    /* Check that no arguments left out */
-   for (i=0; i < MAXARGS; i++)
+   for (i = 0; i < MAXARGS; i++)
    {
       argtype = Functions[index].params[i];
       if (argtype == ANONE || argtype == ASETTINGS || argtype == AEXPRESSIONS)
-	 break; /* Zero or more arguments follow */
-      
+         break; /* Zero or more arguments follow */
+
       minargs++;
    }
    if (argnum < minargs)
       action_error("Expecting %d arguments to %s; found %d", minargs, fname, argnum);
+
+   // Check calls with settings for duplicates.
+   if (check_settings)
+   {
+      list_type ptr, ptr1, prev = NULL, prev1 = NULL;
+      arg_type arg, arg1;
+      for (ptr = s->args; ptr != NULL; prev = ptr, ptr = ptr->next)
+      {
+         arg = (arg_type)ptr->data;
+
+         // Skip non-settings.
+         if (arg->type != ARG_SETTING)
+            continue;
+         prev1 = NULL;
+         for (ptr1 = ptr; ptr1 != NULL; prev1 = ptr1, ptr1 = ptr1->next)
+         {
+            // Skip first, same as above.
+            if (!prev1)
+               continue;
+
+            arg1 = (arg_type)ptr1->data;
+
+            // Skip non-settings.
+            if (arg1->type != ARG_SETTING)
+               continue;
+            if (arg->value.setting_val->id->idnum
+               == arg1->value.setting_val->id->idnum)
+            {
+               action_error("Duplicate argument in %s call, argument %s",
+                  fname, arg->value.setting_val->id->name);
+               break;
+            }
+         }
+      }
+   }
 
    /* Sort parameter arguments in increasing order for server efficiency */
    s->args = SortArgumentList(s->args);
@@ -1236,16 +1898,17 @@ message_header_type make_message_header(id_type id, list_type args)
    default:            /* Other types indicate name already used */
       action_error("Duplicate identifier %s", id->name);
    }
-
+   s->lineno = lineno;
    s->message_id = id;
-   /* Sort parameters in increasing id # order */
+   /* Sort parameters in increasing id # order.
+      SortParameterList will throw action_error on duplicate parameters. */
    s->params = SortParameterList(args);
 
    /* Add parameters as handler's local variables--this must be done AFTER sorting */
    for (l = s->params; l != NULL; l = l->next)
    {
       param = (param_type) l->data;
-      
+      param->lhs->ownernum = id->idnum;
       /* Make a copy of the id for the local table */
       temp_id = duplicate_id(param->lhs);
       temp_id->type = I_LOCAL;
@@ -1340,7 +2003,7 @@ class_type make_class_signature(id_type class_id, id_type superclass_id)
    c->class_id = class_id;
 
    /* Class name must not have appeared before */
-   old_id = lookup_id(class_id);
+   old_id = lookup_id(class_id, false);
 
    switch(class_id->type)
    {
@@ -1491,8 +2154,15 @@ class_type make_class(class_type c, list_type resources, list_type classvars,
    table_delete(st.classvars);
    st.override_classvars = NULL;
 
-   /* Erase constant list */
-   st.constants = list_delete(st.constants);
+   /* Clean out constant table */
+   table_delete(st.constants);
+
+   // Set all constant files to not in use.
+   for (list_type l = const_files; l != NULL; l = l->next)
+   {
+      include_constant_file* f = (include_constant_file*)l->data;
+      f->in_use = False;
+   }
 
    st.maxproperties = 0;  // Property #0 is reserved for SELF
    st.maxclassvars  = -1;

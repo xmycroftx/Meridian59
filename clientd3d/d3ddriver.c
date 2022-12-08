@@ -28,6 +28,23 @@ DWORD	gFogCaps = (D3DPRASTERCAPS_FOGTABLE |
 
 D3DPRESENT_PARAMETERS	gPresentParam;
 
+int D3DGetAvailableAAOptions(void)
+{
+   int result = 0;
+
+   DWORD qual = 0;
+
+   for (int i = 1; i < 16; ++i)
+   {
+      if (SUCCEEDED(IDirect3D9_CheckDeviceMultiSampleType(gpD3D, D3DADAPTER_DEFAULT,
+         D3DDEVTYPE_HAL, D3DFMT_A8R8G8B8, FALSE, (D3DMULTISAMPLE_TYPE)i, &qual)))
+      {
+         result |= (1 << i);
+      }
+   }
+   return result;
+}
+
 Bool D3DDriverProfileInit(void)
 {
 	FILE					*pFile;
@@ -73,8 +90,16 @@ Bool D3DDriverProfileInit(void)
       gpD3D, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
       D3DFMT_X8R8G8B8, D3DFMT_D24S8, (D3DFORMAT) TRUE);
 
-	gScreenWidth = 800;
-	gScreenHeight = 600;
+	if (config.large_area)
+	{
+		gScreenWidth = 800;
+		gScreenHeight = 600;
+	}
+	else
+	{
+		gScreenWidth = 512;
+		gScreenHeight = 384;
+	}
 
 	memset(&gPresentParam, 0, sizeof(gPresentParam));
 	gPresentParam.Windowed = TRUE;
@@ -86,7 +111,20 @@ Bool D3DDriverProfileInit(void)
 	gPresentParam.BackBufferCount = 1;
 	gPresentParam.EnableAutoDepthStencil = TRUE;
 	gPresentParam.AutoDepthStencilFormat = D3DFMT_D24S8;
-	gPresentParam.Flags |= D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+	//gPresentParam.Flags |= D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+
+   // Anti-aliasing. At one point this broke effects like invis but
+   // currently seems to work with no problems.
+   DWORD qual = 0;
+   D3DMULTISAMPLE_TYPE aaMode = (D3DMULTISAMPLE_TYPE)config.aaMode;
+   if (aaMode < 2 || aaMode > 16)
+      aaMode = D3DMULTISAMPLE_NONE;
+   if (SUCCEEDED(IDirect3D9_CheckDeviceMultiSampleType(gpD3D, D3DADAPTER_DEFAULT,
+      D3DDEVTYPE_HAL, D3DFMT_A8R8G8B8, FALSE, aaMode, &qual)))
+   {
+      gPresentParam.MultiSampleType = aaMode;
+      gPresentParam.MultiSampleQuality = qual - 1;
+   }
 
 	// first try hardware vertex processing
 	error = IDirect3D9_CreateDevice(gpD3D, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
@@ -199,10 +237,10 @@ Bool D3DDriverProfileInit(void)
 		}
 	}
 
-	// if max streams == 0, driver is not dx9 compliant
+	// if max streams == 0, driver is not dx8 compliant
 	if (gD3DDriverProfile.d3dCaps.MaxStreams <= 0)
 	{
-		fprintf(pFile, "Driver is not a DirectX 9 compliant driver.  Please verify your video card and latest drivers are DirectX 9 compliant.\n");
+		fprintf(pFile, "Driver is not a DirectX 8 compliant driver.  Please verify your video card and latest drivers are DirectX 8 compliant.\n");
 		bProblem = TRUE;
 	}
 
@@ -213,6 +251,13 @@ Bool D3DDriverProfileInit(void)
 		fprintf(pFile, "No multitexture hardware detected.  Please verify your video card and latest drivers support multitexture.\n");
 		bProblem = TRUE;
 	}
+
+	// required caps
+/*	if ((gD3DDriverProfile.d3dCaps.Caps2 & D3DCAPS2_CANMANAGERESOURCE) == 0)
+	{
+		fprintf(pFile, "D3DCAPS2_CANMANAGERESOURCE == 0\n");
+		bProblem = TRUE;
+	}*/
 
 	if ((gD3DDriverProfile.d3dCaps.ZCmpCaps & gZCmpCaps) != gZCmpCaps)
 	{
@@ -290,7 +335,7 @@ Bool D3DDriverProfileInit(void)
 	gD3DDriverProfile.maxAnisotropy = gD3DDriverProfile.d3dCaps.MaxAnisotropy;
 
 	if ((gD3DDriverProfile.d3dCaps.RasterCaps & D3DPRASTERCAPS_DEPTHBIAS) == 0 ||
-       (gD3DDriverProfile.d3dCaps.RasterCaps & D3DRS_SLOPESCALEDEPTHBIAS) == 0)
+		(gD3DDriverProfile.d3dCaps.RasterCaps & D3DRS_SLOPESCALEDEPTHBIAS) == 0)
 	{
 		fprintf(pFile, "Zbias check failed\n");
 		gD3DDriverProfile.bZBias = FALSE;
@@ -346,11 +391,12 @@ Bool D3DDriverProfileInit(void)
 //	gD3DDriverProfile.texMemTotal = (32 * 1024 * 1024);
 	gD3DDriverProfile.texMemTotal /= 4;
 
+   /* Single cache used now.
 	gD3DDriverProfile.texMemWorldStatic = gD3DDriverProfile.texMemTotal * 0.40f;
 	gD3DDriverProfile.texMemWorldDynamic = gD3DDriverProfile.texMemTotal * 0.13f;
 	gD3DDriverProfile.texMemLMapStatic = gD3DDriverProfile.texMemTotal * 0.20f;
 	gD3DDriverProfile.texMemLMapDynamic = gD3DDriverProfile.texMemTotal * 0.10f;
 	gD3DDriverProfile.texMemObjects = gD3DDriverProfile.texMemTotal * 0.17f;
-
+   */
 	return TRUE;
 }

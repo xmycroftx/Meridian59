@@ -203,7 +203,7 @@ void ForgetFTextureInfo()
 TextureInfo *FindTextureByName(char *name)
 {
    if (WTexture == NULL || name == NULL)
-      return NULL;
+     return NULL;
    
    for (SHORT ti = 0 ; ti < NumWTexture ; ti++ )
    {
@@ -212,7 +212,7 @@ TextureInfo *FindTextureByName(char *name)
       if (!strcmp(WTexture[ti]->Name, name))
 	 return WTexture[ti];
    }
-   Notify ("Couldn't find Wall texture info: \"%s\" (BUG)!", name);
+   //Notify ("Couldn't find Wall texture info: \"%s\" (BUG)!", name);
    return NULL;
 }
 /***************************************************************************/
@@ -223,8 +223,8 @@ TextureInfo *FindTextureByName(char *name)
 TextureInfo *FindTextureByNumber(int num)
 {
    if (WTexture == NULL || num == 0)
-      return NULL;
-   
+     return NULL;
+
    for (SHORT ti = 0 ; ti < NumWTexture ; ti++ )
    {
       assert (WTexture[ti] != NULL);
@@ -232,7 +232,7 @@ TextureInfo *FindTextureByNumber(int num)
       if (WTexture[ti]->number == num)
 	 return WTexture[ti];
    }
-   Notify ("Couldn't find Wall texture info: \"%d\" (BUG)!", num);
+   //Notify ("Couldn't find Wall texture info: \"%d\" (BUG)!", num);
    return NULL;
 }
 
@@ -256,7 +256,7 @@ void GetWallTextureSize (SHORT *xsize_r, SHORT *ysize_r, int texnum)
       }
    }
    
-   Notify ("Couldn't find Wall texture info: \"%d\" (BUG)!", texnum);
+   //Notify ("Couldn't find Wall texture info: \"%d\" (BUG)!", texnum);
 }
 
 /***************************************************************************/

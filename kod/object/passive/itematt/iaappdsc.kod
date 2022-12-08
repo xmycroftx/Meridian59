@@ -1,59 +1,61 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 ItemAttAppendDescription is ItemAttribute
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-%  This item has extra text appended to its standard description.
-% 
-%  Form is: 
-%
-%   	[IA_APPEND_DESCRIPTION, sDesc_string]
-%	
-%  sDesc_string::the extra description to be appended to the item's
-%                 normal description.
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+///////////////////////////////////////////////////////////////////////
+//
+//   This item has extra text appended to its standard description.
+//
+//   Form is:
+//
+//      [IA_APPEND_DESCRIPTION, sDesc_string]
+//
+//  sDesc_string::the extra description to be appended to the item's
+//                 normal description.
+//
+///////////////////////////////////////////////////////////////////////
 
 constants:
 
-   include blakston.khd   
+   include blakston.khd
 
 resources:
+
+   iaappend_desc = "%q"
 
 classvars:
 
    viItem_Att_Num = IA_APPEND_DESCRIPTION
-   vrDesc = attribute_desc_default
+   vrDesc = iaappend_desc
 
 properties:
 
 messages:
-  
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%
-%%  Effect Functions
-%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   
+
+////////////////////////////////////////////////
+///
+///  Effect Functions
+///
+///////////////////////////////////////////////
+
    ItemCanIdentify()
    {
       return FALSE;
-   }	
+   }
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%
-%%  Infrastructure
-%%  (Adding and removing a ItemAtt from an item.)
-%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////
+///
+///  Infrastructure
+///  (Adding and removing a ItemAtt from an item.)
+///
+////////////////////////////////////////////////////
 
    InitiallyIdentified()
    {
@@ -66,23 +68,25 @@ messages:
        return state1;
    }
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%
-%%  Maintenance Functions
-%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////
+///
+///  Maintenance Functions
+///
+////////////////////////////////////////////////
 
    AppendDesc(oItem=$)
    {
-      AppendTempString(nth(send(oItem,@GetAttributeData,#ItemAtt=IA_APPEND_DESCRIPTION),3));
+      AddPacket(4,vrDesc,4,Nth(Send(oItem,@GetAttributeData,
+            #ItemAtt=IA_APPEND_DESCRIPTION),3));
+
       return;
    }
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%
-%%	Treasure Functions
-%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+/////////////////////////////////////////////////
+///
+///	Treasure Functions
+///
+/////////////////////////////////////////////////
 
    AddToTreasureTable()
    {
@@ -93,6 +97,11 @@ messages:
    {
       return FALSE;
    }
-  
+
+   ItemCanBeUsedInQuests()
+   {
+      return TRUE;
+   }
+
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

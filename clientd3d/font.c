@@ -20,10 +20,10 @@ static HFONT hDefaultFont;
 /* Default font information structures */
 static char fontinfo[][MAX_FONTNAME] = {
 { "-12,0,0,0,0,0,0,0,0,0,0,0,0,Times New Roman" },   /* FONT_LIST */
-{ "-30,0,0,0,0,0,0,0,0,0,0,0,0,Heidelbe-Normal"},    /* FONT_TITLES */
+{ "-30,0,0,0,0,0,0,0,0,0,0,0,0,Heidelberg-Normal"},    /* FONT_TITLES */
 { "-12,0,0,0,0,0,0,0,0,0,0,0,0,Times New Roman" },   /* FONT_EDIT */
 { "-12,0,0,0,0,0,0,0,0,0,0,0,0,Times New Roman" },   /* FONT_MAIL */
-{ "-16,0,0,0,400,0,0,0,0,3,2,1,2,Heidelbe-Normal" }, /* FONT_STATS */
+{ "-16,0,0,0,400,0,0,0,0,3,2,1,2,Heidelberg-Normal" }, /* FONT_STATS */
 { "-14,0,0,0,0,0,0,0,0,0,0,0,0,Times New Roman"},    /* FONT_INPUT */
 { "-14,0,0,0,0,0,0,0,0,0,0,0,0,Times New Roman"},    /* FONT_SYSMSG */
 //{ "-14,0,0,0,0,0,0,0,0,0,0,0,0,Times New Roman"},    /* FONT_LABELS */
@@ -33,6 +33,8 @@ static char fontinfo[][MAX_FONTNAME] = {
 { "24,0,0,0,700,0,0,0,0,0,0,0,0,Arial" },          /* FONT_MAP_TITLE */
 { "12,0,0,0,400,0,0,0,0,0,0,0,0,Arial" },           /* FONT_MAP_LABEL */
 { "12,0,0,0,400,0,0,0,0,0,0,0,0,Arial" },           /* FONT_MAP_TEXT */
+{ "-13,0,0,0,600,0,0,0,0,0,0,0,0,Times New Roman" }, /* FONT_ABILITY_INFO */
+{ "18,6,0,0,600,0,0,0,255,1,2,5,49,Consolas" },      /* FONT_TOOLBAR_INFO */
 };
 
 static char font_section[] = "Fonts";  /* Section for fonts in INI file */
@@ -46,6 +48,61 @@ HFONT GetFont(WORD font);
 LOGFONT *GetLogfont(int fontNum)
 {
    return &logfonts[fontNum];
+}
+
+Bool GetLogFont(WORD fontnum, LOGFONT *pLogFont)
+{
+   char str[MAX_FONTNAME], name[10], *ptr;
+   char *separators = ",";
+   int temp;
+   LOGFONT lf;
+   Bool success;
+
+   sprintf(name, "Font%d", fontnum);
+   GetPrivateProfileString(font_section, name, fontinfo[fontnum], str, MAX_FONTNAME, ini_file);
+
+   success = True;
+   if ((ptr = strtok(str, separators)) == NULL || sscanf(ptr, "%d", &lf.lfHeight) != 1)
+      success = False;
+   if ((ptr = strtok(NULL, separators)) == NULL || sscanf(ptr, "%d", &lf.lfWidth) != 1)
+      success = False;
+   if ((ptr = strtok(NULL, separators)) == NULL || sscanf(ptr, "%d", &lf.lfEscapement) != 1)
+      success = False;
+   if ((ptr = strtok(NULL, separators)) == NULL || sscanf(ptr, "%d", &lf.lfOrientation) != 1)
+      success = False;
+   if ((ptr = strtok(NULL, separators)) == NULL || sscanf(ptr, "%d", &lf.lfWeight) != 1)
+      success = False;
+   if ((ptr = strtok(NULL, separators)) == NULL || sscanf(ptr, "%d", &temp) != 1)
+      success = False;
+   else lf.lfItalic = temp; /* 1 byte value */
+   if ((ptr = strtok(NULL, separators)) == NULL || sscanf(ptr, "%d", &temp) != 1)
+      success = False;
+   else lf.lfUnderline = temp;
+   if ((ptr = strtok(NULL, separators)) == NULL || sscanf(ptr, "%d", &temp) != 1)
+      success = False;
+   else lf.lfStrikeOut = temp;
+   if ((ptr = strtok(NULL, separators)) == NULL || sscanf(ptr, "%d", &temp) != 1)
+      success = False;
+   else lf.lfCharSet = temp;
+   if ((ptr = strtok(NULL, separators)) == NULL || sscanf(ptr, "%d", &temp) != 1)
+      success = False;
+   else lf.lfOutPrecision = temp;
+   if ((ptr = strtok(NULL, separators)) == NULL || sscanf(ptr, "%d", &temp) != 1)
+      success = False;
+   else lf.lfClipPrecision = temp;
+   if ((ptr = strtok(NULL, separators)) == NULL || sscanf(ptr, "%d", &temp) != 1)
+      success = False;
+   else lf.lfQuality = temp;
+   if ((ptr = strtok(NULL, separators)) == NULL || sscanf(ptr, "%d", &temp) != 1)
+      success = False;
+   else lf.lfPitchAndFamily = temp;
+   if ((ptr = strtok(NULL, separators)) == NULL)	 
+      success = False; 
+   else strcpy(lf.lfFaceName, ptr);
+   
+   if (success)
+      memcpy(pLogFont,&lf,sizeof(LOGFONT));
+   return success;
 }
 
 /************************************************************************/
@@ -124,7 +181,7 @@ void FontsCreate(Bool use_defaults)
 /************************************************************************/
 void DestroyFont(WORD font)
 {
-   if (font > MAXFONTS)
+   if (font >= MAXFONTS)
    {
       debug(("Illegal font #%u", font));
       return;
@@ -144,7 +201,7 @@ void FontsDestroy(void)
 /************************************************************************/
 HFONT GetFont(WORD font)
 {
-   if (font > MAXFONTS)
+   if (font >= MAXFONTS)
    {
       debug(("Illegal font #%u\n", font));
       return hDefaultFont;
@@ -158,7 +215,7 @@ HFONT GetFont(WORD font)
  */
 Bool SetFont(WORD font, LOGFONT *lf)
 {
-   if (font > MAXFONTS)
+   if (font >= MAXFONTS)
    {
       debug(("Illegal font #%u\n", font));
       return False;
@@ -207,14 +264,6 @@ void FontsRestoreDefaults(void)
 
    ModuleEvent(EVENT_FONTCHANGED, -1, NULL);
 }
-/************************************************************************/
-HFONT FontsGetScaledFont(HFONT hFont, float scale)
-{
-  LOGFONT lf;
-  GetObject(hFont, sizeof(LOGFONT), &lf);
-  lf.lfHeight *= scale;
-  return CreateFontIndirect(&lf);
-}
 
 
 /************************************************************************/
@@ -227,7 +276,7 @@ void UserSelectFont(WORD font)
    CHOOSEFONT cf;
    LOGFONT newfont;
 
-   if (font > MAXFONTS)
+   if (font >= MAXFONTS)
    {
       debug(("Illegal font #%u", font));
       return;

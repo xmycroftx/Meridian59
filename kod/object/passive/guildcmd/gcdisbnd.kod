@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 GuildDisband is GuildCommand
 
 constants:
@@ -16,6 +16,8 @@ constants:
 
 resources:
 
+   include gcdisbnd.lkod
+
    guilddisband_name_rsc = "disband"
    guilddisband_icon_rsc = light.bgf
    guilddisband_desc_Rsc = "This is how to delete a guild."
@@ -23,7 +25,8 @@ resources:
    guilddisband_disband_master = "~BYou disband %s%q."
    guilddisband_disband_users = "~BYour guild has been disbanded by %s%s."
 
-   guilddisband_necro_nak = "~BThe Order of the Necromancers is bound by a blood oath.  "
+   guilddisband_necro_nak = \
+      "~BThe Order of the Necromancers is bound by a blood oath.  "
       "It cannot simply be disbanded."
 
 classvars:
@@ -48,39 +51,41 @@ messages:
       return 1;
    }
 
-   DoCommand(who=$, otarget = $)
+   DoCommand(who=$,oTarget=$)
    "Deletes the guild."
    {
       local oGuild,i,oUser;
 
       oGuild = Send(who,@GetGuild);
 
-      % Can't disband the necromancer guild
-      if isClass(oGuild,&NecromancerGuild) {
+      // Can't disband the necromancer guild
+      if IsClass(oGuild,&NecromancerGuild)
+      {
          Send(who,@MsgSendUser,#message_rsc=guilddisband_necro_nak);
+
          return FALSE;
       }
 
-      % Tell people the guild is going away
-      for i in Send(oGuild,@GetMemberList)
+      // Tell people the guild is going away
+      foreach i in Send(oGuild,@GetMemberList)
       {
          oUser = First(i);
          if oUser = who
          {
             Send(oUser,@MsgSendUser,#message_rsc=guilddisband_disband_master,
-            #parm1=Send(oGuild,@GetDef),#parm2=Send(oGuild,@GetName));
+                  #parm1=Send(oGuild,@GetDef),#parm2=Send(oGuild,@GetName));
          }
          else
          {
             Send(oUser,@MsgSendUser,#message_rsc=guilddisband_disband_users,
-            #parm1=Send(who,@GetDef),#parm2=Send(who,@GetName));
+                  #parm1=Send(who,@GetDef),#parm2=Send(who,@GetName));
          }
       }
-      
-      Send(oGuild,@delete);
+
+      Send(oGuild,@Delete,#timerdelete=TRUE);
 
       return;
    }
-  
+
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

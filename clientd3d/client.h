@@ -42,18 +42,21 @@
 #include "wininet.h"
 
 #include <d3d9.h>
+#include <d3dx9.h>
+#include <DxErr.h>
+
+#include "geometry.h"
 
 typedef unsigned char Bool;
-typedef INT64 int64;
 enum {False = 0, True = 1};
 
-#define MAJOR_REV 7   /* Major version of client program */
-#define MINOR_REV 22  /* Minor version of client program; must be in [0, 99] */
-
-#define VERSION_NUMBER(major_rev, minor_rev) ((minor_rev + 100) * major_rev)
+#define MAJOR_REV 50   /* Major version of client program */
+#define MINOR_REV 65   /* Minor version of client program; must be in [0, 99] */
 
 #define MAXAMOUNT 9     /* Max # of digits in a server integer */
-#define MAXSTRINGLEN 255 /* Max length of a string loaded from string table */
+#define MAXSTRINGLEN 512 /* Max length of a string loaded from string table */
+
+#define MAX_LANGUAGE_ID 184 /* Max number of languages */
 
 /* Main window size & position */
 #define MAIN_DEF_LEFT     0
@@ -68,13 +71,17 @@ enum {False = 0, True = 1};
 /* To make sure we are using the right version of the client */
 #define P_CATCH 3
 
-/* Enable for "retail", official builds, not for the open source version */
-//#define M59_RETAIL
-
 extern void GetGamePath( char *szGamePath );
+
+#define BORDER_DEBUG_LENGTH 64
+void StartWatch();
+double StopWatch();
+double GetMicroCountDouble();
+double GetMilliCountDouble();
 
 extern long CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 extern void ClearMessageQueue(void);
+
 
 extern Bool is_foreground;   // True when program is in the foreground
 
@@ -82,29 +89,7 @@ extern Bool is_foreground;   // True when program is in the foreground
 /* The __cplusplus block and M59EXPORT symbol enable mixed C and C++ modules and client */
 
 #ifdef __cplusplus
-extern "C" {
-#endif
-
-#ifdef M59_RETAIL
-    // #define to enable Miles Sound System version.  If not defined,
-    // music is played through the default MIDI player, and sound goes through the
-    // ancient wavemix DLL.
-    #define M59_MSS
-#endif
-
-#ifdef M59_MSS
-#define HANDLE_MM_WOM_DONE(hwnd, wParam, lParam, fn) \
-((fn)((hwnd), (int)(wParam), (lParam)), 0L)
-#define MAX_VOLUME 50
-#else
-#include "wavemix.h"
-#endif
-   
-#define VOLUME_CUTOFF_DISTANCE 16
-
-#ifdef __cplusplus
-};
-
+extern "C" { };
 #define M59EXPORT extern "C"
 #else
 #define M59EXPORT /* nothing */
@@ -122,7 +107,6 @@ M59EXPORT void _cdecl dprintf(char *fmt,...);
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
-#include <string>
 
 #include "resource.h"
 #include "proto.h"
@@ -168,6 +152,7 @@ M59EXPORT void _cdecl dprintf(char *fmt,...);
 #include "color.h"
 #include "offer.h"
 #include "buy.h"
+#include "quest.h"
 #include "key.h"
 #include "say.h"
 #include "statstrt.h"
@@ -183,10 +168,9 @@ M59EXPORT void _cdecl dprintf(char *fmt,...);
 #include "uselist.h"
 #include "move.h"
 #include "startup.h"
-#include "music.h"
+#include "audio.h"
 #include "config.h"
 #include "palette.h"
-#include "sound.h"
 #include "module.h"     // header common to client and module files
 #include "modules.h"
 #include "textin.h"
@@ -206,6 +190,8 @@ M59EXPORT void _cdecl dprintf(char *fmt,...);
 #include "srvrstr.h"
 #include "tooltip.h"
 #include "lagbox.h"
+#include "timebox.h"
+#include "fpsbox.h"
 #include "transfer.h"
 #include "hook.h"
 #include "web.h"
@@ -213,22 +199,22 @@ M59EXPORT void _cdecl dprintf(char *fmt,...);
 #include "md5.h"
 #include "xlat.h"
 #include "rops.h"
-#include "guest.h"
 #include "ping.h"
 #include "objdraw.h"
 #include "profane.h"
 #include "png.h"
+#include "pngstruct.h"
 #include "d3dtypes.h"
 #include "d3dcache.h"
+#include "d3dtexcache.h"
 #include "d3drender.h"
+#include "d3dlighting.h"
 #include "d3dparticle.h"
+#include "d3dmaterial.h"
 #include "matrix.h"
-#include "xform.h"
 #include "d3ddriver.h"
 #include "rscload.h"
 #include "crc.h"
-#include "zlib.h"
-#include "signup.h"
 
 // Only include externs if compiling main client
 #ifdef BLAKCLIENT

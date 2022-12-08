@@ -28,39 +28,48 @@ static COLORREF CustColors[16];  /* User's custom colors for Choose Color dialog
 /* Default color information structures */
 // default colors changed for grey background in new client - mistery
 static char colorinfo[][15] = {
-	{ "0,0,0"},         /* COLOR_BGD */
-	{ "255,255,255"},   /* COLOR_FGD */
-	{ "255,255,255"},   /* COLOR_LISTSELBGD */
-	{ "0,0,0"},         /* COLOR_LISTSELFGD */
-	{ "255,255,255"},   /* COLOR_MAILBGD */
-	{ "0,0,0"},         /* COLOR_MAILFGD */
-//	{ "252,128,0"},     /* COLOR_HIGHLITE */
-	{ "240,208,25"},     /* COLOR_HIGHLITE */
-	{ "0,0,0"},         /* COLOR_EDITFGD */
-	{ "255,255,255"},   /* COLOR_EDITBGD */
-	{ "128,0,128"},     /* COLOR_SYSMSGFGD */
-//	{ "0,0,0"},         /* COLOR_MAINEDITFGD */
-	{ "255,255,255"},         /* COLOR_MAINEDITFGD */
-//	{ "188,152,108"},   /* COLOR_MAINEDITBGD */
-	{ "120,120,120"},   /* COLOR_MAINEDITBGD */
-	{ "255,255,255"},   /* COLOR_LISTFGD */
-	{ "0,0,0"},         /* COLOR_LISTBGD */
-	{ "128,0,0"},       /* COLOR_RMMSGFGD */
-	{ "0,0,0"},         /* COLOR_RMMSGBGD */
-//	{ "248,208,96"},    /* COLOR_STATSGFGD */
-	{ "231,231,231"},    /* COLOR_STATSGFGD */
-	{ "48,0,0"},        /* COLOR_STATSGBGD */
-	{ "0,128,0"},       /* COLOR_BAR1 */
-	{ "128,0,0"},       /* COLOR_BAR2 */
-	{ "48,0,0"},        /* COLOR_BAR3 */
-	{ "255,255,255"},   /* COLOR_BAR4 */
-	{ "192,192,192"},   /* COLOR_INVNUMFGD */
-	{ "0,0,0"},         /* COLOR_INVNUMBGD */
+   {"0,0,0"},         /* COLOR_BGD */
+   {"255,255,255"},   /* COLOR_FGD */
+   {"255,255,255"},   /* COLOR_LISTSELBGD */
+   {"0,0,0"},         /* COLOR_LISTSELFGD */
+   {"255,255,255"},   /* COLOR_MAILBGD */
+   {"0,0,0"},         /* COLOR_MAILFGD */
+// {"252,128,0"},     /* COLOR_HIGHLITE */
+   {"240,208,25"},    /* COLOR_HIGHLITE */
+   {"0,0,0"},         /* COLOR_EDITFGD */
+   {"255,255,255"},   /* COLOR_EDITBGD */
+   {"128,0,128"},     /* COLOR_SYSMSGFGD */
+// {"0,0,0"},         /* COLOR_MAINEDITFGD */
+   {"255,255,255"},   /* COLOR_MAINEDITFGD */
+// {"188,152,108"},   /* COLOR_MAINEDITBGD */
+   {"120,120,120"},   /* COLOR_MAINEDITBGD */
+   {"255,255,255"},   /* COLOR_LISTFGD */
+   {"0,0,0"},         /* COLOR_LISTBGD */
+   {"128,0,0"},       /* COLOR_RMMSGFGD */
+   {"0,0,0"},         /* COLOR_RMMSGBGD */
+// {"248,208,96"},    /* COLOR_STATSGFGD */
+   {"231,231,231"},   /* COLOR_STATSGFGD */
+   {"48,0,0"},        /* COLOR_STATSGBGD */
+   {"0,128,0"},       /* COLOR_BAR1 */
+   {"128,0,0"},       /* COLOR_BAR2 */
+   {"48,0,0"},        /* COLOR_BAR3 */
+   {"255,255,255"},   /* COLOR_BAR4 */
+   {"192,192,192"},   /* COLOR_INVNUMFGD */
+   {"0,0,0" },        /* COLOR_INVNUMBGD */
+   {"255,80,0"},      /* COLOR_ITEM_MAGIC_FG */
+   {"0,196,50"},      /* COLOR_QUEST_HEADER */
+   {"150, 120,120"},  /* COLOR_TIME_BORDER */
+   {"0,196,50"},      /* COLOR_QUEST_ACTIVE_FG */
+   {"255, 255, 0"},   /* COLOR_QUEST_VALID_FG */
+   {"0,100,10"},      /* COLOR_QUEST_ACTIVE_SEL_FG */
+   {"120, 120, 0"}    /* COLOR_QUEST_VALID_SEL_FG */
 };
 
 static char color_section[] = "Colors";  /* Section for colors in INI file */
 
-// Colors for drawing player names
+/* Colors for drawing player names. These are no longer
+   needed since we send RGB hex values. Keeping these
+   here for now.
 #define NAME_COLOR_NORMAL_FG   PALETTERGB(255, 255, 255)
 #define NAME_COLOR_OUTLAW_FG   PALETTERGB(252, 128, 0)
 #define NAME_COLOR_KILLER_FG   PALETTERGB(255, 0, 0)
@@ -68,7 +77,9 @@ static char color_section[] = "Colors";  /* Section for colors in INI file */
 #define NAME_COLOR_CREATOR_FG  PALETTEINDEX(251) // yellow
 #define NAME_COLOR_SUPER_FG    PALETTEINDEX(250) // green
 #define NAME_COLOR_DM_FG       PALETTEINDEX(254) // cyan
+#define NAME_COLOR_MOD_FG      PALETTERGB(0, 120, 255)
 #define NAME_COLOR_BLACK_FG    PALETTERGB(0, 0, 0)
+#define NAME_COLOR_DAENKS_FG   PALETTERGB(179,0,179)*/
 
 extern HPALETTE hPal;
 
@@ -138,7 +149,7 @@ void ColorsDestroy(void)
 /************************************************************************/
 COLORREF GetColor(WORD color)
 {
-	if (color > MAXCOLORS)
+	if (color >= MAXCOLORS)
 	{
 		debug(("Illegal color #%u in GetColor\n", color));
 		return DefaultColor;
@@ -149,7 +160,7 @@ COLORREF GetColor(WORD color)
 /************************************************************************/
 HBRUSH GetBrush(WORD color)
 {
-	if (color > MAXCOLORS)
+	if (color >= MAXCOLORS)
 	{
 		debug(("Illegal color #%u in GetBrush\n", color));
 		return hDefaultBrush;
@@ -170,7 +181,7 @@ HBRUSH GetBrush(WORD color)
 */
 Bool SetColor(WORD color, COLORREF cr)
 {
-	if (color > MAXCOLORS)
+	if (color >= MAXCOLORS)
 	{
 		debug(("Illegal color #%u\n", color));
 		return False;
@@ -358,6 +369,10 @@ HBRUSH MainCtlColor(HWND hwnd, HDC hdc, HWND hwndChild, int type)
 		//return (HBRUSH) FALSE;
 		return (HBRUSH) GetStockObject( BLACK_BRUSH );		//	xxx
 
+   case CTLCOLOR_STATIC: /* Transparent background for toolbar info text */
+      SetBkMode(hdc, TRANSPARENT);
+      SetTextColor(hdc, GetColor(COLOR_BGD));
+      return (HBRUSH)GetStockObject(HOLLOW_BRUSH);
 	default:
 		SelectPalette(hdc, hPal, FALSE);
 		SetTextColor(hdc, GetColor(COLOR_FGD));
@@ -403,21 +418,34 @@ HBRUSH DialogCtlColor(HWND hwnd, HDC hdc, HWND hwndChild, int type)
 * GetItemListColor:  Get given color id # for given owner-drawn list box.
 *    (Inventory has different colors than popup dialog lists)
 *    Doesn't return color itself so that caller can use id to call GetBrush.
+*    Now colors magic items; any future item colors should be added here.
 */
-WORD GetItemListColor(HWND hwnd, int type)
+WORD GetItemListColor(HWND hwnd, int type, int obj_flags, int obj_type)
 {
-	switch(type)
-	{
-	case UNSEL_FGD:
-		return COLOR_LISTFGD;
-	case UNSEL_BGD:
-		return COLOR_LISTBGD;
-	case SEL_FGD:
-		return COLOR_LISTSELFGD;
-	case SEL_BGD:
-		return COLOR_LISTSELBGD;
-	}
-	return 0;
+   if ((obj_flags != NULL) && (GetItemFlags(obj_flags) == (OF_ITEM_MAGIC | OF_GETTABLE)))
+      return COLOR_ITEM_MAGIC_FG;
+
+   switch (type)
+   {
+   case UNSEL_FGD:
+      if (obj_type == OT_QUESTACTIVE)
+         return COLOR_QUEST_ACTIVE_FG;
+      if (obj_type == OT_QUESTVALID)
+         return COLOR_QUEST_VALID_FG;
+      return COLOR_LISTFGD;
+   case UNSEL_BGD:
+      return COLOR_LISTBGD;
+   case SEL_FGD:
+      if (obj_type == OT_QUESTACTIVE)
+         return COLOR_QUEST_ACTIVE_SEL_FG;
+      if (obj_type == OT_QUESTVALID)
+         return COLOR_QUEST_VALID_SEL_FG;
+      return COLOR_LISTSELFGD;
+   case SEL_BGD:
+      return COLOR_LISTSELBGD;
+   }
+
+   return 0;
 }
 
 /****************************************************************************/
@@ -425,27 +453,52 @@ WORD GetItemListColor(HWND hwnd, int type)
 * GetPlayerNameColor:  Return color that player's name should be drawn in,
 *   depending on player's object flags
 */
-COLORREF GetPlayerNameColor(int flags,char*name)
+COLORREF GetPlayerNameColor(object_node* obj, char *name)
 {
-	if (GetDrawingEffect(flags) == OF_BLACK)
-		return NAME_COLOR_BLACK_FG;
+   int r, g, b;
 
-	switch (GetPlayerFlags(flags))
-	{
-		case PF_DM:
-			return NAME_COLOR_DM_FG;
-		case PF_KILLER:
-			return NAME_COLOR_KILLER_FG;
-		case PF_OUTLAW:
-			return NAME_COLOR_OUTLAW_FG;
-		case PF_CREATOR:
-			return NAME_COLOR_CREATOR_FG;
-		case PF_SUPER:
-			return NAME_COLOR_SUPER_FG;
-		case PF_EVENTCHAR:
-			return NAME_COLOR_EVENT_FG;
-            
-    default:
-			return NAME_COLOR_NORMAL_FG;
-	}
+   if (obj->drawingtype == DRAWFX_BLACK)
+      return PALETTERGB(0,0,0);
+
+     r = (obj->namecolor & 0xFF0000) >> 16;
+     g = (obj->namecolor & 0x00FF00) >> 8;
+     b = (obj->namecolor & 0x0000FF);
+
+     return PALETTERGB(r, g, b);
+}
+
+/****************************************************************************/
+/*
+* GetPlayerWhoNameColor:  Return color that player's name should be drawn on
+*   the who list, depending on player's object flags
+*/
+COLORREF GetPlayerWhoNameColor(object_node* obj, char *name)
+{
+     int r, g, b;
+
+     r = (obj->namecolor & 0xFF0000) >> 16;
+     g = (obj->namecolor & 0x00FF00) >> 8;
+     b = (obj->namecolor & 0x0000FF);
+
+      return PALETTERGB(r, g, b);
+}
+/****************************************************************************/
+/*
+ * GetQuestInfoColor:  Return color for quest info text based on object flags.
+ */
+COLORREF GetQuestInfoColor(object_node* obj)
+{
+   if ((obj->flags & OF_NPCACTIVEQUEST) == OF_NPCACTIVEQUEST)
+   {
+      return PALETTERGB(0, 255, 120);
+   }
+   else if ((obj->flags & OF_NPCHASQUESTS) == OF_NPCHASQUESTS)
+   {
+      return PALETTERGB(255, 255, 0);
+   }
+   else if ((obj->flags & OF_MOBKILLQUEST) == OF_MOBKILLQUEST)
+   {
+      return PALETTERGB(179, 0, 179);
+   }
+   return PALETTERGB(255, 255, 0);
 }

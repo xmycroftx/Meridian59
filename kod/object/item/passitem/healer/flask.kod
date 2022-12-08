@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Flask is Healer
 
 constants:
@@ -16,13 +16,15 @@ constants:
 
 resources:
 
+   include flask.lkod
+
    flask_name_rsc = "flask"
    flask_icon_rsc = flask.bgf
    flask_desc_rsc = \
       "This flask, formed from clear glass and topped by a cork, contains a "
       "thick blue fluid.  It looks cool and refreshing."
 
-   Flask_gulp_sound = drkptn.wav
+   Flask_gulp_sound = drkptn.ogg
 
 classvars:
 
@@ -74,4 +76,4 @@ messages:
 
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

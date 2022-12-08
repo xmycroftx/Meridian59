@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Mug is Food
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include mug.lkod
 
    mug_name_rsc = "mug of stout"
    mug_icon_rsc = mug.bgf
@@ -30,7 +32,7 @@ resources:
 	 "It needs to be poured slowly to preserve the perfect foamy head."
    mug_got_one = "You slowly pour your mug full of frothy stout from the pitcher."
 
-   mug_eat_wav = drink.wav
+   mug_eat_wav = drink.ogg
    mug_use = "Strong and absolutely delicious!  The smokey taste will linger in your mouth for some time."
 
 classvars:
@@ -84,4 +86,4 @@ messages:
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

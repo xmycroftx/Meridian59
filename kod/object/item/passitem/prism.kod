@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Prism is PassiveItem
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include prism.lkod
 
    prism_name_rsc = "prism"
 
@@ -31,7 +33,7 @@ resources:
       "may contribute to the energies stored within, and at least one mage must be casting at all "
       "times to keep the stored energy from dissipating.  The spell being chanted will fire "
       "when enough magical power has been stored in the prism and there is exactly one caster "
-      "for each side of the prism.  This prism has "
+      "for each side of the prism.  This prism has %i%s"
    prism_desc2_rsc = " sides."
    prism_desc2a_rsc = " sides and glows faintly from within."
    prism_desc2b_rsc = " sides and is glowing from a point at its center."
@@ -40,15 +42,23 @@ resources:
 
    prism_projectile = lightnin.bgf
 
-   prism_new_spell = "%s%s begins to chant an incantation and a prism nearby starts to glow!"
-   prism_new_spell_tocaster = "You begin to chant and a prism nearby starts to glow!"
+   prism_new_spell = \
+      "%s%s begins to chant an incantation and a prism nearby starts to glow!"
+   prism_new_spell_tocaster = \
+      "You begin to chant and a prism nearby starts to glow!"
    prism_new_caster = "%s%s joins in the chanting of an incantation."
    prism_new_caster_tocaster = "You join in the chanting of an incantation."
-   prism_lack_casters = "You feel like the prism has the power to cast the spell, but lacks the right symmetry of focal energy."
-   prism_chant_over = "The prism darkens and a blanket of silence seems to settle over you as the chant ceases."
-   prism_desc_location_rsc = "  If you peer closely you can see a miniture landscape inside the prism, it appears to be "
+   prism_lack_casters = \
+      "You feel like the prism has the power to cast the spell, but lacks "
+      "the right symmetry of focal energy."
+   prism_chant_over = \
+      "The prism darkens and a blanket of silence seems to settle over you "
+      "as the chant ceases."
+   prism_desc_location_rsc = \
+      "\n\nIf you peer closely you can see a miniture landscape inside the "
+      "prism, it appears to be %s%s."
 
-   prism_charged_wav_rsc = portal.wav
+   prism_charged_wav_rsc = portal.ogg
 
 classvars:
 
@@ -74,39 +84,48 @@ properties:
 
    piGlowing = FALSE
 
-   % Used to store data for shadow rift.  FALSE means there is no location for this prism.
-   % Otherwise, a list of:
-   % [ room ID, row, column, fine row, fine col ]
+   // Used to store data for shadow rift.  FALSE means there is no location for this prism.
+   // Otherwise, a list of:
+   // [ room ID, row, column, fine row, fine col ]
    plLocation = FALSE 
    
 messages:
 
    Constructor(numSides=0)
    {
-      send(self,@SetNumSides,#numSides=numSides);
+      Send(self,@SetNumSides,#numSides=numSides);
 
       propagate;
    }
 
+   DoBaseDesc()
+   {
+      local lDescs;
+
+      lDescs = [prism_desc2_rsc, prism_desc2a_rsc,
+                prism_desc2b_rsc, prism_desc2d_rsc];
+
+      // Append the glow description based on the charge level.
+      AddPacket(4,vrDesc, 4,piNumSides,
+                4,Nth(lDescs,(Send(self,@GetChargeLevel)+1)));
+
+      return;
+   }
+
    AppendDesc()
    {
-      local lDescs, oRoom;
+      local oRoom;
 
-      % This prism has <n> sides.
-      send(SYS,@AppendCardinalToTempString,#number=piNumSides);
-
-      lDescs = [prism_desc2_rsc, prism_desc2a_rsc, prism_desc2b_rsc, prism_desc2d_rsc];
-
-      % Append the glow description based on the charge level.
-      AppendTempString(Nth(lDescs,(send(self,@GetChargeLevel)+1)));
-
-      if IsList(plLocation) AND plLocation <> $
+      if plLocation <> $
+         AND IsList(plLocation)
       {
-         oRoom = Send(SYS, @FindRoomByNum, #num = First(plLocation));
-         AppendTempString(prism_desc_location_rsc);
-         AppendTempString(send(oRoom,@GetCapDef));
-         AppendTempString(send(oRoom,@GetName));
-         AppendTempString(".");
+         oRoom = Send(SYS,@FindRoomByNum,#num=First(plLocation));
+         AddPacket(4,prism_desc_location_rsc,4,Send(oRoom,@GetCapDef),
+                   4,Send(oRoom,@GetName));
+      }
+      else
+      {
+         AddPacket(4,system_blank_resource);
       }
 
       return;
@@ -123,22 +142,20 @@ messages:
          piNumSides = numSides;
       }
 
-      if (piNumSides <> 3) and (piNumSides <> 5) and (piNumSides <> 7)
+      if (piNumSides <> 3) AND (piNumSides <> 5) AND (piNumSides <> 7)
       {
          piNumSides = 3;
       }
-      
+
       if piNumSides = 3
       {
          vrIcon = prism_3_icon_rsc;
       }
-
-      if piNumSides = 5
+      else if piNumSides = 5
       {
          vrIcon = prism_5_icon_rsc;
       }
-
-      if piNumSides = 7
+      else if piNumSides = 7
       {
          vrIcon = prism_7_icon_rsc;
       }
@@ -150,7 +167,7 @@ messages:
    {
       if piNumSides <> 3 AND piNumSides <> 5 AND piNumSides <> 7
       {
-         send(self,@SetNumSides,#numSides=3);
+         Send(self,@SetNumSides,#numSides=3);
       }
 
       if Length(plCasters) >= piNumSides
@@ -187,7 +204,7 @@ messages:
 
       if poSpell = $
       {
-         if NOT send(what,@IsMulticaster)
+         if NOT Send(what,@IsMulticaster)
          {
             return FALSE;
          }
@@ -196,11 +213,11 @@ messages:
          poSpell = What;
          plCasters = $;
          plCasters = cons(who,plCasters);
-         piSpellPowerNeeded = send(what,@GetTotalSpellPower,#oPrism=self);
+         piSpellPowerNeeded = Send(what,@GetTotalSpellPower,#oPrism=self);
 
-         for i in send(poOwner,@GetHolderActive)
+         foreach i in Send(poOwner,@GetHolderActive)
          {
-            each_obj = send(poOwner,@HolderExtractObject,#data=i);
+            each_obj = Send(poOwner,@HolderExtractObject,#data=i);
             if isclass(each_obj,&Player)
             {
                if each_obj = who
@@ -224,9 +241,9 @@ messages:
          return FALSE;
       }
 
-      for i in send(poOwner,@GetHolderActive)
+      foreach i in Send(poOwner,@GetHolderActive)
       {
-         each_obj = send(poOwner,@HolderExtractObject,#data=i);
+         each_obj = Send(poOwner,@HolderExtractObject,#data=i);
          if IsClass(each_obj,&Player)
          {
             if each_obj = who
@@ -255,36 +272,37 @@ messages:
          return FALSE;
       }
 
-      iOldLevel = send(self,@GetChargeLevel);
+      iOldLevel = Send(self,@GetChargeLevel);
 
       piSpellPowerSoFar = piSpellPowerSoFar + amount;
-      iNewLevel = send(self,@GetChargeLevel);
+      iNewLevel = Send(self,@GetChargeLevel);
 
-      % Shoot a projectile sometimes.
+      // Shoot a projectile sometimes.
       if random(1,5) = 5 AND IsClass(poOwner,&Room)
       {
-         Send(poOwner,@SomethingShot,#who=who,#target=self,#projectile=self,#flags=PROJ_FLAG_LIGHT_SOURCE);
+         Send(poOwner,@SomethingShot,#who=who,#target=self,
+               #projectile=self,#flags=PROJ_FLAG_LIGHT_SOURCE);
       }
 
       if iNewLevel <> iOldLevel
       {
-         % Max level, make this thing flicker!
+         // Max level, make this thing flicker!
          if iNewLevel = 3
          {
-            % Make the prism flicker!
+            // Make the prism flicker!
             piGlowing = TRUE;
          }
 
-         send(poOwner,@SomethingChanged,#what=self);
+         Send(poOwner,@SomethingChanged,#what=self);
 
-         % Play a sound
+         // Play a sound
          Send(poOwner, @SomethingWaveRoom, #what = self,
               #wave_rsc = prism_charged_wav_rsc);
       }
 
       if piSpellPowerSoFar >= piSpellPowerNeeded
       {
-         send(self,@CastSpell);
+         Send(self,@CastSpell);
       }
 
       return TRUE;
@@ -304,7 +322,7 @@ messages:
 
    NewOwner()
    {
-      send(Self,@EndCeremony);
+      Send(Self,@EndCeremony);
 
       propagate;
    }
@@ -313,7 +331,7 @@ messages:
    {
       local i;
 
-      for i in plCasters
+      foreach i in plCasters
       {
          Send(i,@ClearTranceFlag);
          Send(i,@RemoveEnchantment,#what=poSpell);
@@ -321,7 +339,8 @@ messages:
 
       if piSpellPowerSoFar > 0
       {
-         Send(send(SYS,@UtilGetRoomRecurse,#what=self),@SomeoneSaid,#type=SAY_MESSAGE,#string=prism_chant_over,#what=self);
+         Send(Send(SYS,@UtilGetRoomRecurse,#what=self),@SomeoneSaid,
+               #type=SAY_MESSAGE,#string=prism_chant_over,#what=self);
       }
 
       piSpellPowerSoFar = 0;
@@ -334,7 +353,7 @@ messages:
 
       if poOwner <> $
       {
-         send(poOwner,@SomethingChanged,#what=self);
+         Send(poOwner,@SomethingChanged,#what=self);
       }
 
       return;
@@ -344,9 +363,9 @@ messages:
    {
       if length(plCasters) >= piNumSides
       {     
-         send(poSpell,@PrismCast,#SpellPower=piSpellPowerSoFar,
+         Send(poSpell,@PrismCast,#SpellPower=piSpellPowerSoFar,
               #lCasters=plCasters,#lTargets=plTargets,#oPrism=self);
-         send(self,@EndCeremony);
+         Send(self,@EndCeremony);
       }
       else
       {
@@ -359,14 +378,14 @@ messages:
       return;
    }
 
-   % Old procedure had it set so when the primary (first) caster
-   %  broke trance, it would set the spell off or fizzle or whatever.
-   %  The current version (below) has it do this when the last person
-   %  stops concentrating.  This will let casting circles cycle through
-   %  casters for when we wanna make the incantation take a LONG time.
+   // Old procedure had it set so when the primary (first) caster
+   //  broke trance, it would set the spell off or fizzle or whatever.
+   //  The current version (below) has it do this when the last person
+   //  stops concentrating.  This will let casting circles cycle through
+   //  casters for when we wanna make the incantation take a LONG time.
 
-   % This is called when the trance is broken, either through interruption
-   %  or insufficient mana.
+   // This is called when the trance is broken, either through interruption
+   //  or insufficient mana.
    CasterBrokeTrance(who=$)
    {
       if plCasters <> $ AND FindListElem(plCasters,who) <> 0
@@ -374,7 +393,7 @@ messages:
          plCasters = DelListElem(plCasters,who);
          if Length(plCasters) = 0
          {
-            send(self,@EndCeremony);
+            Send(self,@EndCeremony);
          }
       }
 
@@ -382,7 +401,8 @@ messages:
    }
 
    GetChargeLevel()
-   "Simply returns an integer between 0 and 3 inclusive to indicate relative charge level. "
+   "Simply returns an integer between 0 and 3 inclusive to indicate "
+   "relative charge level. "
    {
       if piSpellPowerNeeded > 0 AND piSpellPowerSoFar > 0
       {
@@ -391,7 +411,8 @@ messages:
             return 1;
          }
 
-         if piSpellPowerSoFar >= (piSpellPowerNeeded/3) AND piSpellPowerSoFar < (piSpellPowerNeeded*2/3)
+         if piSpellPowerSoFar >= (piSpellPowerNeeded/3)
+            AND piSpellPowerSoFar < (piSpellPowerNeeded*2/3)
          {
             return 2;
          }
@@ -409,11 +430,11 @@ messages:
    {
       local iNewFlags;
 
-      iNewFlags = viObject_flags;
+      iNewFlags = viObject_flags | piDrawEffectFlag;
 
       if piGlowing
       {
-         iNewFlags = iNewFlags | FLICKERING_YES;
+         iNewFlags = iNewFlags | OF_FLICKERING;
       }
 
       return iNewFlags;
@@ -421,12 +442,12 @@ messages:
 
    Delete()
    {
-      send(Self,@EndCeremony);
+      Send(Self,@EndCeremony);
 
       propagate;
    }
 
-   %%% Projectile stuff.
+   //// Projectile stuff.
 
    GetProjectileIcon()
    {
@@ -447,23 +468,23 @@ messages:
 
    GetProjectileLightFlags()
    {
-      % Lighting information.
+      // Lighting information.
       return LIGHT_FLAG_ON | LIGHT_FLAG_DYNAMIC;
    }
 
    GetProjectileLightIntensity()
    {
-      % Fairly small light radius for projectile.  Out of 255 levels.
+      // Fairly small light radius for projectile.  Out of 255 levels.
       return 25;
    }
 
    GetProjectileLightColor()
    {
-      % Color is a deep, bloody red.
+      // Color is a deep, bloody red.
       return LIGHT_LIGHTNING;
    }
 
-   %%% Shadow rift Stuff
+   //// Shadow rift Stuff
 
    GetTeleportLocation()
    {
@@ -491,28 +512,38 @@ messages:
             return;
          }
 
-         % Bad target: reset it
+         // Bad target: reset it
          plLocation = FALSE;
       }
       return;
    }
 
-   %%% Lighting
+   //// Lighting
 
    SendLightingInformation()
    {
       local iIntensity;
 
       AddPacket(2,(LIGHT_FLAG_ON | LIGHT_FLAG_DYNAMIC));
-      % Intensity is variable, depending on charge level.  Out of 255 intensity of light
-      iIntensity = bound((send(self,@GetChargeLevel)*20),1,255);
+      // Intensity is variable, depending on charge level.  Out of 255 intensity of light
+      iIntensity = bound((Send(self,@GetChargeLevel)*20),1,255);
       AddPacket(1,iIntensity);
-      % Color
+      // Color
       AddPacket(2,LIGHT_WHITE);
 
       return;
    }
+
+   DestroyDisposable()
+   {
+      // Don't destroy prisms.
+      return;
+   }
    
+   GetNumSides()
+   {
+      return piNumSides;
+   }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

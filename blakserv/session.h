@@ -14,7 +14,7 @@
 #define _SESSION_H
 
 /* for async.c to add bytes it writes */
-extern int transmitted_bytes;
+extern int transmitted_bytes; 
 
 #define SEED_COUNT 5
 
@@ -32,7 +32,7 @@ enum
 
 enum { CONN_SOCKET, CONN_CONSOLE };
 
-enum { STATE_ADMIN, STATE_GAME, STATE_TRYSYNC,
+enum { STATE_ADMIN, STATE_GAME, STATE_TRYSYNC, 
        STATE_SYNCHED, STATE_RESYNC, STATE_MAINTENANCE };
 
 #define SESSION_STATE_BYTES 120
@@ -48,14 +48,14 @@ enum
 typedef struct
 {
    int type;
-
+   
    SOCKET socket;
    char peer_data[MAXGETHOSTSTRUCT]; /* filled in by async database call to get DNS name */
    HANDLE hLookup;                   /* handle to async lookup call */
-
+   
    char name[100];
 
-   struct in_addr addr;
+   struct in6_addr addr;
 } connection_node;
 
 typedef struct
@@ -65,10 +65,10 @@ typedef struct
    Bool active;			/* False if we're gonna hang 'em up
 				   because too many people online */
    Bool connected;
-   INT64 connected_time;
+   int connected_time;
    int state;
    Bool hangup;                 /* if set, PollSessions will hang us up next time 'round */
-   INT64 timer;			/* time to call its state timer */
+   int timer;			/* time to call its state timer */
 
    char session_state_data[SESSION_STATE_BYTES];
 
@@ -93,7 +93,7 @@ typedef struct
    int os_type;
    int os_version_major;
    int os_version_minor;
-   int machine_ram;
+   int flags;
    int machine_cpu;
    short screen_x;
    short screen_y;
@@ -102,26 +102,29 @@ typedef struct
    int displays_possible;
    int bandwidth;
    int reserved;
-
+   
    Bool exiting_state;		/* true iff in ExitXXX, so errors on writing don't inf loop */
 				/* only needs to be set if you write, so it's only in exitgame */
 
    int last_download_time; /* as reported by the client.  Needed to communicate from
 			      synched mode to upload mode */
+   // RSB file hash sent by client for comparison with live RSB.
+   char rsb_hash[ENCRYPT_LEN + 1];
 
    unsigned int seeds[SEED_COUNT]; /* for security in game mode */
    Bool seeds_hacked;
    unsigned int secure_token;
-   const char* sliding_token;
+   char* sliding_token;
 
-   Mutex muxReceive;
-   /* this protects the list of received data: receive_list, and receive_index */
+   /* this protects the list of received data: receive_list, and receive_index and udp */
+   Mutex muxReceive; 
    buffer_node *receive_list;
-   int receive_index; /* index into first buffer of receive_list, of where we are */
+   buffer_node *receive_list_udp;
+   int receive_index;       /* index into first buffer of receive_list, of where we are */
+   unsigned int receive_seqno_udp;
 
-
-   Mutex muxSend;
    /* this protects the list of buffers to be sent: send_list */
+   Mutex muxSend;
    buffer_node *send_list;
 
 } session_node;
@@ -141,6 +144,7 @@ void GameClientExit(session_node *s);
 void GameCleanupExit(session_node *s);
 void GameProcessSessionTimer(session_node *s);
 void GameProcessSessionBuffer(session_node *s);
+void GameProcessSessionBufferUDP(session_node *s);
 void TrySyncInit(session_node *s);
 void TrySyncExit(session_node *s);
 void TrySyncProcessSessionTimer(session_node *s);
@@ -169,6 +173,7 @@ void InitSessionState(session_node *s,int state);
 session_node * CreateSession(connection_node conn);
 session_node *GetSessionByAccount(account_node *a);
 session_node * GetSessionBySocket(SOCKET sock);
+void ForEachSessionWithString(void(*callback_func)(session_node *a, char *str), char *str);
 void ForEachSession(void (*callback_func)(session_node *s));
 int GetUsedSessions(void);
 const char * GetStateName(session_node *s);
@@ -182,6 +187,7 @@ Bool PeekSessionBytes(session_node *s,int num_bytes,void *buf);
 void SendClientStr(int session_id,char *str);
 void SendClient(int session_id,char *data,unsigned short len_data);
 void SendClientBufferList(int session_id,buffer_node *blist);
+void HangupSessionNow(session_node *s);
 void HangupSession(session_node *s);
 void CloseAllSessions(void);
 void PollSessions(void);

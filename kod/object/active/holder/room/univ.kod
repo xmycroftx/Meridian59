@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+///////////////////////////////////////////////////////////////////////////////////
 University is Room
 
 constants:
@@ -17,9 +17,11 @@ constants:
 
 resources:
 
+   include univ.lkod
+
    room_university = univ.roo
    room_name_university = "Meridian University"
-   univ_music = main.mid
+   univ_music = main.ogg
 
 classvars:
 
@@ -54,8 +56,8 @@ messages:
    {
       plExits = $;
 
-      %plExits = Cons([ 54, 30, RID_I3, 7, 11, ROTATE_NONE ],plExits);
-      %plExits = Cons([ 54, 31, RID_I3, 7, 12, ROTATE_NONE ],plExits);
+      //plExits = Cons([ 54, 30, RID_I3, 7, 11, ROTATE_NONE ],plExits);
+      //plExits = Cons([ 54, 31, RID_I3, 7, 12, ROTATE_NONE ],plExits);
 
       return;
    }
@@ -67,7 +69,7 @@ messages:
       if type = SAY_DM and StringEqual(string,"portal")
       {
          bFound = FALSE;
-         for i in plActive
+         foreach i in plActive
          {
             if isClass(first(i),&HellPortal)
             { send(first(i),@delete);  bFound = TRUE; }
@@ -85,5 +87,10 @@ messages:
       return FALSE;
    }
 
+   GetRegion()
+   {
+      return RID_HISTORIC;
+   }
+
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

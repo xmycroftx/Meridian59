@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Field1 is Room
 
 constants:
@@ -23,9 +23,11 @@ constants:
 
 resources:
 
+   include field1.lkod
+
    room_name_field1 = "The Fields"
    room_field1 = field1.roo
-   field1_music = pk_fm.mid
+   field1_music = pk_fm.ogg
 
 classvars:
 
@@ -47,6 +49,8 @@ properties:
    piBaseLight = LIGHT_NICE
    piOutside_factor = 8
 
+   pbSnowGroundTexture = TRUE
+
 messages:
 
    GetName()
@@ -65,4 +69,4 @@ messages:
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

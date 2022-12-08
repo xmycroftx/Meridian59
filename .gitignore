@@ -4,37 +4,40 @@
 *.bof
 *.rsc
 kodbase.txt
-run/*
-include/mss.h
-include/rrcore.h
-lib/meridian.lib
-lib/rscload.lib
-lib/libarchive.lib
-lib/libpng.lib
-lib/mss*.lib
-lib/waveplay.lib
-lib/zlib.lib
-bin/bbgun.exe
+run/server/*
+!run/server/blakserv.cfg
+run/localclient/*
+!run/localclient/*.dll
+bbgun.exe
+clientpatch.exe
+palcomp.exe
+paldump.exe
+porttest.exe
+rscmerge.exe
+bin/rscmerge
+rscprint.exe
+meridian.lib
+rscload.lib
+libpng.lib
+libarchive.lib
+zlib.lib
+lib/jansson.lib
+bc.exe
 bin/bc
-bin/bc.exe
-bin/blakdeco.exe
-bin/blakdiff.exe
-bin/bmpdump.exe
-bin/makebgf.exe
-bin/makepal.exe
-bin/maketrig.exe
-bin/palcomp.exe
-bin/paldump.exe
-bin/porttest.exe
-bin/rscmerge.exe
-bin/rscprint.exe
-bin/waveplay.dll
-install/meridian59-installer.exe
-roomedit/windeu32.log
+blakdeco.exe
+blakdiff.exe
+bmpdump.exe
+makebgf.exe
+makepal.exe
+maketrig.exe
 
-# Include runtime scripts
-!run/scripts
-!run/scripts/*
+# blakcomp intermediate files
+*.tab.h
+*.tab.c
+lexyy.c
+
+# ini file
+meridian.ini
 
 #################
 ## Eclipse
@@ -88,6 +91,8 @@ local.properties
 *.obj
 *.pch
 *.pdb
+*.ipdb
+*.iobj
 *.pgc
 *.pgd
 *.rsp
@@ -99,16 +104,20 @@ local.properties
 *.vspscc
 .builds
 *.dotCover
+*.log
 
 ## TODO: If you have NuGet Package Restore enabled, uncomment this
 #packages/
 
 # Visual C++ cache files
 ipch/
+.vs/
 *.aps
 *.ncb
 *.opensdf
 *.sdf
+*.VC.db
+*.VC.opendb
 
 # Visual Studio profiler
 *.psess
@@ -135,7 +144,6 @@ publish
 
 # Others
 [Oo]bj
-sql
 TestResults
 *.Cache
 ClientBin
@@ -165,6 +173,9 @@ Desktop.ini
 # Build directories
 debug
 release
+
+# Ignore shortcuts
+*.lnk
 
 #############
 ## Python
@@ -199,3 +210,12 @@ pip-log.txt
 
 # Mac crap
 .DS_Store
+
+# Roomedit stuff
+/roomedit/windeu32.log
+/roomedit/owl-6.34/lib
+*.roo~
+*.dbs
+*.backup1
+*.backup2
+*.backup3

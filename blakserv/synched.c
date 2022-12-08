@@ -21,6 +21,10 @@
 /* local function prototypes */
 void SynchedProtocolParse(session_node *s,client_msg *msg);
 void SynchedAcceptLogin(session_node *s,char *name,char *password);
+void SynchedSendGetClient(session_node *s);
+void SynchedSendClientPatchClassic(session_node *s);
+void SynchedSendClientPatchOgre(session_node *s);
+void SynchedSendClientPatchOldClassic(session_node *s);
 void LogUserData(session_node *s);
 void SynchedSendMenuChoice(session_node *s);
 void SynchedDoMenu(session_node *s);
@@ -122,7 +126,7 @@ void SynchedProcessSessionBuffer(session_node *s)
 
 void SynchedProtocolParse(session_node *s,client_msg *msg)
 {
-   char name[MAX_LOGIN_NAME+1],password[MAX_LOGIN_PASSWORD+1];
+   char name[MAX_LOGIN_NAME + 1], password[MAX_LOGIN_PASSWORD + 1];
    short len;
    int index;
    int last_download_time;
@@ -161,7 +165,7 @@ void SynchedProtocolParse(session_node *s,client_msg *msg)
    {
    case AP_LOGIN : 
       if (msg->len < 39) /* fixed size of AP_LOGIN, before strings */
-	 break;
+         break;
       s->version_major = *(char *)(msg->data+index);
       index++;
       s->version_minor = *(char *)(msg->data+index);
@@ -172,7 +176,7 @@ void SynchedProtocolParse(session_node *s,client_msg *msg)
       index += 4;
       s->os_version_minor = *(int *)(msg->data+index);
       index += 4;
-      s->machine_ram = *(int *)(msg->data+index);
+      s->flags = *(int *)(msg->data+index);
       index += 4;
       s->machine_cpu = *(int *)(msg->data+index);
       index += 4;
@@ -211,16 +215,32 @@ void SynchedProtocolParse(session_node *s,client_msg *msg)
       memcpy(password, msg->data + index + 2, len);
       password[len] = 0; /* null terminate string */
       index += 2 + len;
-      
+
+      // Set the first byte to 0 in case we don't get a hash.
+      s->rsb_hash[0] = 0;
+
+      // Don't break if this fails, still allow user to connect.
+      if (s->version_major == 50 && s->version_minor > 42
+         || s->version_major == 90 && s->version_minor > 6)
+      {
+         len = *(short *)(msg->data + index);
+         if (index + 2 + len > msg->len)
+            break;
+         if (len >= sizeof(s->rsb_hash))
+            break;
+         memcpy(s->rsb_hash, msg->data + index + 2, len);
+         s->rsb_hash[len] = 0; /* null terminate string */
+      }
+
       SynchedAcceptLogin(s,name,password);
-      
       break;
    case AP_GETCLIENT :
       eprintf("SynchedProtocolParse AP_GETCLIENT no longer supported\n");
       break;
    case AP_REQ_GAME :
-		lprintf("SynchedProtocolParse account %u version %u %u\n",s->account->account_id,s->version_major,s->version_minor);
-      if (s->version_major * 100 + s->version_minor < ConfigInt(LOGIN_MIN_VERSION))
+      lprintf("SynchedProtocolParse account %u version %u %u\n",
+         s->account->account_id, s->version_major, s->version_minor);
+      if (s->version_major * 100 + s->version_minor < ConfigInt(LOGIN_CLASSIC_MIN_VERSION))
       {
          AddByteToPacket(AP_MESSAGE);
          AddStringToPacket(strlen(ConfigStr(LOGIN_OLD_VERSION_STR)),
@@ -241,14 +261,7 @@ void SynchedProtocolParse(session_node *s,client_msg *msg)
             break;
          }
       }
-/*
-  if (s->account->credits <= 0)
-  {
-  AddByteToPacket(AP_NOCREDITS);
-  SendPacket(s->session_id);
-  break;
-  }
-*/
+
       last_download_time = *(int *)(msg->data + index);
       index += 4; 
       
@@ -276,11 +289,7 @@ void SynchedProtocolParse(session_node *s,client_msg *msg)
       break;
 
    case AP_REGISTER :
-      len = *(short *)(msg->data+index);
-      if (index + 2 + len > msg->len) /* 2 = length word len */
-	 break;
-      lprintf("SynchedProtocolParse got a registration form\n");
-      AppendTextFile(s,REGFORM_FILE,len,msg->data+index+2);
+      eprintf("SynchedProtocolParse AP_REGISTER no longer supported\n");
       break;
 
    case AP_RESYNC :
@@ -288,11 +297,7 @@ void SynchedProtocolParse(session_node *s,client_msg *msg)
       break;
 
    case AP_ADMINNOTE :
-      len = *(short *)(msg->data+index);
-      if (index + 2 + len > msg->len) /* 2 = length word len */
-	 break;
-      lprintf("SynchedProtocolParse got a note for admins\n");
-      AppendTextFile(s,NOTE_FILE,len,msg->data+index+2);
+      eprintf("SynchedProtocolParse AP_ADMINNOTE no longer supported\n");
       break;
 
    case AP_REQ_MENU :
@@ -303,31 +308,56 @@ void SynchedProtocolParse(session_node *s,client_msg *msg)
       /* they're there, so hangup timer reset, and we are done */
       break;
       
-   default : 
-      eprintf("SynchedProtocolParse got invalid packet %u\n",msg->data[0]);
+   default :
+      int client_version = s->version_minor + 100 * s->version_major;
+      account_node *a = s->account;
+      int account_id;
+      if (a)
+         account_id = a->account_id;
+      else
+         account_id = INVALID_ID;
+
+      eprintf("SynchedProtocolParse got invalid packet %u from account %i, cli vers %i\n",
+         msg->data[0], account_id, client_version);
       break;
    }
 }
 
 int num_with_same_ip;
-struct in_addr check_addr;
+struct in6_addr check_addr;
 void CheckIPAddress(session_node *s)
 {
-   if (s->conn.addr.s_addr == check_addr.s_addr)
-      ++num_with_same_ip;
+	BOOL equal = 1;
+#ifdef BLAK_PLATFORM_WINDOWS
+	for (int i = 0; i < sizeof(check_addr.u.Byte); i++)
+	{
+		if (s->conn.addr.u.Byte[i] != check_addr.u.Byte[i])
+		{
+#else
+        for (int i = 0; i < sizeof(check_addr.s6_addr); i++)
+        {
+                if (s->conn.addr.s6_addr[i] != check_addr.s6_addr[i])
+                {
+#endif
+			equal = 0;
+			break;
+		}
+	}
+	
+	if (equal)
+		++num_with_same_ip;
 }
 
 void SynchedAcceptLogin(session_node *s,char *name,char *password)
 {
    session_node *other;
    account_node *a;
-   INT64 now = GetTime();
+   int now = GetTime();
 
-   a = AccountLoginByName(name); /* maps the GUEST_ACCOUNT_NAME into a real account */
+   a = AccountLoginByName(name);
 
    /* bad username, bad password, or suspended? */
-   if (a == NULL ||
-       (a->type != ACCOUNT_GUEST && strcmp(a->password,password) != 0))
+   if (a == NULL || strcmp(a->password, password) != 0)
    {
       s->syn->failed_tries++;
       if (s->syn->failed_tries == ConfigInt(LOGIN_MAX_ATTEMPTS))
@@ -337,30 +367,9 @@ void SynchedAcceptLogin(session_node *s,char *name,char *password)
          HangupSession(s);
          return;
       }
-      if (!stricmp(name,ConfigStr(GUEST_ACCOUNT)))
-      {
-         AddByteToPacket(AP_GUEST);
-         AddByteToPacket(1); /* we're hanging 'em up */
-         AddIntToPacket(ConfigInt(GUEST_SERVER_MIN));
-         AddIntToPacket(ConfigInt(GUEST_SERVER_MAX));
-         
-         /*
-           char *too_many_str;
-           
-           too_many_str = ConfigStr(GUEST_TOO_MANY);
-           AddByteToPacket(AP_MESSAGE);
-           AddStringToPacket(strlen(too_many_str),too_many_str);
-           AddByteToPacket(LA_LOGOFF);
-         */
-         
-         SendPacket(s->session_id);
-         HangupSession(s);
-      }
-      else
-      {
-         AddByteToPacket(AP_LOGINFAILED);
-         SendPacket(s->session_id);
-      }
+
+      AddByteToPacket(AP_LOGINFAILED);
+      SendPacket(s->session_id);
       return;
    }
 
@@ -398,17 +407,7 @@ void SynchedAcceptLogin(session_node *s,char *name,char *password)
    /* suspension lifted naturally? */
    if (a->suspend_time)
       SuspendAccountAbsolute(a, 0);
-   
-   /* tell guest client what other servers may be available */
-   if (!stricmp(name,ConfigStr(GUEST_ACCOUNT)))
-   {
-      AddByteToPacket(AP_GUEST);
-      AddByteToPacket(0); /* we're letting 'em stay, give 'em the new range */
-      AddIntToPacket(ConfigInt(GUEST_SERVER_MIN));
-      AddIntToPacket(ConfigInt(GUEST_SERVER_MAX));
-      SendPacket(s->session_id);
-   }
-   
+
    /* check if anyone already logged in on same account */
    other = GetSessionByAccount(a);
    if (other != NULL)
@@ -464,51 +463,260 @@ void SendSynchedMessage(session_node *s,char *str,char logoff)
 void VerifyLogin(session_node *s)
 {
    char *str;
+   int cli_vers;
+
    LogUserData(s);
 
    s->login_verified = True;
 
    AddByteToPacket(AP_LOGINOK);
    AddByteToPacket((char)(s->account->type));
+   AddIntToPacket(s->session_id);
    SendPacket(s->session_id);
 
    /* they're logged in now.  Check their version number, and if old tell 'em
       to update it */
-
-   if (s->version_major * 100 + s->version_minor < ConfigInt(LOGIN_INVALID_VERSION))
+   cli_vers = s->version_major * 100 + s->version_minor;
+   if (cli_vers < ConfigInt(LOGIN_INVALID_VERSION))
    {
       SendSynchedMessage(s,ConfigStr(LOGIN_INVALID_VERSION_STR),LA_LOGOFF);
       HangupSession(s);
       return;
    }
 
-
-   if (s->version_major * 100 + s->version_minor < ConfigInt(LOGIN_MIN_VERSION))
+   if (s->version_major == 50
+      && cli_vers < ConfigInt(LOGIN_CLASSIC_MIN_VERSION))
    {
-      AddByteToPacket(AP_GETCLIENT);
+#if VANILLA_UPDATER
+      SynchedSendGetClient(s);
+#else
+      // If they have an old client not capable of self-updating,
+      // give them the old protocol.
+      if (s->version_minor <= 38)
+         SynchedSendGetClient(s);
+      else if (s->version_minor <= 40)
+         SynchedSendClientPatchOldClassic(s);
+      else
+         SynchedSendClientPatchClassic(s);
+#endif
+      InterfaceUpdateSession(s);
 
-      str = LockConfigStr(UPDATE_CLIENT_MACHINE);
-      AddStringToPacket(strlen(str),str);
-      UnlockConfigStr();
-      
-      str = LockConfigStr(UPDATE_CLIENT_FILE);
-      AddStringToPacket(strlen(str),str);
-      UnlockConfigStr();
+      /* set timeout real long, since they're downloading */
+      SetSessionTimer(s, 60 * ConfigInt(INACTIVE_TRANSFER));
+   }
+   else if (s->version_major == 90
+           && cli_vers < ConfigInt(LOGIN_OGRE_MIN_VERSION))
+   {
+#if VANILLA_UPDATER
+      SynchedSendGetClient(s);
+#else
+      // If they have an old client not capable of self-updating,
+      // give them the old protocol.
+      if (s->version_minor <= 4)
+         SynchedSendGetClient(s);
+      else
+         SynchedSendClientPatchOgre(s);
+#endif
+      InterfaceUpdateSession(s);
 
-      SendPacket(s->session_id);
+      /* set timeout real long, since they're downloading */
+      SetSessionTimer(s, 60 * ConfigInt(INACTIVE_TRANSFER));
    }
    else
    {
-      SynchedDoMenu(s);
+      str = GetRsbMD5();
+      if (*str != 0
+         && s->rsb_hash[0] != 0
+         && strcmp(s->rsb_hash, str) != 0)
+      {
+         if (s->version_major == 50)
+            SynchedSendClientPatchClassic(s);
+         else if (s->version_major == 90)
+            SynchedSendClientPatchOgre(s);
+         InterfaceUpdateSession(s);
+         /* set timeout real long, since they're downloading */
+         SetSessionTimer(s, 60 * ConfigInt(INACTIVE_TRANSFER));
+      }
+      else
+         SynchedDoMenu(s);
    }
- 
+}
+
+// Send the AP_GETCLIENT protocol and data to session.
+void SynchedSendGetClient(session_node *s)
+{
+   char *str;
+
+   if (!s)
+      return;
+
+   AddByteToPacket(AP_GETCLIENT);
+
+   str = LockConfigStr(UPDATE_CLIENT_MACHINE);
+   AddStringToPacket(strlen(str), str);
+   UnlockConfigStr();
+
+   str = LockConfigStr(UPDATE_CLIENT_FILE);
+   AddStringToPacket(strlen(str), str);
+   UnlockConfigStr();
+
+   SendPacket(s->session_id);
+}
+
+// The AP_CLIENT_PATCH protocol sends the client details on where to access
+// a full listing of the client files plus a JSON txt file containing each
+// file name, its size, relative path and a hash to compare with local files
+// for changes. Also sends the name of the updater file, which is currently
+// always club.exe but could change one day. Implemented for both Classic
+// (major version 50) and Ogre (major version 90) clients.
+void SynchedSendClientPatchClassic(session_node *s)
+{
+   char *str;
+
+   if (!s)
+      return;
+
+   AddByteToPacket(AP_CLIENT_PATCH);
+
+   str = LockConfigStr(UPDATE_CLASSIC_PATCH_ROOT);
+   AddStringToPacket(strlen(str), str);
+   UnlockConfigStr();
+
+   str = LockConfigStr(UPDATE_CLASSIC_PATCH_PATH);
+   AddStringToPacket(strlen(str), str);
+   UnlockConfigStr();
+
+   str = LockConfigStr(UPDATE_CLASSIC_PATCH_CACHE_PATH);
+   AddStringToPacket(strlen(str), str);
+   UnlockConfigStr();
+
+   str = LockConfigStr(UPDATE_CLASSIC_PATCH_TXT);
+   AddStringToPacket(strlen(str), str);
+   UnlockConfigStr();
+
+   str = LockConfigStr(UPDATE_CLASSIC_CLUB_EXE);
+   AddStringToPacket(strlen(str), str);
+   UnlockConfigStr();
+
+   str = LockConfigStr(UPDATE_DOWNLOAD_REASON);
+   AddStringToPacket(strlen(str), str);
+   UnlockConfigStr();
+
+   SendPacket(s->session_id);
+}
+
+// Send the AP_CLIENT_PATCH protocol and data to session.
+// Use ogre client download instructions.
+void SynchedSendClientPatchOgre(session_node *s)
+{
+   char *str;
+
+   if (!s)
+      return;
+
+   AddByteToPacket(AP_CLIENT_PATCH);
+
+   str = LockConfigStr(UPDATE_OGRE_PATCH_ROOT);
+   AddStringToPacket(strlen(str), str);
+   UnlockConfigStr();
+
+   str = LockConfigStr(UPDATE_OGRE_PATCH_PATH);
+   AddStringToPacket(strlen(str), str);
+   UnlockConfigStr();
+
+   str = LockConfigStr(UPDATE_OGRE_PATCH_CACHE_PATH);
+   AddStringToPacket(strlen(str), str);
+   UnlockConfigStr();
+
+   str = LockConfigStr(UPDATE_OGRE_PATCH_TXT);
+   AddStringToPacket(strlen(str), str);
+   UnlockConfigStr();
+
+   str = LockConfigStr(UPDATE_OGRE_CLUB_EXE);
+   AddStringToPacket(strlen(str), str);
+   UnlockConfigStr();
+
+   str = LockConfigStr(UPDATE_DOWNLOAD_REASON);
+   AddStringToPacket(strlen(str), str);
+   UnlockConfigStr();
+
+   SendPacket(s->session_id);
+}
+
+// AP_CLIENT_PATCH_OLD protocol is a transitional update protocol
+// that had the client download and parse patchinfo.txt. The old
+// protocol doesn't send the filename for the updater. Used for
+// client versions 5039 and 5040.
+void SynchedSendClientPatchOldClassic(session_node *s)
+{
+   char *str;
+
+   if (!s)
+      return;
+
+   AddByteToPacket(AP_CLIENT_PATCH_OLD);
+
+   str = LockConfigStr(UPDATE_CLASSIC_PATCH_ROOT);
+   AddStringToPacket(strlen(str), str);
+   UnlockConfigStr();
+
+   str = LockConfigStr(UPDATE_CLASSIC_PATCH_PATH);
+   AddStringToPacket(strlen(str), str);
+   UnlockConfigStr();
+
+   str = LockConfigStr(UPDATE_CLASSIC_PATCH_CACHE_PATH);
+   AddStringToPacket(strlen(str), str);
+   UnlockConfigStr();
+
+   str = LockConfigStr(UPDATE_CLASSIC_PATCH_TXT);
+   AddStringToPacket(strlen(str), str);
+   UnlockConfigStr();
+
+   str = LockConfigStr(UPDATE_DOWNLOAD_REASON);
+   AddStringToPacket(strlen(str), str);
+   UnlockConfigStr();
+
+   SendPacket(s->session_id);
 }
 
 void LogUserData(session_node *s)
 {
    char buf[500];
 
-   sprintf(buf,"LogUserData/4 got %i from %s, ",s->account->account_id,s->conn.name);
+   sprintf(buf, "LogUserData/4 got %i from %s, ",
+      s->account->account_id, s->conn.name);
+
+   if (s->version_major == 50)
+   {
+      // Add flags in int form for log parsing.
+      sprintf(buf + strlen(buf), "flags %i, ", s->flags);
+
+      // Human readable.
+      if (s->flags & LF_HARDWARE_RENDERER)
+         strcat(buf, "HW renderer, ");
+      else
+         strcat(buf, "SW renderer, ");
+      if (s->flags & LF_LARGE_GRAPHICS)
+         strcat(buf, "L graphics, ");
+      else
+         strcat(buf, "S graphics, ");
+      if (s->flags & (LF_DYNAMIC_LIGHTING | LF_HARDWARE_RENDERER))
+         strcat(buf, "dynlight ON, ");
+      else
+         strcat(buf, "dynlight OFF, ");
+      if (s->flags & LF_MUSIC_ON)
+         strcat(buf, "music ON, ");
+      else
+         strcat(buf, "music OFF, ");
+      if (s->flags & LF_WEATHER_EFFECTS)
+         strcat(buf, "particles ON, ");
+      else
+         strcat(buf, "particles OFF, ");
+      if (s->flags & (LF_WIREFRAME | LF_HARDWARE_RENDERER))
+         strcat(buf, "wireframe ON, ");
+      else
+         strcat(buf, "wireframe OFF, ");
+   }
 
    switch (s->os_type)
    {
@@ -526,10 +734,8 @@ void LogUserData(session_node *s)
       break;
    }
    
-   sprintf(buf+strlen(buf),", %i, %i, ",s->os_version_major,s->os_version_minor);
+   sprintf(buf+strlen(buf),", %i.%i, ",s->os_version_major,s->os_version_minor);
    
-
-
    switch (s->machine_cpu&0xFFFF)	/* charlie: the cpu level is in the top 16 bits */
    {
    case PROCESSOR_INTEL_386 :
@@ -548,22 +754,24 @@ void LogUserData(session_node *s)
    
    strcat(buf,", ");
 
-   sprintf(buf+strlen(buf),"%i MB",s->machine_ram/(1024*1024));
-   strcat(buf,", ");
+   // Memory no longer sent.
+   //sprintf(buf+strlen(buf),"%i MB",s->machine_ram/(1024*1024));
+   //strcat(buf,", ");
    
    sprintf(buf+strlen(buf),"%ix%ix%i (0x%08X)",s->screen_x,s->screen_y,s->screen_color_depth,((s->machine_cpu&0xFFFF0000)|s->displays_possible));
 
    if (s->partner)
       sprintf(buf+strlen(buf),", Partner %d",s->partner);
 
-   strcat(buf,", ");
+   // Noise.
+   /*strcat(buf,", ");
    sprintf(buf+strlen(buf),"%s",LockConfigStr(ADVERTISE_FILE1));
    UnlockConfigStr();
-
    strcat(buf,", ");
    sprintf(buf+strlen(buf),"%s",LockConfigStr(ADVERTISE_FILE2));
-   UnlockConfigStr();
+   UnlockConfigStr();*/
 
+   sprintf(buf + strlen(buf), " client version %i", s->version_major * 100 + s->version_minor);
    strcat(buf,"\n");
 
    lprintf("%s",buf);
@@ -572,17 +780,6 @@ void LogUserData(session_node *s)
 void SynchedDoMenu(session_node *s)
 {
    SynchedSendMenuChoice(s);
-             
-   AddByteToPacket(AP_CREDITS);
-   /* round any fraction up */
-   AddIntToPacket(20);
-   /*
-   if (s->account->credits%100 == 0)
-      AddIntToPacket(s->account->credits/100);
-   else
-      AddIntToPacket(s->account->credits/100+1);
-      */
-   SendPacket(s->session_id);
 }
 
 void SynchedSendMenuChoice(session_node *s)
@@ -593,7 +790,7 @@ void SynchedSendMenuChoice(session_node *s)
       the pseudo-random # sequence thing for game messages */
 
    AddByteToPacket(AP_GETCHOICE);
-   s->seeds[0] = (int)GetTime()*2;
+   s->seeds[0] = GetTime()*2;
    s->seeds[1] = (int)GetMilliCount();
    s->seeds[2] = rand();
    s->seeds[3] = rand()*rand();
@@ -602,16 +799,11 @@ void SynchedSendMenuChoice(session_node *s)
    for (i=0;i<SEED_COUNT;i++)
       AddIntToPacket(s->seeds[i]);
    SendPacket(s->session_id);
-
 }
 
 void SynchedGotoGame(session_node *s,int last_download_time)
 {
-   int num_new_files;
-   char *str;
-   
    /* first check to see if they can goto game (if they have >= 1 char) */
-
    if (CountUserByAccountID(s->account->account_id) <= 0)
    {
       /* Tell user that he has no characters */
@@ -626,9 +818,12 @@ void SynchedGotoGame(session_node *s,int last_download_time)
 
    s->last_download_time = last_download_time;
 
+   // Old package downloader.
+#if 0
    /* dprintf("sess %i has %i new files to delete\n",s->session_id,CountNewDelresFile(s)); */
 
-   num_new_files = CountNewDLFile(s);
+   int num_new_files = CountNewDLFile(s);
+   char *str;
    if (num_new_files > 0)
    {
       // Tell client there's files to be downloaded, and don't go into game mode.
@@ -690,6 +885,7 @@ void SynchedGotoGame(session_node *s,int last_download_time)
 
       SendPacket(s->session_id);
    }
+#endif
 
    // All set to go to game mode.
 

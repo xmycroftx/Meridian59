@@ -14,6 +14,7 @@
 player_info player;
 room_type current_room;
 BOOL dataValid = FALSE;
+extern Bool gD3DRedrawAll;
 
 /* This flag is True before we get the first player info message from the server,
  * and when we're not in the game.  We use it to keep track of entering the game,
@@ -37,7 +38,10 @@ void SetFrameDrawn(BOOL flag)
 {
    if (!frameDrawn && flag) // this is first visible flag and we need to send MOVE to server
    {
-      InvalidateRect(hMain, NULL, FALSE);
+      // Not sure why this needs to be called, removing it makes room changes
+      // smoother and prevents a flashing effect in the whole client during
+      // the room change.
+      //InvalidateRect(hMain, NULL, FALSE);
       MoveUpdateServer();
       CacheReport();
    }
@@ -311,9 +315,10 @@ void EnterNewRoom(void)
 {
    SetFrameDrawn(FALSE);
 
-   DrawGridBorder();   
+   // Should be drawn later.
+   //DrawGridBorder();
 
-   SoundAbort();  // Turn off looping sounds
+   SoundStopAll(SF_LOOP);  // Turn off looping sounds
 
    //	Clear any user selected target.
 	SetUserTargetID( INVALID_ID );
@@ -380,6 +385,9 @@ void SetRoomInfo(ID room_id, list_type new_room_contents)
       player.y = r->motion.y;
       r->motion.z = GetFloorBase(player.x,player.y);
       player.angle = r->angle;
+
+      // set initial 3d sound listener position
+      SoundSetListenerPosition(player.x, player.y, player.angle);
    }
 
    // Set z coordinates of all objects
@@ -430,7 +438,15 @@ void CreateObject(room_contents_node *r)
    current_room.contents = list_add_first(current_room.contents, r);
 
    RoomObjectSetHeight(r);
-   
+
+   // Must redraw static lights for light changes.
+   if ((r->obj.dLighting.flags & LIGHT_FLAG_ON) == LIGHT_FLAG_ON
+      && !((r->obj.dLighting.flags & LIGHT_FLAG_DYNAMIC) == LIGHT_FLAG_DYNAMIC))
+   {
+      if (gD3DRedrawAll == FALSE)
+         gD3DRedrawAll |= D3DRENDER_REDRAW_STATIC_LIGHTS;
+   }
+
    RedrawAll();
 }
 /************************************************************************/
@@ -444,6 +460,14 @@ void RemoveObject(ID obj_id)
    {
       debug(("Couldn't find object #%d to delete\n", obj_id));
       return;
+   }
+
+   // Must redraw static lights for light changes.
+   if ((r->obj.dLighting.flags & LIGHT_FLAG_ON) == LIGHT_FLAG_ON
+      && !((r->obj.dLighting.flags & LIGHT_FLAG_DYNAMIC) == LIGHT_FLAG_DYNAMIC))
+   {
+      if (gD3DRedrawAll == FALSE)
+         gD3DRedrawAll |= D3DRENDER_REDRAW_STATIC_LIGHTS;
    }
 
 	//	If deleted object was user's selected target, clear target.
@@ -481,6 +505,13 @@ void ChangeObject(object_node *new_obj, BYTE translation, BYTE effect, Animate *
    r = GetRoomObjectById(new_obj->id);
    if (r != NULL)
    {
+      // Must redraw room for static light changes.
+      if (!(r->obj.dLighting.flags & LIGHT_FLAG_DYNAMIC)
+         && (r->obj.dLighting.intensity != new_obj->dLighting.intensity
+            || r->obj.dLighting.color != new_obj->dLighting.color
+            || r->obj.dLighting.flags != new_obj->dLighting.flags))
+         gD3DRedrawAll |= D3DRENDER_REDRAW_ALL;
+
       RoomObjectDestroy(r);
       // XXX This is bad--should call ObjectCopy and redo allocation in server.c/HandleChange
 
@@ -499,8 +530,9 @@ void ChangeObject(object_node *new_obj, BYTE translation, BYTE effect, Animate *
       r->obj.overlays = &r->obj.normal_overlays;
 
       // If object was user's selected target, and target became invisible, clear selection.
-      if(GetUserTargetID() == r->obj.id && (GetDrawingEffect(r->obj.flags) == OF_INVISIBLE))
-	 SetUserTargetID(INVALID_ID);
+      if(GetUserTargetID() == r->obj.id
+            && (r->obj.drawingtype == DRAWFX_INVISIBLE))
+         SetUserTargetID(INVALID_ID);
 
       // Object may have changed its effects such as OF_HANGING.
       RoomObjectSetHeight(r);
@@ -530,7 +562,96 @@ void ChangeObject(object_node *new_obj, BYTE translation, BYTE effect, Animate *
       OverlayListDestroy(overlays);
 }
 /************************************************************************/
+void ChangeObjectFlags(object_node *new_obj)
+{
+   room_contents_node *r;
+   object_node *inv;
 
+   // Check room first.
+   r = GetRoomObjectById(new_obj->id);
+   if (r)
+   {
+      // No redraw unless flags actually change.
+      bool changed = false;
+      if (new_obj->flags != r->obj.flags)
+      {
+         changed = true;
+         r->obj.flags = new_obj->flags;
+      }
+      if (new_obj->drawingtype != r->obj.drawingtype)
+      {
+         changed = true;
+         r->obj.drawingtype = new_obj->drawingtype;
+      }
+      if (new_obj->minimapflags != r->obj.minimapflags)
+      {
+         changed = true;
+         r->obj.minimapflags = new_obj->minimapflags;
+      }
+      if (new_obj->objecttype != r->obj.objecttype)
+      {
+         changed = true;
+         r->obj.objecttype = new_obj->objecttype;
+      }
+      if (new_obj->namecolor != r->obj.namecolor)
+      {
+         changed = true;
+         r->obj.namecolor = new_obj->namecolor;
+      }
+      if (new_obj->moveontype != r->obj.moveontype)
+      {
+         changed = true;
+         r->obj.moveontype = new_obj->moveontype;
+      }
+
+      if (changed)
+         RedrawAll();
+   }
+   else
+   {
+      // Check inventory.
+      inv = (object_node *)
+         list_find_item(player.inventory, (void *)new_obj->id, CompareIdObject);
+      if (inv)
+      {
+         // No redraw unless flags actually change.
+         bool changed = false;
+         if (new_obj->flags != inv->flags)
+         {
+            changed = true;
+            inv->flags = new_obj->flags;
+         }
+         if (new_obj->drawingtype != inv->drawingtype)
+         {
+            changed = true;
+            inv->drawingtype = new_obj->drawingtype;
+         }
+         if (new_obj->minimapflags != inv->minimapflags)
+         {
+            changed = true;
+            inv->minimapflags = new_obj->minimapflags;
+         }
+         if (new_obj->objecttype != inv->objecttype)
+         {
+            changed = true;
+            inv->objecttype = new_obj->objecttype;
+         }
+         if (new_obj->namecolor != inv->namecolor)
+         {
+            changed = true;
+            inv->namecolor = new_obj->namecolor;
+         }
+         if (new_obj->moveontype != inv->moveontype)
+         {
+            changed = true;
+            inv->moveontype = new_obj->moveontype;
+         }
+
+         if (changed)
+            ModuleEvent(EVENT_INVENTORY, INVENTORY_CHANGE, &inv);
+      }
+   }
+}
 
 /************************************************************************/
 void SetInventory(list_type inventory)
@@ -585,62 +706,34 @@ void GameUnwait(void)
  *	 For looping sounds, radius and max_vol are used to attenuate sound with distance
  *		default radius is VOLUME_CUTOFF_DISTANCE, default max_vol is MAX_VOLUME
  */
-void GamePlaySound(ID sound_rsc, ID source_obj, BYTE flags, WORD y, WORD x, WORD radius, WORD max_vol)
+void GamePlaySound(ID sound_rsc, ID source_obj, BYTE flags, int y, int x, int radius, int max_vol)
 {
-   int src_row = y;
-   int src_col = x;
-   int cutoff = (radius ? radius : VOLUME_CUTOFF_DISTANCE);
-   int volume = MAX_VOLUME;
-   int maxvolume = (max_vol ? max_vol : MAX_VOLUME);
-   if( maxvolume > MAX_VOLUME )
-      maxvolume = MAX_VOLUME;
-
-//	debug(("Play sound at (%i,%i)\n",x,y));
-
+   // source coordinates from object
    if (source_obj != 0)
    {
-      // Find distance to object
-      room_contents_node *p = GetRoomObjectById(player.id);
       room_contents_node *obj = GetRoomObjectById(source_obj);
 
-      if (p != NULL && obj != NULL)
+      if (obj)
       {
-	 int distance = ComputeObjectDistance(p, obj) >> LOG_FINENESS;
-	 if (distance > 2)
-	    volume = MAX_VOLUME * 2 / distance;
-	 src_row = obj->motion.y;
-	 src_col = obj->motion.x;
+         // values are in needed scale
+         x = obj->motion.x;
+         y = obj->motion.y;       
       }
    }
+   // source coordinates from server (in big row/col)
    else if((x > 0) || (y > 0))	
    {
-      room_contents_node *p = GetRoomObjectById(player.id);
-      int dx,dy,distance;
-
-      // looping sound volume falls off linearly w/ distance
-      volume = 0;
-      if( p == NULL )	// this case is hit after a savegame
-      {
-	 // debug(( "player: (%i,%i)\n",player.x >> LOG_FINENESS,player.y >> LOG_FINENESS ));
-	 dx = ( player.x >> LOG_FINENESS ) - x;
-	 dy = ( player.y >> LOG_FINENESS ) - y;
-      }
-      else	// this case is hit when moving from room to room
-      {
-	 // debug(( "motion: (%i,%i)\n",p->motion.x >> LOG_FINENESS,p->motion.y >> LOG_FINENESS ));
-	 dx = ( p->motion.x >> LOG_FINENESS ) - x;
-	 dy = ( p->motion.y >> LOG_FINENESS ) - y;
-      }
-      //distance = GetLongSqrt(dx * dx + dy * dy);
-      distance = Distance(dx, dy);
-      if (distance < cutoff)
-      {
-	 volume = maxvolume - (distance * maxvolume / cutoff) ;
-      }
-      // debug(("Distance = %i\n",distance));
-      // debug(("Setting volume to %i.\n",volume));
+      x = ((x - 1) * FINENESS) + (FINENESS/2);
+      y = ((y - 1) * FINENESS) + (FINENESS/2);
    }
-   PlayWaveRsc(sound_rsc, volume, flags, src_row, src_col, cutoff, maxvolume);
+   // 2d playback (= at avatar)
+   else
+   {
+      x = 0;
+      y = 0;
+   }
+
+   SoundPlayResource(sound_rsc, flags, x, y);
 }
 /************************************************************************/
 void GameQuit(void)

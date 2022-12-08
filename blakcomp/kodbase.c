@@ -38,10 +38,14 @@ void database_error(const char *fmt, ...)
 {
    va_list marker;
 
-   fprintf(stderr, "%s(%d): ", basefile, kodbase_line);
+   printf("%s(%d): ", basefile, kodbase_line);
    va_start(marker, fmt);
    simple_error(fmt, marker);
    va_end(marker);
+/*
+   vprintf(fmt, marker);
+   printf("\n");
+*/
 }
 
 void set_kodbase_filename(char *filename)
@@ -212,9 +216,27 @@ int init_tables(int id_count, int res_count)
 int load_add_class(char *class_name, int class_id, int superclass_id, char *superclass_name)
 {
    /* Build up a class data structure for the new class. */
-   id_type id = (id_type) SafeMalloc(sizeof(id_struct));
-   id_type temp_id = (id_type) SafeMalloc(sizeof(id_struct));
-   class_type c = (class_type) SafeMalloc(sizeof(class_struct));
+   id_type id = (id_type)SafeMalloc(sizeof(id_struct));
+   id_type temp_id = (id_type)SafeMalloc(sizeof(id_struct));
+   class_type c = (class_type)SafeMalloc(sizeof(class_struct));
+
+   // Adding new built-in object types will render existing kodbase.txt files
+   // incompatible. This isn't a problem as a pre-existing kodbase.txt is only
+   // required for reloading a live server, so a new one can be made. Check
+   // for built-in class name/ID mismatches here and instruct the user to
+   // delete kodbase.txt if this check fails.
+
+   extern id_struct BuiltinIds[];
+   if ((strcmp(BuiltinIds[SETTINGS_CLASS].name, class_name) == 0
+         && class_id != SETTINGS_CLASS)
+      || (strcmp(BuiltinIds[REALTIME_CLASS].name, class_name) == 0
+         && class_id != REALTIME_CLASS)
+      || (strcmp(BuiltinIds[EVENTENGINE_CLASS].name, class_name) == 0
+         && class_id != EVENTENGINE_CLASS))
+   {
+      database_error("Incompatible kodbase.txt. Delete the file and recompile.");
+      return False;
+   }
 
    id->name = strdup(class_name);
    id->idnum = class_id;
@@ -226,7 +248,7 @@ int load_add_class(char *class_name, int class_id, int superclass_id, char *supe
    c->is_new = False;  /* Don't generate code for this class */
    /* Store superclass id # in pointer for now.  Id # will be converted to pointer
     * when build_superclasses below is called. */
-   c->superclass = (class_type)(intptr_t) superclass_id;
+   c->superclass = (class_type) superclass_id;
 
    /* Add to list of classes that have been read in */
    st.classes = list_add_item(st.classes, (void *) c);
@@ -287,7 +309,11 @@ int load_add_resource(char *resource_name, int resource_id)
    id->source = DBASE;
 
    r->lhs = id;
-   r->rhs = NULL;
+   // Have to load in resources from *rsc files
+   for (int i = 0; i < sizeof(r->resource) / sizeof(r->resource[i]); i++)
+   {
+      r->resource[i] = NULL;
+   }
 
    /* Add resource to resource list of current class */
    if (current_class == NULL)
@@ -398,21 +424,21 @@ int build_superclasses(list_type classes)
    while (l != NULL)
    {
       class_type c = (class_type) l->data;
-      if (c->superclass != NO_SUPERCLASS)
+      if ( (int) c->superclass != NO_SUPERCLASS)
       {
-         superclass_idnum = *((int *)(&c->superclass));
-         /* Search through classes looking for parent */
-         temp = classes;
-         while (temp != NULL)
-         {
-            class_type parent = (class_type) temp->data;
-            if (parent->class_id->idnum == superclass_idnum)
-            {
-               c->superclass = parent;
-               break;
-            }
-            temp = temp->next;
-         }
+	 superclass_idnum = (int) c->superclass;
+	 /* Search through classes looking for parent */
+	 temp = classes;
+	 while (temp != NULL)
+	 {
+	    class_type parent = (class_type) temp->data;
+	    if (parent->class_id->idnum == superclass_idnum)
+	    {
+	       c->superclass = parent;
+	       break;
+	    }
+	    temp = temp->next;
+	 }
       }
       l = l->next;
    }
@@ -547,8 +573,8 @@ int save_kodbase()
    external_list = table_get_all(st.missingvars);
    numexternals = save_externals(kodbase, external_list);
    
-   if (numexternals != 0)
-      simple_warning("%d unresolved externals", numexternals);
+   /*if (numexternals != 0)
+      simple_warning("%d unresolved externals", numexternals);*/
 
    fclose(kodbase);
    return True;

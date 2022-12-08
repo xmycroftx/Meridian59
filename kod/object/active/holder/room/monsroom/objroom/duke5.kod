@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Duke5 is ObjectRoom
 
 constants:
@@ -20,92 +20,94 @@ constants:
 
 resources:
 
+   include duke5.lkod
+
    room_name_duke5 = "The Duke's Grand Ballroom"
    room_duke5 = duke5.roo
 
-   duke5_music = bar.mid
+   duke5_music = bar.ogg
 
    duke5_party_on_command = "party on"
    duke5_party_off_command = "party off"
    duke5_party_random_command = "party random"
 
-   DJ1 = main.mid
-   DJ2 = tos.mid
-   DJ3 = area01.mid
-   DJ4 = badfor.mid
-   DJ5 = bank.mid
-   DJ6 = Bar.mid
-   DJ7 = bar2.mid
-   DJ8 = city02.mid
-   DJ9 = city03.mid
-   DJ10 = city04.mid
-   DJ11 = corloth.mid
-   DJ12 = goodfor.mid
-   DJ13 = Ksong.mid
-   DJ14 = LogIn.MID
-   DJ15 = marion.mid
-   DJ16 = neutfor.mid
-   DJ17 = smithy.mid
-   DJ18 = Song.mid
-   DJ19 = song02.mid
-   DJ20 = test01.mid
-   DJ21 = walk5.mid
-   DJ22 = TownTrl.MID
+   DJ1 = main.ogg
+   DJ2 = tos.ogg
+   DJ3 = area01.ogg
+   DJ4 = badfor.ogg
+   DJ5 = bank.ogg
+   DJ6 = Bar.ogg
+   DJ7 = bar2.ogg
+   DJ8 = city02.ogg
+   DJ9 = city03.ogg
+   DJ10 = city04.ogg
+   DJ11 = corloth.ogg
+   DJ12 = goodfor.ogg
+   DJ13 = Ksong.ogg
+   DJ14 = LogIn.ogg
+   DJ15 = marion.ogg
+   DJ16 = neutfor.ogg
+   DJ17 = smithy.ogg
+   DJ18 = Song.ogg
+   DJ19 = song02.ogg
+   DJ20 = test01.ogg
+   DJ21 = walk5.ogg
+   DJ22 = TownTrl.ogg
 
-   DJ23 = castle.mid
-   DJ24 = dance1.mid
-   DJ25 = Fight.mid
-   DJ26 = forest.mid
-   DJ27 = or01fm.mid
-   DJ28 = pk_fm.mid
-   DJ29 = Walk1.mid
-   DJ30 = Walk7.mid
-   DJ31 = walk4.mid
+   DJ23 = castle.ogg
+   DJ24 = dance1.ogg
+   DJ25 = Fight.ogg
+   DJ26 = forest.ogg
+   DJ27 = or01fm.ogg
+   DJ28 = pk_fm.ogg
+   DJ29 = Walk1.ogg
+   DJ30 = Walk7.ogg
+   DJ31 = walk4.ogg
 
-   DJ32 = ltlgirl.mid
-   DJ33 = castle2.mid
-   DJ34 = cave.mid
-   DJ35 = undrwrld.mid
-   DJ36 = quorwar.mid
+   DJ32 = ltlgirl.ogg
+   DJ33 = castle2.ogg
+   DJ34 = cave.ogg
+   DJ35 = undrwrld.ogg
+   DJ36 = quorwar.ogg
 
-   DJ37 = avarwar.mid
-   DJ38 = boneprst.mid
-   DJ39 = bridge.mid
-   DJ40 = drgnfly.mid
-   DJ41 = extra01.mid
-   DJ42 = madsci.mid
+   DJ37 = avarwar.ogg
+   DJ38 = boneprst.ogg
+   DJ39 = bridge.ogg
+   DJ40 = drgnfly.ogg
+   DJ41 = extra01.ogg
+   DJ42 = madsci.ogg
 
-   DJ43 = orcbeg.mid
-   DJ44 = orcpit.mid
-   DJ45 = orc1.mid
-   DJ46 = orc2.mid
+   DJ43 = orcbeg.ogg
+   DJ44 = orcpit.ogg
+   DJ45 = orc1.ogg
+   DJ46 = orc2.ogg
 
-   DJ47 = nec01.mid
-   DJ48 = nec02.mid
-   DJ49 = nec03.mid
+   DJ47 = nec01.ogg
+   DJ48 = nec02.ogg
+   DJ49 = nec03.ogg
 
-   DJ50 = KILLED.MID
+   DJ50 = KILLED.ogg
 
-   DJ51 = jala1.mid
-   DJ52 = jala2.mid
-   DJ53 = jala3.mid
-   DJ54 = jala4.mid
-   DJ55 = jala5.mid
+   DJ51 = jala1.ogg
+   DJ52 = jala2.ogg
+   DJ53 = jala3.ogg
+   DJ54 = jala4.ogg
+   DJ55 = jala5.ogg
 
-   DJ56 = temple.mid
+   DJ56 = temple.ogg
 
-   DJ57 = walk2.mid
-   DJ58 = song00.mid
-   DJ59 = song01.mid
-   DJ60 = song03.mid
-   DJ61 = song04.mid
-   DJ62 = song05.mid
-   DJ63 = song06.mid
-   DJ64 = song07.mid
-   DJ65 = song08.mid
-   DJ66 = song10.mid
-   DJ67 = song11.mid
-   DJ68 = song12.mid
+   DJ57 = walk2.ogg
+   DJ58 = song00.ogg
+   DJ59 = song01.ogg
+   DJ60 = song03.ogg
+   DJ61 = song04.ogg
+   DJ62 = song05.ogg
+   DJ63 = song06.ogg
+   DJ64 = song07.ogg
+   DJ65 = song08.ogg
+   DJ66 = song10.ogg
+   DJ67 = song11.ogg
+   DJ68 = song12.ogg
 
 classvars:
 
@@ -127,11 +129,10 @@ properties:
    piOutside_factor = OUTDOORS_SOME
 
    prMusic = duke5_music
-   prDJMusic = duke5_music
 
    plLights = $
 
-   % The timer, and the timer duration, for when the lights change.
+   // The timer, and the timer duration, for when the lights change.
    ptPartyLights = $
    piLightsTime = 1500
 
@@ -147,7 +148,7 @@ messages:
          ptPartyLights = $;
       }
 
-      % Clear out the party lights list.  Lights will be deleted with room contents.
+      // Clear out the party lights list.  Lights will be deleted with room contents.
       plLights = $;
 
       propagate;
@@ -157,16 +158,15 @@ messages:
    {
       local i, rMusic, each_obj;
 
-      if (NOT IsClass(what,&DM))
-         OR (NOT send(what,@isActor))
-         OR (type <> SAY_DM)
+      if (type <> SAY_DM
+         OR NOT IsClass(what,&DM))
       {
          propagate;
       }
-      
+
       rMusic = $;
 
-      % Commands to change the party lights!
+      // Commands to change the party lights!
       if StringEqual(string,duke5_party_off_command)
       {
          send(self,@SetPartyLights,#value=PARTY_OFF);
@@ -182,7 +182,7 @@ messages:
          send(self,@SetPartyLights,#value=PARTY_RANDOM);
       }
 
-      % Commands to change the music
+      // Commands to change the music
       if StringEqual(string,"song1") { rMusic = DJ1; }
       if StringEqual(string,"song2") { rMusic = DJ2; }
       if StringEqual(string,"song3") { rMusic = DJ3; }
@@ -201,7 +201,7 @@ messages:
       if StringEqual(string,"song16") { rMusic = DJ16; }
       if StringEqual(string,"song17") { rMusic = DJ17; }
       if StringEqual(string,"song18") { rMusic = DJ18; }
-      if StringEqual(string,"song19") { rMusic = DJ29; }
+      if StringEqual(string,"song19") { rMusic = DJ19; }
       if StringEqual(string,"song20") { rMusic = DJ20; }
       if StringEqual(string,"song21") { rMusic = DJ21; }
       if StringEqual(string,"song22") { rMusic = DJ22; }
@@ -255,7 +255,7 @@ messages:
       if rMusic <> $ AND prMusic <> rMusic
       {
          prMusic = rMusic;
-         for i in plActive
+         foreach i in plActive
          {
    	      each_obj = First(i);
             if IsClass(each_obj,&User)
@@ -279,7 +279,7 @@ messages:
 
    LastUserLeft()
    {
-      % Turn off the lights as the last person leaves.
+      // Turn off the lights as the last person leaves.
       send(self,@SetPartyLights,#value=PARTY_OFF);
 
       propagate;
@@ -296,7 +296,7 @@ messages:
    {
       plExits = $;
 
-      %% TO FEAST HALL (RID_DUKE4)
+      /// TO FEAST HALL (RID_DUKE4)
       plExits = Cons([ 27, 14, RID_DUKE4, 3, 15, ROTATE_NONE ],plExits);
       plExits = Cons([ 27, 15, RID_DUKE4, 3, 15, ROTATE_NONE ],plExits);
       plExits = Cons([ 27, 16, RID_DUKE4, 3, 15, ROTATE_NONE ],plExits);
@@ -356,35 +356,35 @@ messages:
       Send(self,@NewHold,#what=Create(&Brazier),#new_row=26,#new_col=24,
            #fine_row=16,#fine_col=16);
 
-      % Party Lights! WOOO!
-      % 5 different lights, Intensity at highest, (255)
+      // Party Lights! WOOO!
+      // 5 different lights, Intensity at highest, (255)
 
       oLight = Create(&DynamicLight,#iColor=LIGHT_BBLUE,#iIntensity=255);
-      Send(oLight,@SetSwitch,#switch=OFF);
+      Send(oLight,@SetSwitch,#bSwitch=OFF);
       plLights = cons(oLight,plLights);
       Send(self,@NewHold,#what=oLight,#new_row=5,#new_col=21,
            #fine_row=48,#fine_col=16);
 
       oLight = Create(&DynamicLight,#iColor=LIGHT_BRED,#iIntensity=255);
-      Send(oLight,@SetSwitch,#switch=OFF);
+      Send(oLight,@SetSwitch,#bSwitch=OFF);
       plLights = cons(oLight,plLights);
       Send(self,@NewHold,#what=oLight,#new_row=14,#new_col=21,
            #fine_row=16,#fine_col=16);
 
       oLight = Create(&DynamicLight,#iColor=LIGHT_BGREEN,#iIntensity=255);
-      Send(oLight,@SetSwitch,#switch=OFF);
+      Send(oLight,@SetSwitch,#bSwitch=OFF);
       plLights = cons(oLight,plLights);
       Send(self,@NewHold,#what=oLight,#new_row=14,#new_col=8,
            #fine_row=16,#fine_col=48);
 
       oLight = Create(&DynamicLight,#iColor=LIGHT_BORANGE,#iIntensity=255);
-      Send(oLight,@SetSwitch,#switch=OFF);
+      Send(oLight,@SetSwitch,#bSwitch=OFF);
       plLights = cons(oLight,plLights);
       Send(self,@NewHold,#what=oLight,#new_row=5,#new_col=8,
            #fine_row=48,#fine_col=48);
 
       oLight = Create(&DynamicLight,#iColor=LIGHT_BPURPLE,#iIntensity=255);
-      Send(oLight,@SetSwitch,#switch=OFF);
+      Send(oLight,@SetSwitch,#bSwitch=OFF);
       plLights = cons(oLight,plLights);
       Send(self,@NewHold,#what=oLight,#new_row=22,#new_col=7,
            #fine_row=0,#fine_col=16);
@@ -407,60 +407,60 @@ messages:
          ptPartyLights = $;
       }
 
-      % Did we get turned off?
+      // Did we get turned off?
       if piPartySetting = PARTY_OFF
       {
-         % Make sure each light is off.
-         for oLight in plLights
+         // Make sure each light is off.
+         foreach oLight in plLights
          {
-            Send(oLight,@SetSwitch,#switch=OFF);
+            Send(oLight,@SetSwitch,#bSwitch=OFF);
          }
       }
       else
       {
          lColors = [ LIGHT_BPURPLE, LIGHT_BORANGE, LIGHT_BGREEN, LIGHT_BRED, LIGHT_BBLUE ];
 
-         % Are we on?
+         // Are we on?
          if piPartySetting = PARTY_ON
          {
-            % Make sure each light is on and set to the original color
+            // Make sure each light is on and set to the original color
             iIndex = 1;
 
-            for oLight in plLights
+            foreach oLight in plLights
             {
                Send(oLight,@SetLight,#iColor=Nth(lColors,iIndex));
-               Send(oLight,@SetSwitch,#switch=ON);
+               Send(oLight,@SetSwitch,#bSwitch=ON);
                iIndex = iIndex + 1;
             }
          }
 
-         % Are we in Random EXTREME PARTY MODE(tm)?
+         // Are we in Random EXTREME PARTY MODE(tm)?
          if piPartySetting = PARTY_RANDOM
          {
-            % Make the lights flash and change color
+            // Make the lights flash and change color
 
-            % Add in an "off" option to the colors list.
+            // Add in an "off" option to the colors list.
             lColors = Cons(-1,lColors);
 
-            for oLight in plLights
+            foreach oLight in plLights
             {
                iIndex = Nth(lColors,random(1,length(lColors)));
                lColors = DelListElem(lColors,iIndex);
 
                if iIndex = -1
                {
-                  % Switch the light off
-                  Send(oLight,@SetSwitch,#switch=OFF);
+                  // Switch the light off
+                  Send(oLight,@SetSwitch,#bSwitch=OFF);
                }
                else
                {
-                  % Switch the light on with a random color
+                  // Switch the light on with a random color
                   Send(oLight,@SetLight,#iColor=iIndex);
-                  Send(oLight,@SetSwitch,#switch=ON);
+                  Send(oLight,@SetSwitch,#bSwitch=ON);
                }
             }
 
-            % Create a timer to switch them again.
+            // Create a timer to switch them again.
             ptPartyLights = CreateTimer(self,@PartyLightsTimer,piLightsTime);
          }
       }
@@ -477,6 +477,10 @@ messages:
       return;
    }
 
+   CanHavePlayerPortal()
+   {
+      return FALSE;
+   }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

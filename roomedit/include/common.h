@@ -26,8 +26,8 @@
 #ifndef __common_h
 #define __common_h
 
+// don't do this for vs compiler
 #ifndef _MSC_VER
-// Doesn't apply to MSVC
 #pragma warn -sig
 #endif
 
@@ -73,7 +73,6 @@ class TMapDC;
 
 #ifndef USHORT
 typedef unsigned short USHORT;
-
 typedef short SHORT;
 #endif
 
@@ -111,6 +110,7 @@ typedef unsigned char BYTE;
 /* include ::owl namespace for OWLNext/VS */
 using namespace owl;
 
+
 /*
    syntactic sugar
 */
@@ -119,7 +119,6 @@ typedef int Bool;               /* Boolean data: true or false */
 #include "fixed.h"
 #include "memry.h"
 #include "windeu.h"
-
 
 #define List_SelectStringExact(pList, indexStart, findStr) \
     pList->HandleMessage(LB_SETCURSEL, (WPARAM)pList->HandleMessage(LB_FINDSTRINGEXACT, (WPARAM)indexStart, (LPARAM)findStr), (LPARAM)0)

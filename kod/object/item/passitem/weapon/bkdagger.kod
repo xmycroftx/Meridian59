@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 BlackDagger is Weapon
 
 constants:
@@ -15,56 +15,84 @@ constants:
    include blakston.khd
    include protocol.khd
 
-   PLAYER_HEAL_TIME = 300000     %% every five minutes, you get a HP back.
-   DAGGER_HEAL_TIME = 28800000   %% every eight hours, the dagger gets an HP back.
+   PLAYER_HEAL_TIME = 300000     /// every five minutes, you get a HP back.
+   DAGGER_HEAL_TIME = 28800000   /// every eight hours, the dagger gets an HP back.
 
    PLAYER_MAX = 4
    DAGGER_MAX = 5
 
 resources:
 
+   include bkdagger.lkod
+
    BlackDagger_name_rsc = "black dagger"
    BlackDagger_icon_rsc = bkswd.bgf
    BlackDagger_desc_rsc = \
-   "This elegant blade looks like it would fit snugly between a pair of shoulder blades. \n\n%s%s%s"
-   
-   BlackDagger_gamestart_glow = "~IYour dagger gains an unearthly glow about it."
+      "This elegant blade looks like it would fit snugly between "
+      "a pair of shoulder blades. \n\n%s%s%s"
+
+   BlackDagger_gamestart_glow = \
+      "~IYour dagger gains an unearthly glow about it."
 
    BlackDagger_impact = "~IThe black blade shatters upon impact!"
-   BlackDagger_cant_use = "~IYou try to wield the dark blade, but somehow, your heart is not quite in it."
-   BlackDagger_shiver = "~IThe black dagger suddenly shivers ominously in your hand."
+   BlackDagger_cant_use = \
+      "~IYou try to wield the dark blade, but somehow, your heart "
+      "is not quite in it."
+   BlackDagger_shiver = \
+      "~IThe black dagger suddenly shivers ominously in your hand."
 
    BlackDagger_notches = "There are %i notches carved in the handle."
-   BlackDagger_one_notch = "There is a single elegant notch carved in the handle."
+   BlackDagger_one_notch = \
+      "There is a single elegant notch carved in the handle."
    BlackDagger_no_notches = "The handle is smooth and flawless."
 
-   BlackDagger_4_gems = "All four gems in the pommel shine with unparalleled brilliance.  "
-   BlackDagger_3_gems = "Three of the gems in the pommel glow with a healthy luster.  "
-   BlackDagger_2_gems = "Two of the gems in the pommel seem to be brighter than the others.  "
-   BlackDagger_1_gems = "Only one of the four gems has any glow in it at all, and even that seems to be flickering.  "
+   BlackDagger_4_gems = \
+      "All four gems in the pommel shine with unparalleled brilliance.  "
+   BlackDagger_3_gems = \
+      "Three of the gems in the pommel glow with a healthy luster.  "
+   BlackDagger_2_gems = \
+      "Two of the gems in the pommel seem to be brighter than the others.  "
+   BlackDagger_1_gems = \
+      "Only one of the four gems has any glow in it at all, and even "
+      "that seems to be flickering.  "
 
-   BlackDagger_runes = "There seem to be some runes carved in the blade, but you can't make heads or tails of them.  "
-   BlackDagger_name = "There is, very clearly, a name carved into the blade.  It reads, '%q'.  "
+   BlackDagger_runes = \
+      "There seem to be some runes carved in the blade, but you can't "
+      "make heads or tails of them.  "
+   BlackDagger_name = \
+      "There is, very clearly, a name carved into the "
+      "blade.  It reads, '%q'.  "
    BlackDagger_window_overlay_rsc = povbkswd.bgf
    BlackDagger_player_overlay = bkswdov.bgf
 
    BlackDagger_miss = "You miss %s%s with your black dagger."
    BlackDagger_miss_target = "%s%s misses you with %s black dagger."
 
-   BlackDagger_hit = "You hit %s%s with your black dagger, but the blade seems to weaken as you do so."
-   BlackDagger_hit_target = "%s%s hits you with the black dagger, but leaves nary a wound."
+   BlackDagger_hit = \
+      "You hit %s%s with your black dagger, but the blade seems to "
+      "weaken as you do so."
+   BlackDagger_hit_target = \
+      "%s%s hits you with the black dagger, but leaves nary a wound."
 
-   BlackDagger_surehit = "You hit %s%s with your black dagger, and sink it in to the hilt!"
-   BlackDagger_surehit_target = "%s%s hits you with %s black dagger, and you feel your soul being invaded!"
-                             BlackDagger_dies = "You have been slain at the hands of %s%s!"
+   BlackDagger_surehit = \
+      "You hit %s%s with your black dagger, and sink it in to the hilt!"
+   BlackDagger_surehit_target = \
+      "%s%s hits you with %s black dagger, and you feel your "
+      "soul being invaded!"
+   BlackDagger_dies = "You have been slain at the hands of %s%s!"
    BlackDagger_dies_killer = "You have slain %s%s with your black dagger!"
 
-   BlackDagger_no_leave = "As you release hold of the black dagger, it seems to cling to your hand!"
-   BlackDagger_glows = "~IOne of the gemstones in the hilt of your blade flickers back to life."
+   BlackDagger_no_leave = \
+      "As you release hold of the black dagger, it seems "
+      "to cling to your hand!"
+   BlackDagger_glows = \
+      "~IOne of the gemstones in the hilt of your blade "
+      "flickers back to life."
 
    BlackDagger_mail_logoff = "Subject: You ignored your gems, coward.\n"
-      "You logged off while one or more of your gems was not aglow, and therefore you were "
-      "kicked out of the Assassin's Game.\n\n-- Roq, the Dark Blade"
+      "You logged off while one or more of your gems was not aglow, and "
+      "therefore you were kicked out of the Assassin's Game.\n\n-- Roq, "
+      "the Dark Blade"
 
    BlackDagger_mail_warning = "Subject: I watch you, absent one.\n"
       "You have not been spending enough time online to compete in the "
@@ -80,7 +108,7 @@ classvars:
    vrName = BlackDagger_name_rsc
    vrIcon = BlackDagger_icon_rsc
 
-   % Black daggers are low quality swords (?), just like shortswords
+   // Black daggers are low quality swords (?), just like shortswords
    viWeaponType = WEAPON_TYPE_THRUST
    viWeaponQuality = WEAPON_QUALITY_LOW
 
@@ -98,7 +126,7 @@ classvars:
 
 properties:
 
-   piAttack_type = ATCK_WEAP_NONMAGIC+ATCK_WEAP_PIERCE
+   piAttack_type = ATK_TYPE_NONMAGIC+ATK_TYPE_PIERCE
 
    piNotches = 0
    piPlayer_hits = 4
@@ -122,80 +150,70 @@ messages:
       bDo_Notch = FALSE;
       AddPacket(4,BlackDagger_desc_rsc);
 
-      % If a match isn't in session, show the defaults
-      %   and some unidentifiable runes instead of a name.
+      // If a match isn't in session, show the defaults
+      //   and some unidentifiable runes instead of a name.
       if NOT Send(Send(SYS,@GetAssassinGame),@InSession)
       {
-         AddPacket(4,BlackDagger_4_gems);
-         AddPacket(4,BlackDagger_no_notches);
-         AddPacket(4,BlackDagger_runes);
-         
+         AddPacket(4,BlackDagger_4_gems, 4,BlackDagger_no_notches,
+                   4,BlackDagger_runes);
+
          return;
       }
 
-      % The Gems show how much life you have left;
+      // The Gems show how much life you have left;
       if piPlayer_hits = 4
       {
          AddPacket(4,BlackDagger_4_gems);
       }
+      else if piPlayer_hits = 3
+      {
+         AddPacket(4,BlackDagger_3_gems);
+      }
+      else if piPlayer_hits = 2
+      {
+         AddPacket(4,BlackDagger_2_gems);
+      }
       else
       {
-         if piPlayer_hits = 3
-         {
-            AddPacket(4,BlackDagger_3_gems);
-         }
-         else
-         {
-            if piPlayer_hits = 2
-            {
-               AddPacket(4,BlackDagger_2_gems);
-            }
-            else
-            {
-               if piPlayer_hits = 1
-               {
-                  AddPacket(4,BlackDagger_1_gems);
-               }
-            }
-         }
+         AddPacket(4,BlackDagger_1_gems);
       }
 
-      % The notches show the number of kills that player has.
-      if piNotches < 1 { AddPacket(4,BlackDagger_no_notches); }
+      // The notches show the number of kills that player has.
+      if piNotches < 1
+      {
+         AddPacket(4,BlackDagger_no_notches);
+      }
+      else if piNotches = 1
+      {
+         AddPacket(4,BlackDagger_one_notch);
+      }
       else
       {
-         if piNotches = 1
-         {
-            AddPacket(4,BlackDagger_one_notch);
-         }
-         else
-         {
-            AddPacket(4,BlackDagger_notches);
-            bDo_notch = TRUE;
-         }
+         AddPacket(4,BlackDagger_notches);
+         bDo_notch = TRUE;
       }
 
-      % Tell the player who his target is
+      // Tell the player who his target is
       oTarget = Send(Send(SYS,@GetAssassinGame),@GetPrimaryOpponent,#who=poOwner);
       if oTarget = $
       {
-         debug("Invalid target!  Black dagger in hands of non-combatant?");
+         Debug("Invalid target!  Black dagger in hands of non-combatant?");
          AddPacket(4,BlackDagger_runes);
 
          return;
       }
 
-      % Put the name string on the black dagger.  Add the name after you
-      %  put the notches in.
+      // Put the name string on the black dagger.  Add the name after you
+      //  put the notches in.
       AddPacket(4,BlackDagger_name);
 
-      % Add the number of notches to the packet
+      // Add the number of notches to the packet
       if bDo_Notch
       {
          AddPacket(4,piNotches);
       }
 
-      % Give the name on the black dagger.
+      // Give the name on the black dagger.
       AddPacket(STRING_RESOURCE,Send(oTarget,@GetTrueName));
 
       return;
@@ -219,24 +237,24 @@ messages:
 
       if target = $
       {
-         DEBUG("Reached AssassinHit with Target equal NIL!");
-         
+         Debug("Reached AssassinHit with Target equal NIL!");
+
          return;
       }
 
       oDagger = Send(Send(SYS,@GetAssassinGame),@GetDagger,#who=target);
 
       Send(poOwner,@MsgSendUser,#message_rsc=BlackDagger_surehit,
-           #parm1=Send(target,@GetDef),#parm2=Send(target,@GetName));
+            #parm1=Send(target,@GetDef),#parm2=Send(target,@GetName));
       Send(target,@MsgSendUser,#message_rsc=BlackDagger_surehit_target,
-           #parm1=Send(poOwner,@GetCapDef),#parm2=Send(poOwner,@GetName),
-           #parm3=Send(poOwner,@GetHisHer));
+            #parm1=Send(poOwner,@GetCapDef),#parm2=Send(poOwner,@GetName),
+            #parm3=Send(poOwner,@GetHisHer));
 
       Send(poOwner,@DoHitMessageSound,#what=target,
-           #damage=10,#stroke_obj=Send(SYS,@findskillbynum,#num=SKID_SLASH));
+            #damage=10,#stroke_obj=Send(SYS,@FindSkillByNum,#num=SKID_SLASH));
       Send(oDagger,@AssassinTakesHit,#attacker=poOwner);
-      
-      % Does the animations and overlays.
+
+      // Does the animations and overlays.
       Send(self,@WeaponAttack);
 
       return;
@@ -246,23 +264,23 @@ messages:
    {
       if target = $
       {
-         DEBUG("Reached AssassinHit with Target equal NIL!");
-         
+         Debug("Reached AssassinHit with Target equal NIL!");
+
          return;
       }
 
       Send(poOwner,@MsgSendUser,#message_rsc=BlackDagger_hit,
-           #parm1=Send(target,@GetDef),#parm2=Send(target,@GetName));
+            #parm1=Send(target,@GetDef),#parm2=Send(target,@GetName));
       Send(target,@MsgSendUser,#message_rsc=BlackDagger_hit_target,
-           #parm1=Send(poOwner,@GetCapDef),#parm2=Send(poOwner,@GetName));
+            #parm1=Send(poOwner,@GetCapDef),#parm2=Send(poOwner,@GetName));
 
       Send(poOwner,@DoHitMessageSound,#what=target,
-           #damage=1,#stroke_obj=Send(SYS,@FindSkillByNum,#num=SKID_SLASH));
+            #damage=1,#stroke_obj=Send(SYS,@FindSkillByNum,#num=SKID_SLASH));
 
-      % Does the animations and overlays
+      // Does the animations and overlays
       Send(self,@WeaponAttack);
 
-      piDagger_hits = piDagger_hits - 1;
+      --piDagger_hits;
       if piDagger_hits < 1
       {
          Send(poOwner,@MsgSendUser,#message_rsc=BlackDagger_impact);
@@ -275,7 +293,7 @@ messages:
             ptDagger_heal = CreateTimer(self,@DaggerHealTimer,DAGGER_HEAL_TIME);
          }
       }
-      
+
       return;
    }
 
@@ -283,21 +301,21 @@ messages:
    {
       if target = $
       {
-         DEBUG("Reached AssassinHit with Target equal NIL!");
-         
+         Debug("Reached AssassinHit with Target equal NIL!");
+
          return;
       }
 
       Send(poOwner,@MsgSendUser,#message_rsc=BlackDagger_miss,
-          #parm1=Send(target,@GetDef),#parm2=Send(target,@GetName));
+            #parm1=Send(target,@GetDef),#parm2=Send(target,@GetName));
       Send(target,@MsgSendUser,#message_rsc=BlackDagger_miss_target,
-          #parm1=Send(poOwner,@GetCapDef),#parm2=Send(poOwner,@GetName),
-          #parm3=Send(poOwner,@GetHisHer));
+            #parm1=Send(poOwner,@GetCapDef),#parm2=Send(poOwner,@GetName),
+            #parm3=Send(poOwner,@GetHisHer));
 
-      % Does the animations and overlays
+      // Does the animations and overlays
       Send(self,@WeaponAttack);
       Send(Send(SYS,@findskillbynum,#num=SKID_SLASH),@SendMissMessageToAttacker,
-           #who=poOwner,#victim=target,#weapon_used=self,#bText=FALSE);
+            #who=poOwner,#victim=target,#weapon_used=self,#bText=FALSE);
 
       return;
    }
@@ -306,24 +324,21 @@ messages:
    {
       if attacker = $
       {
-         DEBUG("Reached AssassinTakesHit with Target equal NIL!");
+         Debug("Reached AssassinTakesHit with Target equal NIL!");
 
          return;
       }
 
-      piPlayer_hits = piPlayer_hits - 1;
+      --piPlayer_hits;
       if piPlayer_hits < 1
       {
-         Send(self,@AssassinDies,#attacker=attacker);
+         Post(self,@AssassinDies,#attacker=attacker);
       }
-      else
+      else if ptPlayer_heal = $
       {
-         if ptPlayer_heal = $
-         {
-            ptPlayer_heal = CreateTimer(self,@PlayerHealTimer,PLAYER_HEAL_TIME);
-         }
+         ptPlayer_heal = CreateTimer(self,@PlayerHealTimer,PLAYER_HEAL_TIME);
       }
-      
+
       return;
    }
 
@@ -333,8 +348,8 @@ messages:
 
       if attacker = $
       {
-         DEBUG("Reached AssassinDies with Target equal NIL!");
-         
+         Debug("Reached AssassinDies with Target equal NIL!");
+
          return;
       }
 
@@ -342,19 +357,19 @@ messages:
       Send(oDagger,@AddNotch);
 
       Send(poOwner,@MsgSendUser,#message_rsc=BlackDagger_dies,
-           #parm1=Send(attacker,@GetDef),#parm2=Send(attacker,@GetName));
+            #parm1=Send(attacker,@GetDef),#parm2=Send(attacker,@GetName));
       Send(attacker,@MsgSendUser,#message_rsc=BlackDagger_dies_killer,
-           #parm1=Send(poOwner,@GetCapDef),#parm2=Send(poOwner,@GetName));
+            #parm1=Send(poOwner,@GetCapDef),#parm2=Send(poOwner,@GetName));
       Send(Send(poOwner,@getOwner),@NewHold,#what=Send(poOwner,@CreateCorpse,#Assassinated=TRUE),
-           #new_row=Send(poOwner,@GetRow),#new_col=Send(poOwner,@GetCol),
-           #fine_row=16,#fine_col=16, #new_angle=Send(poOwner,@GetAngle));
+            #new_row=Send(poOwner,@GetRow),#new_col=Send(poOwner,@GetCol),
+            #fine_row=16,#fine_col=16, #new_angle=Send(poOwner,@GetAngle));
 
-      Send(poOwner,@TeleportTo,#rid=RID_UNDERWORLD);
+      Send(poOwner,@TeleportTo,#rid=RID_UNDERWORLD,#bAdminPort=FALSE);
 
-      % Make this a penalty-free "death".
+      // Make this a penalty-free "death".
       Send(poOwner,@SetDeathCost,#DeathCost=0);
       Send(Send(SYS,@GetAssassinGame),@QuitCombatant,#who=poOwner,#kill=TRUE);
-     
+
       return;
    }
 
@@ -362,7 +377,7 @@ messages:
    {
       if piPlayer_hits < 1 OR piPlayer_hits > (PLAYER_MAX - 1)
       {
-         DEBUG("PlayerHealTimer called while piPlayer_hits was an invalid value!");
+         Debug("PlayerHealTimer called while piPlayer_hits was an invalid value!");
 
          return;
       }
@@ -371,10 +386,7 @@ messages:
       {
          piPlayer_hits = piPlayer_hits + 1;
          Send(poOwner,@MsgSendUser,#message_rsc=BlackDagger_glows);
-      }
 
-      if piPlayer_hits < PLAYER_MAX
-      {
          ptPlayer_heal = CreateTimer(self,@PlayerHealTimer,PLAYER_HEAL_TIME);
       }
       else
@@ -387,20 +399,18 @@ messages:
 
    DaggerHealTimer()
    {
-      if piDagger_hits < 1 OR piDagger_hits > (DAGGER_MAX - 1)
+      if piDagger_hits < 1
+         OR piDagger_hits > (DAGGER_MAX - 1)
       {
-         DEBUG("DaggerHealTimer called while piDagger_hits was an invalid value!");
+         Debug("DaggerHealTimer called while piDagger_hits was an invalid value!");
 
          return;
       }
 
       if piDagger_hits < DAGGER_MAX
       {
-         piDagger_hits = piDagger_hits + 1;
-      }
+         ++piDagger_hits;
 
-      if piDagger_hits < DAGGER_MAX
-      {
          ptDagger_heal = CreateTimer(self,@DaggerHealTimer,DAGGER_HEAL_TIME);
       }
       else
@@ -413,28 +423,29 @@ messages:
 
    AddNotch()
    {
-      piNotches = piNotches + 1;
-      
+      ++piNotches;
+
       return;
    }
 
    ReqUse(what=$)
    {
       local oGame;
-      
-      oGame=Send(SYS,@GetAssassinGame);
 
-      if Send(oGame,@InSession) AND Send(oGame,@isCombatant,#who=what)
+      oGame = Send(SYS,@GetAssassinGame);
+
+      if Send(oGame,@InSession)
+         AND Send(oGame,@IsCombatant,#who=what)
       {
          return TRUE;
       }
 
       Send(poOwner,@MsgSendUser,#message_rsc=BlackDagger_cant_use);
-      
+
       return FALSE;
    }
 
-   % Here for compatibility.  Not used.
+   // Here for compatibility.  Not used.
 
    ModifyHitRoll(hit_roll = 0)
    {
@@ -481,7 +492,7 @@ messages:
    "NPC or offered to anyone."
    {
       Send(poOwner,@MsgSendUser,#message_rsc=BlackDagger_no_leave);
-      
+
       return FALSE;
    }
 
@@ -498,17 +509,17 @@ messages:
          return;
       }
 
-      % Okay, add the player's time to online time.
+      // Okay, add the player's time to online time.
       iStart_time = Send(Send(SYS,@GetAssassinGame),@GetStartTime);
       iLogon_time = Send(poOwner,@GetLastLoginTime);
 
       if iStart_time > iLogon_time
       {
-         piTime_online = piTime_online + (GetTime() - iStart_Time);
+         piTime_online += (GetTime() - iStart_Time);
       }
       else
       {
-         piTime_online = piTime_online + (GetTime() - iLogon_time);
+         piTime_online += (GetTime() - iLogon_time);
       }
 
       propagate;
@@ -524,20 +535,20 @@ messages:
       }
 
       iStart_time = Send(Send(SYS,@GetAssassinGame),@GetStartTime);
-      iLogon_time = Send(poOwner,@GetLastLoginTime);   
+      iLogon_time = Send(poOwner,@GetLastLoginTime);
 
       if iStart_time > iLogon_time
       {
          return (piTime_online + (GetTime() - iStart_Time));
       }
-      
+
       return (piTime_online + (GetTime() - iLogon_time));
    }
 
    AddShiver()
-   {      
-      piShiver = piShiver + 1;
-      
+   {
+      ++piShiver;
+
       return;
    }
 
@@ -548,8 +559,8 @@ messages:
          ptShiver = CreateTimer(self,@ShiverTimer,10000);
       }
 
-      % Just in case they logged off recently.
-      if ptShiver <> $                
+      // Just in case they logged off recently.
+      if ptShiver <> $
       {
          DeleteTimer(ptShiver);
          ptShiver = $;
@@ -558,11 +569,11 @@ messages:
       if piTime_Online = 0
       {
          ptShiver = CreateTimer(self,@ShiverTimer,10000);
-         
+
          propagate;
       }
 
-      % Make the shivers go off after a delay, so you notice them more.
+      // Make the shivers go off after a delay, so you notice them more.
       if piShiver > 0
       {
          ptShiver = CreateTimer(self,@ShiverTimer,10000);
@@ -579,24 +590,24 @@ messages:
 
       if piShiver < 0 AND piTime_online <> 0
       {
-         DEBUG("piShiver not less than zero and piTime_online not = 0!");
-         
+         Debug("piShiver not less than zero and piTime_online not = 0!");
+
          return;
       }
 
       if piTime_online = 0
       {
          Send(poOwner,@MsgSendUser,#message_rsc=BlackDagger_gamestart_glow);
-       
+
          return;
       }
 
       while piShiver > 0
       {
          Send(poOwner,@MsgSendUser,#message_rsc=BlackDagger_shiver);
-         piShiver = piShiver - 1;
+         --piShiver;
       }
-      
+
       return;
    }
 
@@ -613,9 +624,9 @@ messages:
    Warn()
    {
       Send(poOwner,@ReceiveNestedMail,#nest_list=[4,BlackDagger_mail_warning],
-           #from=BlackDagger_roq,#dest_list=[poOwner]);
+            #from=BlackDagger_roq,#dest_list=[poOwner]);
       pbWarned = TRUE;
-      
+
       return;
    }
 
@@ -631,7 +642,7 @@ messages:
       return FALSE;
    }
 
-   CanBeStoredInVault()   
+   CanBeStoredInVault()
    {
       return FALSE;
    }
@@ -641,7 +652,7 @@ messages:
    {
       return FALSE;
    }
-	
+
    Delete()
    {
       if ptDagger_heal <> $
@@ -649,13 +660,13 @@ messages:
          DeleteTimer(ptDagger_heal);
          ptDagger_heal = $;
       }
-      
+
       if ptPlayer_heal <> $
       {
          DeleteTimer(ptPlayer_heal);
          ptPlayer_heal = $;
       }
-      
+
       if ptShiver <> $
       {
          DeleteTimer(ptShiver);
@@ -673,16 +684,16 @@ messages:
 
    CleanUp()
    {
-		if poOwner <> $
-		{
-			debug("Cleaning up daggers.  Found one contained by",Send(poOwner,@GetName));
-		}
-		
-		Send(self,@Delete);
-		
-		return;
+      if poOwner <> $
+      {
+         Debug("Cleaning up daggers.  Found one contained by",
+               Send(poOwner,@GetName));
+      }
+
+      Send(self,@Delete);
+
+      return;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

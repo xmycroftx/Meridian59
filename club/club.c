@@ -15,6 +15,7 @@
 
 #include "club.h"
 #include <vector>
+#include <fstream>
 
 /* time to wait at program start */
 #define INIT_TIME 3000
@@ -23,7 +24,7 @@ HINSTANCE hInst;
 HWND hwndMain;
 
 Bool success;
-
+Bool get_patchinfo;
 static Bool retry = True;   // True when an error occurs and user asks to retry
 
 std::string restart_filename;
@@ -32,11 +33,19 @@ int transfer_progress = 0;
 int transfer_file_size = 0;
 char string[256];
 char format[256];
+char format_filename[256];
+char filename_string[256];
+char scanning_string[256];
 
 std::string transfer_machine;
+#if VANILLA_UPDATER
 std::string transfer_filename;
 std::string transfer_local_filename;
-
+#else
+std::string transfer_path;
+std::string patchinfo_path;
+#endif
+std::string patchinfo_filename;
 std::string dest_path;
 
 /* local function prototypes */
@@ -50,25 +59,25 @@ void OnTimer(HWND hwnd,int id);
 BOOL CALLBACK ErrorDialogProc(HWND hDlg, UINT message, UINT wParam, LONG lParam);
 
 /************************************************************************/
-int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrev_instance,char *command_line,int how_show)
+int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrev_instance,
+                   _In_ char *command_line, _In_ int how_show)
 {
    hInst = hInstance;
 
    InitCommonControls();
 
+   get_patchinfo = False;
    success = False; /* whether the copy compeletely succeeded */
 
    if (ParseCommandLine(command_line))
-   {
       Interface(how_show);
-   }
 
    if (success)
       RestartClient();
 
    if (success == False)
       return 1;
-   
+
    return 0;
 }
 /************************************************************************/
@@ -117,29 +126,69 @@ std::vector<std::string> split(const std::string &s, char delim) {
 /************************************************************************/
 Bool ParseCommandLine(const char *args)
 {
-   std::string argstring(args);
+   std::string argstring;
+   if (strcmp(args, "") == 0)
+   {
+      std::ifstream fp("dlinfo.txt", std::ifstream::in);
+
+      if (fp.fail())
+      {
+         StartupError();
+         return False;
+      }
+      std::getline(fp, argstring);
+      fp.close();
+   }
+   else
+   {
+      argstring.assign(args);
+   }
+
    std::vector<std::string> arguments = split(argstring, ' ');
 
-   if (arguments.size() != 6)
+   if (arguments.size() == CLUB_NUM_ARGUMENTS)
+   {
+      if (arguments[1] != "UPDATE")
+      {
+         StartupError();
+         return False;
+      }
+
+      restart_filename = arguments[0];
+      transfer_machine = arguments[2]; //patchhost
+      dest_path = arguments[5];
+
+#if VANILLA_UPDATER
+      transfer_filename = arguments[3];
+      transfer_local_filename = arguments[4];
+#else
+      transfer_path = arguments[3];    // patchpath
+      patchinfo_path = arguments[4];   // patchinfo_path
+   }
+   else if (arguments.size() == CLUB_NEW_NUM_ARGUMENTS)
+   {
+      if (arguments[1] != "UPDATE")
+      {
+         StartupError();
+         return False;
+      }
+      // Set get_patchinfo to True, so we know to download patchinfo file.
+      get_patchinfo = True;
+
+      restart_filename = arguments[0];
+      transfer_machine = arguments[2]; //patchhost
+      transfer_path = arguments[3];    // patchpath
+      patchinfo_path = arguments[4];   // patchinfo_path
+      patchinfo_filename = arguments[5];
+      dest_path = arguments[6];
+#endif
+   }
+   else
    {
       StartupError();
+
       return False;
    }
-   
-   if (arguments[1] != "UPDATE")
-   {
-      StartupError();
-      return False;
-   }
-
-   restart_filename = arguments[0];
-
-   transfer_machine = arguments[2];
-   transfer_filename = arguments[3];
-
-   transfer_local_filename = arguments[4];
-
-   dest_path = arguments[5];
 
    return True;
 }
@@ -156,11 +205,18 @@ void RestartClient()
    STARTUPINFO si;
    PROCESS_INFORMATION pi;
 
-   memset(&si,sizeof(si),0);
+   memset(&si, 0, sizeof(si));
    si.cb = sizeof(si);
    GetStartupInfo(&si); /* shouldn't need to do this.  very weird */
+   memset(&pi, 0, sizeof(pi));
 
-   if (!CreateProcess(restart_filename.c_str(),"",NULL,NULL,FALSE,0,NULL,NULL,&si,&pi))
+   // Get the working directory we want to restart in.
+   // Could be different from where club was launched.
+   size_t found = restart_filename.find_last_of("/\\");
+   std::string dirPath;
+   dirPath.assign(restart_filename.substr(0, found));
+
+   if (!CreateProcess(restart_filename.c_str(), "", NULL, NULL, FALSE, 0, NULL, dirPath.c_str(), &si, &pi))
    {
       sprintf(s,GetString(hInst, IDS_CANTRESTART),GetLastError(),restart_filename.c_str());
       MessageBox(NULL,s,GetString(hInst, IDS_APPNAME),MB_ICONSTOP);
@@ -214,6 +270,11 @@ long WINAPI InterfaceWindowProc(HWND hwnd,UINT message,UINT wParam,LONG lParam)
       sprintf(string, format, transfer_progress, transfer_file_size);
       SetDlgItemText(hwnd, IDC_BYTES1, string);
 
+      GetDlgItemText(hwnd, IDS_RETRIEVING, format_filename, sizeof(format_filename));
+      sprintf(scanning_string, GetString(hInst, IDS_SCANNING));
+      SetDlgItemText(hwnd, IDS_RETRIEVING, scanning_string);
+      
+
       hCtrl = GetDlgItem(hwnd, IDC_ANIMATE1);
       Animate_Open(hCtrl, MAKEINTRESOURCE(IDA_DOWNLOAD));
       break;
@@ -235,10 +296,6 @@ long WINAPI InterfaceWindowProc(HWND hwnd,UINT message,UINT wParam,LONG lParam)
         PostMessage(hwndMain, WM_CLOSE, 0, 0);
       }
       break;
-      
-   case CM_DEARCHIVE :
-      Dearchive(dest_path.c_str(), transfer_local_filename.c_str());
-      break;
 
    case CM_FILESIZE:
       // Set max value
@@ -255,6 +312,15 @@ long WINAPI InterfaceWindowProc(HWND hwnd,UINT message,UINT wParam,LONG lParam)
       sprintf(string, format, transfer_progress, transfer_file_size);
       SetDlgItemText(hwndMain, IDC_BYTES1, string);
       SendDlgItemMessage(hwnd, IDC_PROGRESS, PBM_SETPOS, transfer_progress / 100, 0);
+      break;
+
+   case CM_FILENAME:
+      sprintf(filename_string, format_filename, (LPCSTR)lParam);
+      SetDlgItemText(hwndMain, IDS_RETRIEVING, filename_string);
+      break;
+
+   case CM_SCANNING:
+      SetDlgItemText(hwndMain, IDS_RETRIEVING, scanning_string);
       break;
 
    case WM_COMMAND:

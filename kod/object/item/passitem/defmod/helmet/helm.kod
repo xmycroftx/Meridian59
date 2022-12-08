@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Helm is Helmet
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include helm.lkod
 
    helm_name_rsc = "magic spirit helmet"
    helm_icon_male_rsc   = ornhelma.bgf
@@ -46,8 +48,11 @@ classvars:
    viInventory_group = 2
    viBroken_group = 3
 
-   viDefense_base = 25               % This is the default value for piDefense_bonus
-   viDamage_base = 1                % This is the default value for piDamage_reduce
+   // This is the default value for piDefense_bonus
+   viDefense_base = 25
+
+   // This is the default value for piDamage_reduce
+   viDamage_base = 1
 
 properties:
 
@@ -56,20 +61,20 @@ messages:
    NewUsed()
    {
       Send(poOwner,@RemoveHair,#what=self);
-      
+
       propagate;
    }
 
    NewUnused()
    {
       Send(poOwner,@ResetHair,#what=self);
-      
+
       propagate;
    }
 
    GetResistanceModifiers()
    {
-      return [ [-ATCK_SPELL_ALL,15]
+      return [ [-SPL_TYPE_ALL,15]
              ];
    }
 
@@ -78,18 +83,27 @@ messages:
       return FALSE;
    }
 
-   % these 3 called by player, for normal 3rd-person overlays on user.
-
+   // Called by player, for normal 3rd-person overlays on user.
    GetOverlay(animation = $)
    {
-      if send(poOwner,@GetGender) = GENDER_FEMALE
+      if Send(poOwner,@GetGender) = GENDER_FEMALE
       {
          return helm_icon_female_rsc;
       }
-      
-      return helm_icon_male_rsc; 
+
+      return helm_icon_male_rsc;
    }
 
+   GetHeatDamage()
+   {
+      return 1;
+   }
+
+   GetMinimapDotFlags()
+   {
+      // Special item, add minimap dot.
+      return MM_RARE_ITEM;
+   }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

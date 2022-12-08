@@ -1,23 +1,22 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 BatteredSkeleton is Skeleton
 
 constants:
 
    include blakston.khd
 
-   PALSY_CHANCE = 10
-   DEMENTIA_CHANCE = 10
-
 resources:
+
+   include batrskel.lkod
 
    BatteredSkeleton_koc_name_rsc = "cha'oleoc"
    BatteredSkeleton_name_rsc = "battered skeleton"
@@ -26,15 +25,16 @@ resources:
       "A few scraps of rotten flesh cling to this collection of human "
       "bones topped by a battered and distinctly nonhuman skull.  Sizzling "
       "liquid drips from its teeth, leaving small pits in the ground below."
-      "You shudder to think what dark ritual brought this abomination into being."
+      "You shudder to think what dark ritual brought this "
+      "abomination into being."
 
    BatteredSkeleton_head = skelhed3.bgf
    BatteredSkeleton_dead_icon_rsc = skelX.bgf
    BatteredSkeleton_dead_name_rsc = "pile of bones"
 
-   BatteredSkeleton_sound_miss = skl2_atk.wav
-   BatteredSkeleton_sound_death = skl2_die.wav
-   BatteredSkeleton_sound_aware = skl2_awr.wav
+   BatteredSkeleton_sound_miss = skl2_atk.ogg
+   BatteredSkeleton_sound_death = skl2_die.ogg
+   BatteredSkeleton_sound_aware = skl2_awr.ogg
 
 classvars:
 
@@ -47,46 +47,45 @@ classvars:
 
    viTreasure_type = TID_SKELETON2
    viSpeed = SPEED_AVERAGE
-   viAttack_type = ATCK_WEAP_THRUST
+   viAttack_type = ATK_TYPE_THRUST
    viAttributes = 0
    viLevel = 60
    viDifficulty = 4
+   viVisionDistance = 7
    viKarma = -70
-   viDefault_behavior = AI_FIGHT_AGGRESSIVE | AI_FIGHT_SWITCHALOT | AI_MOVE_FLEE_FRIGHTENERS
-
+   viDefault_behavior = \
+      AI_FIGHT_AGGRESSIVE | AI_FIGHT_SWITCHALOT | AI_MOVE_FLEE_FRIGHTENERS
+   viCashmin = 50
+   viCashmax = 280
    vrSound_miss = BatteredSkeleton_sound_miss
    vrSound_aware = BatteredSkeleton_sound_aware
    vrSound_death = BatteredSkeleton_sound_death
 
    vrHeadIcon = BatteredSkeleton_head
 
+   viBleedChance = 10
+   viBleedStrength = 750
+   viBleedDuration = 5000
+
 properties:
 
    piAnimation = ANIM_NONE
-   
+
 messages:
 
-   HitSideEffect(what = $)
+   SetResistances()
    {
-      local oSpell;
-      
-      oSpell = Send(SYS,@FindSpellByNum,#num=SID_PALSY);
-      if NOT Send(what,@IsEnchanted,#what=oSpell) 
-         AND Random(1,PALSY_CHANCE) = 1
-      {
-         Send(oSpell,@MakeSick,#who=what);
-      }
-      
-      oSpell = Send(SYS,@FindSpellByNum,#num=SID_DEMENTIA);
-      if NOT Send(what,@IsEnchanted,#what=oSpell) 
-         AND Random(1,DEMENTIA_CHANCE) = 1
-      {
-         Send(oSpell,@MakeSick,#who=what);
-      }
+      plResistances = [ [ATK_TYPE_PIERCE, 70 ],
+                        [-SPL_TYPE_UNHOLY, 70 ],
+                        [-SPL_TYPE_SHOCK, 70 ],
+                        [-SPL_TYPE_COLD, 70 ],
+                        [-SPL_TYPE_FIRE, -10 ],
+                        [-SPL_TYPE_HOLY, -20 ],
+                        [ATK_TYPE_BLUDGEON, -20 ]
+                      ];
 
       return;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

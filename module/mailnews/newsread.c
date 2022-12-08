@@ -96,8 +96,31 @@ void UserReadArticle(char *article)
 {
    if (hReadNewsDialog == NULL)
       return;
+   char newarticle[MAXMAIL * 2];
+   char *newp = newarticle;
 
-   SendMessage(hReadNewsDialog, BK_ARTICLE, 0, (LPARAM) article);
+   while (article[0] != '\0')
+   {
+      // if we already have \r\n, don't make it \r\r\n
+      if (article[0] == '\r' && article[1] == '\n')
+      {
+         newp[0] = article[0];
+         newp++;
+         article++;
+      }
+      else if (article[0] == '\n')
+      {
+         newp[0] = '\r';
+         newp++;
+      }
+
+      newp[0] = article[0];
+      newp++;
+      article++;
+   }
+   newp[0] = 0;
+
+   SendMessage(hReadNewsDialog, BK_ARTICLE, 0, (LPARAM)newarticle);
 }
 /****************************************************************************/
 BOOL CALLBACK ReadNewsDialogProc(HWND hDlg, UINT message, UINT wParam, LONG lParam)
@@ -163,13 +186,16 @@ BOOL CALLBACK ReadNewsDialogProc(HWND hDlg, UINT message, UINT wParam, LONG lPar
 
       // Ask for articles if we have read permission
       if (info->permissions & NEWS_READ)
-	 RequestArticles(info->newsgroup);
+         RequestArticles(info->newsgroup);
       else
-	 EnableWindow(GetDlgItem(hDlg, IDC_RESCAN), FALSE);
+         EnableWindow(GetDlgItem(hDlg, IDC_RESCAN), FALSE);
 
-      // Disable post button if we don't have permission
+      // Disable post and delete buttons if we don't have permission
       if (!(info->permissions & NEWS_POST))
-	 EnableWindow(GetDlgItem(hDlg, IDC_NEWSPOST), FALSE);
+      {
+         EnableWindow(GetDlgItem(hDlg, IDC_NEWSPOST), FALSE);
+         EnableWindow(GetDlgItem(hDlg, IDC_DELETEMSG), FALSE);
+      }
 
       SetTimer(hDlg, 1, 100, NULL);
 
@@ -202,14 +228,28 @@ BOOL CALLBACK ReadNewsDialogProc(HWND hDlg, UINT message, UINT wParam, LONG lPar
       for (l = info->articles; l != NULL; l = l->next)
       {
          article = (NewsArticle *) (l->data);
-         
+
          // Add article to list view
          if (!IsNameInIgnoreList(article->poster))
          {
+            // Option for showing post indexes
+            if (cinfo->config->debug)
+            {
+               char title_index[MAX_SUBJECT];
+               title_index[0] = 0;
+               sprintf(title_index, "%i: ", article->num);
+               strcat(title_index, article->title);
+
+               lvitem.pszText = title_index;
+            }
+            else
+            {
+               lvitem.pszText = article->title;
+            }
+
             lvitem.mask = LVIF_TEXT | LVIF_PARAM;
             lvitem.iItem = ListView_GetItemCount(hList);
             lvitem.iSubItem = 0;
-            lvitem.pszText = article->title;
             lvitem.lParam = (LPARAM) article;
             ListView_InsertItem(hList, &lvitem);
          
@@ -242,7 +282,7 @@ BOOL CALLBACK ReadNewsDialogProc(HWND hDlg, UINT message, UINT wParam, LONG lPar
       /* Display article's text */
       SetWindowText(hEdit, (char *) lParam);
       if (info->permissions & NEWS_POST)
-	 EnableWindow(GetDlgItem(hDlg, IDC_REPLY), TRUE);
+         EnableWindow(GetDlgItem(hDlg, IDC_REPLY), TRUE);
       EnableWindow(GetDlgItem(hDlg, IDC_REPLYMAIL), TRUE);
       SetTimer(hDlg, 1, 1000, NULL);
       return TRUE;
@@ -306,8 +346,13 @@ BOOL CALLBACK ReadNewsDialogProc(HWND hDlg, UINT message, UINT wParam, LONG lPar
    case WM_DESTROY:
       hReadNewsDialog = NULL;
       KillTimer(hDlg, 1);
+
+      // Set these back to -1 so we don't ask for nonexistent messages next time.
+      article_index = -1;
+      lastRequestedIndex = -1;
+
       if (exiting)
-	 PostMessage(cinfo->hMain, BK_MODULEUNLOAD, 0, MODULE_ID);
+         PostMessage(cinfo->hMain, BK_MODULEUNLOAD, 0, MODULE_ID);
       return TRUE;
 
    case WM_COMMAND:
@@ -346,10 +391,17 @@ BOOL CALLBACK ReadNewsDialogProc(HWND hDlg, UINT message, UINT wParam, LONG lPar
 
       case IDOK:
       case IDCANCEL:
-	 info->articles = list_destroy(info->articles);
+         info->articles = list_destroy(info->articles);
          new_articles   = NULL;
-	 EndDialog(hDlg, 0);
-	 return TRUE;
+         EndDialog(hDlg, 0);
+         return TRUE;
+
+      case IDC_DELETEMSG:
+         if (!ListViewGetCurrentData(hList, &index, (int *) &article))
+            return TRUE;
+         RequestDeleteNews(info->newsgroup, article_index);
+         RequestArticles(info->newsgroup);
+         return TRUE;
       }
    }
    return FALSE;
@@ -383,7 +435,6 @@ Bool DateFromSeconds(long seconds, char *str)
    struct tm *t;
    time_t local_time = seconds;
 
-   local_time += 1534000000L;    // Offset to sometime in mid-2018
    t = localtime(&local_time);
 
    if (t == NULL)

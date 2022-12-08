@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 SkyHeartStone is HeartStone
 
 constants:
@@ -16,14 +16,16 @@ constants:
 
 resources:
 
+   include hstonsky.lkod
+
    SkyHeartStone_name_rsc = "sky heartstone"
    SkyHeartStone_desc_rsc = \
-	"This is called a 'heartstone'.  It is a huge sky blue gem taken from the body of a "
-	"fallen Ve'Xeochicatl.  The heartstone feels very light in your hands.  The uses for "
-	"this gem are not widely known."
-	
+      "This is called a 'heartstone'.  It is a huge sky blue gem taken from "
+      "the body of a fallen Ve'Xeochicatl.  The heartstone feels very light "
+      "in your hands.  The uses for this gem are not widely known."
+
 classvars:
-   
+
    vrName = SkyHeartStone_name_rsc
    vrDesc = SkyHeartStone_desc_rsc
 
@@ -43,5 +45,4 @@ messages:
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+////////////////////////////////////////////////////////////////////////////////

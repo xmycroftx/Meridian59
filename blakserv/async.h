@@ -16,8 +16,13 @@
 void InitAsyncConnections(void);
 void ExitAsyncConnections(void);
 void AsyncSocketStart(void);
-void AsyncSocketAccept(SOCKET sock,int event,int error,int connection_type);
 void AsyncNameLookup(HANDLE hLookup,int error);
-void AsyncSocketSelect(SOCKET sock,int event,int error);
+void ResetUDP(void);
+int GetLastUDPReadTime(void);
+
+void AsyncSocketClose(SOCKET sock);
+void AsyncSocketWrite(SOCKET sock);
+void AsyncSocketRead(SOCKET sock);
+void AsyncSocketReadUDP(SOCKET sock);
 
 #endif

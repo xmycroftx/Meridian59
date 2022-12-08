@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 SporeCloud is PassiveObject
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include psporec.lkod
 
    SporeCloud_name_rsc = "thick fog"
    SporeCloud_icon_rsc = poisoncl.bgf
@@ -25,10 +27,12 @@ classvars:
    vrName = SporeCloud_name_rsc
    vrIcon = SporeCloud_icon_rsc
 
-   viObject_flags = LOOK_NO | DRAWFX_TRANSLUCENT_50
+   viObject_flags = OF_NOEXAMINE
    vrdesc = SporeCloud_desc_rsc
 
 properties:
+
+   piDrawFx = DRAWFX_TRANSLUCENT_50
 
    poCaster = $
    ptExpire = $
@@ -50,8 +54,8 @@ messages:
 
    Constructed()
    {
-      % At this point, the wall should have already been created.
-      %  therefore, it should be safe to delete it.
+      // At this point, the wall should have already been created.
+      //  therefore, it should be safe to delete it.
       Post(self,@ArenaCheck);
 
       propagate;
@@ -94,8 +98,8 @@ messages:
 
    NewOwner(what = $)
    {
-      % Arena has lots of funky walls, so ignore line of site stuff.
-      % We catch walls that fall outside of the play area anyway.
+      // Arena has lots of funky walls, so ignore line of site stuff.
+      // We catch walls that fall outside of the play area anyway.
       if IsClass(what,&GuildHall)
          AND Send(what,@InFoyer,#who=poCaster) <> Send(what,@InFoyer,#who=self)
       {
@@ -114,4 +118,4 @@ messages:
 
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

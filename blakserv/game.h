@@ -20,7 +20,7 @@ typedef struct
    int object_id;
    int game_state;
    int game_sync_index;
-   INT64 game_last_message_time;
+   UINT64 game_last_message_time;
 } game_data;
 
 enum
@@ -31,7 +31,7 @@ enum
 };
 
 void UpdateSecurityRedbook(void);
-const char* GetSecurityRedbook(void);
+char* GetSecurityRedbook(void);
 int GetSecurityRedbookID(void);
 
 #endif

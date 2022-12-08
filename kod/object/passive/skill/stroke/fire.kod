@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Fire is Stroke
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include fire.lkod
 
    fire_name_rsc = "fire"
    fire_icon_rsc = fibowico.bgf
@@ -41,15 +43,14 @@ classvars:
    viIndefinite = ARTICLE_NONE
    viDefinite = ARTICLE_NONE
 
-   viSchool = SKS_FENCING
+   viSchool = SKS_WEAPONCRAFT
    viSkill_Num = SKID_FIRE
-   viSkill_level = 4
+   viSkill_level = 4 
    viChance_to_increase = 50
+   viMeditate_ratio = 30
 
    viSkillExertion = 2
    vbCheck_exertion = FALSE
-
-   viDamage_factor = 90
 
 properties:
 
@@ -59,32 +60,39 @@ properties:
 
 messages:
 
-   % General combat messages:
+   // General combat messages:
 
-   % Finds ammo and uses it if not used.
+   // Finds ammo and uses it if not used.
    FindLikelyAmmo(who=$,report=FALSE)
    {
-      local oWeapon, oLikelyAmmo, oAmmo, cAmmoType, iAmmoValue, i;
+      local oWeapon, oLikelyAmmo, iAmmoType, iAmmoValue, i;
 
-      oWeapon = send(who,@LookupPlayerWeapon);
+      oWeapon = Send(who,@LookupPlayerWeapon);
       if oWeapon = $
       {
-         if report { send(who,@MsgSendUser,#message_rsc=fire_need_weapon); }
+         if report
+         {
+            Send(who,@MsgSendUser,#message_rsc=fire_need_weapon);
+         }
+
          return $;
       }
-      if not IsClass(oWeapon,&RangedWeapon)
+
+      if (NOT IsClass(oWeapon,&RangedWeapon))
       {
-         if report { send(who,@MsgSendUser,#message_rsc=fire_only_missile_weapon); }
+         if report
+         {
+            Send(who,@MsgSendUser,#message_rsc=fire_only_missile_weapon);
+         }
+
          return $;
       }
 
-      cAmmoType = send(oWeapon,@GetAmmoType);
+      iAmmoType = Send(oWeapon,@GetAmmoType);
 
-      oLikelyAmmo = $;
-
-      for i in send(who,@GetPlayerUsing)
+      foreach i in Send(who,@GetPlayerUsing)
       {
-         if send(i,@GetItemUseType) = ITEM_USE_QUIVER
+         if Send(i,@GetItemUseType) = ITEM_USE_QUIVER
          {
             oLikelyAmmo = i;
          }
@@ -92,31 +100,31 @@ messages:
 
       if oLikelyAmmo = $
       {
-         iAmmoValue = 1000000; % higher than any ammo value
+         iAmmoValue = 1000000; // higher than any ammo value
 
-         %% if the player doesn't have any arrows available and equipped,
-         %% auto-equip the cheapest ones.
+         /// if the player doesn't have any arrows available and equipped,
+         /// auto-equip the cheapest ones.
 
-         for i in send(who,@GetHolderPassive)
+         foreach i in Send(who,@GetHolderPassive)
          {
-            if (send(i,@GetItemUseType) = ITEM_USE_QUIVER)
-	            and (send(i,@GetAmmoType) = cAmmoType)
-               and ((send(i,@GetValue)/send(i,@GetNumber)) < iAmmoValue)
+            if (Send(i,@GetItemUseType) = ITEM_USE_QUIVER)
+               AND (Send(i,@GetAmmoType) = iAmmoType)
+               AND ((Send(i,@GetValue)/Send(i,@GetNumber)) < iAmmoValue)
             {
                oLikelyAmmo = i;
-               iAmmoValue = send(i,@GetValue)/send(i,@GetNumber);
+               iAmmoValue = Send(i,@GetValue)/Send(i,@GetNumber);
             }
          }
-         % Use the ammo!
+         // Use the ammo!
          if oLikelyAmmo <> $
          {
-            send(who,@TryUseItem,#what=oLikelyAmmo);
+            Send(who,@TryUseItem,#what=oLikelyAmmo);
          }
       }
 
-      if report and (oLikelyAmmo = $)
+      if report AND (oLikelyAmmo = $)
       {
-         send(who,@MsgSendUser,#message_rsc=fire_no_ammo);
+         Send(who,@MsgSendUser,#message_rsc=fire_no_ammo);
       }
 
       return oLikelyAmmo;
@@ -124,61 +132,39 @@ messages:
 
    CanPayCosts(who=$,oTarget=$)
    {
-      local oAmmo;
-
-      oAmmo = send(self,@FindLikelyAmmo,#who=who,#report=TRUE);
-      if oAmmo <> $
-      {
-         return TRUE;
-      }
-
-      return FALSE;
+      return Send(self,@FindLikelyAmmo,#who=who,#report=TRUE) <> $;
    }
 
    GetRequisiteStat(who=$)
    {
-      return send(who,@getaim);
+      return Send(who,@GetAim);
    }
 
    PayCosts(who=$)
    {
-      local oAmmo;
+      local oAmmo, oRoom;
 
-      oAmmo = send(self,@FindLikelyAmmo,#who=who);
+      oRoom = Send(who,@GetOwner);
+      oAmmo = Send(self,@FindLikelyAmmo,#who=who);
       if oAmmo = $
       {
-         send(who,@MsgSendUser,#message_rsc=fire_no_ammo);
+         Send(who,@MsgSendUser,#message_rsc=fire_no_ammo);
+
          return;
       }
 
-      send(who,@MsgSendUser,#message_rsc=fire_new_ammo,
-        #parm1=send(oAmmo,@GetName));
+      Send(who,@MsgSendUser,#message_rsc=fire_new_ammo,
+            #parm1=Send(oAmmo,@GetName));
 
-      send(send(who,@GetOwner),@SomethingShot,#who=who,
-        #target=send(who,@GetKillTarget), #projectile=oAmmo);
+      Send(oRoom,@SomethingShot,#who=who,#target=Send(who,@GetKillTarget),
+            #projectile=oAmmo,#flags=PROJ_FLAG_LIGHT_SOURCE);
 
-      send(oAmmo,@SubtractNumber,#number=1);
+      if (NOT Send(oRoom,@NoReagents))
+      {
+         Send(oAmmo,@SubtractNumber,#number=1);
+      }
 
       propagate;
-   }
-
-   DamageFactors(damage=0, who=$, weapon_used = $)
-   "Different skills/strokes are affected by strength differently."
-   {
-      local iDamage, iAim;
-
-      iDamage = 0;
-      % Get weapon proficiency bonuses.
-      if weapon_used <> $
-      {
-         iDamage = iDamage + (Send(weapon_used,@GetProf,#who=who)+1)*viMaxProficiencyDamage/100;
-      }
-      
-      % Get Aim damage bonus.
-      iAim = send(who,@GetAim);
-      iDamage = iDamage + ((100+bound(iAim-25,0,40))*damage)/100;
-
-      return iDamage;
    }
 
    IsRangedAttack()
@@ -186,6 +172,5 @@ messages:
       return TRUE;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

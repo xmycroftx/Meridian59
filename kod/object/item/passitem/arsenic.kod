@@ -1,20 +1,27 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Arsenic is PassiveItem                   % poison that looks like healer
+////////////////////////////////////////////////////////////////////////////////
+Arsenic is PassiveItem                   // poison that looks like healer
 
 constants:
 
    include blakston.khd
 
+   // * 10^-3 hp / sec (half that of a spider bite)
+   POISON_HEALTHLOSS = 300
+   POISON_VIGORLOSS = 300
+   POISON_DURATION = 60000
+
 resources:
+
+   include arsenic.lkod
 
    arsenic_use = "You realize too late that you have made a serious mistake."
    arsenic_cant_use_on = "You can't serve %s%s"
@@ -24,7 +31,7 @@ resources:
    arsenic_desc_rsc = \
       "The pungent liquid in this bottle contains floating "
       "bits of strange matter."
-   arsenic_gulp_sound = drkptn.wav
+   arsenic_gulp_sound = drkptn.ogg
 
 classvars:
    vrName = arsenic_name_rsc
@@ -33,9 +40,6 @@ classvars:
 
    viUse_type = ITEM_SINGLE_USE
    viItem_type = ITEMTYPE_POTION
-
-   viLossRate = 3000                    % 0.3 health points/sec
-   viDuration = 60000                   % one real minute
 
    viBulk = 20
    viWeight = 20
@@ -71,7 +75,7 @@ messages:
       }
 
       oPoison = Send(SYS,@FindSpellByNum,#num=SID_POISON);
-      Send(oPoison,@MakePoisoned,#who=apply_on,#lossrate=viLossRate,#duration=viDuration);
+      Send(oPoison,@StartPoison,#source=apply_on,#who=apply_on,#healthloss=POISON_HEALTHLOSS,#vigorloss=POISON_VIGORLOSS,#duration=POISON_DURATION);
       piHits = piHits - 1;
       Send(self,@Delete);
       
@@ -80,4 +84,4 @@ messages:
 
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

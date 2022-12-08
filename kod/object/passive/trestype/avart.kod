@@ -1,49 +1,45 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 AvarTreasure is TreasureType
 
 constants:
-   
+
    include blakston.khd
-   
+
 classvars:
 
+   viTreasure_num = TID_AVAR
 
 properties:
-   
-   piTreasure_num = TID_AVAR
+
    piItem_att_chance = 4
-   piDiff_seed = 2
+   piDiff_seed = 6
 
 messages:
-   
-   constructed()
+
+   Constructed()
    {
-      plTreasure = [ [ &RainbowFern, 20],
-                     [ &Bread, 15],
-                     [ &KriipaClaw, 15],
-                     [ &Money, 14],
-                     [ &WebMoss, 8],
-                     [ &NeruditeSword, 7],
-                     [ &NeruditeArmor, 7],
-                     [ &IvyCirclet, 5],
-                     [ &CurePoisonPotion, 2],
-                     [ &CureDiseasePotion, 2],
-                     [ &RemoveCursePotion, 2],
-                     [ &PurifyPotion, 2],
-                     [ &Yrxlsap, 1]
-		             ];
+      plTreasure = [ [ &RainbowFern, 30],
+                     [ &KriipaClaw, 23],
+                     [ &Snack, 1],
+                     [ &TeloFruit, 5],
+                     [ &WebMoss, 30],
+                     [ &NeruditeSword, 2],
+                     [ &NeruditeArmor, 2],
+                     [ &IvyCirclet, 1],
+                     [ &Yrxlsap, 6]
+                   ];
 
       propagate;
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

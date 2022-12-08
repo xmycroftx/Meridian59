@@ -15,18 +15,18 @@
 
 typedef struct block_node_struct
 {
-   INT64 iExpires;  // Expiration time
-   struct in_addr iaPeer;
+   int iExpires;
+   struct in6_addr iaPeer;
    struct block_node_struct *next;
 } block_node;
 
-void AddBlock(int iSeconds, struct in_addr* piaPeer);
-void DeleteBlock(struct in_addr* piaPeer);
+void AddBlock(int iSeconds, struct in6_addr* piaPeer);
+void DeleteBlock(struct in6_addr* piaPeer);
 void DeleteAllBlocks(void);
 
-bool CheckBlockList(struct in_addr* piaPeer);
+bool CheckBlockList(struct in6_addr* piaPeer);
 
-void BuildBannedIPBlocks( const char *filename );
+void BuildBannedIPBlocks( char *filename );
 
 
 #endif // BLOCK_H

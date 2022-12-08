@@ -1,19 +1,21 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Damn is DMSpell
 
 constants:
    include blakston.khd
 
 resources:
+
+   include damn.lkod
 
    damn_name_rsc = "damn"
    damn_icon_rsc = light.bgf
@@ -22,8 +24,8 @@ resources:
    damn_msg_DM = "You damn %s%s to hell."
    damn_msg_target = "You have been damned by %s%s!"
 
-   % This next line is also used by Deliverance (SID_DMRESCUE) to determine when to
-   %  reset the honor string.
+   // GetDamnedRsc() returns this as it is needed for removing the damned
+   // string from players when leaving OoG.
    damn_last_annoyed = " was sent to hell by "
    damn_dot = "."
 
@@ -37,8 +39,6 @@ classvars:
 
 properties:
 
-   poHell = $
-
 messages:
 
    GetNumSpellTargets()
@@ -46,59 +46,59 @@ messages:
       return 1;
    }
 
-   CastSpell(who = $, lTargets = $)
+   DoSpellEffects(who = $, lTargets = $)
    {
       local i, j, oHell;
 
-      oHell = send(SYS,@FindRoomByNum,#num=RID_OUTOFGRACE);
+      oHell = Send(SYS,@FindRoomByNum,#num=RID_OUTOFGRACE);
 
-      for j in lTargets
+      foreach j in lTargets
       {
          i = j;
 
          if isClass(i,&Battler)
          {
-            send(i,@MsgSendUser,#message_rsc=damn_msg_target,
+            Send(i,@MsgSendUser,#message_rsc=damn_msg_target,
                  #parm1=Send(who,@GetIndef),#parm2=Send(who,@GetTrueName));
-            send(who,@MsgSendUser,#message_rsc=damn_msg_DM,
+            Send(who,@MsgSendUser,#message_rsc=damn_msg_DM,
                  #parm1=Send(i,@GetDef),#parm2=Send(i,@GetTrueName));
 
-            send(SYS,@UtilGoNearSquare,#what=i,#where=oHell,#new_row=4,#new_col=3);
+            Send(SYS,@UtilGoNearSquare,#what=i,#where=oHell,#new_row=4,#new_col=3);
 
             if isClass(i,&Player)
             {
-               % (example)  She was sent to hell by GuidePixie.
+               // (example)  She was sent to hell by GuidePixie.
 
                ClearTempString();
-               AppendTempString(send(i,@GetHeShe,#cap=TRUE));
+               AppendTempString(Send(i,@GetHeShe,#cap=TRUE));
                AppendTempString(damn_last_annoyed);
-               AppendTempString(send(who,@GetTrueName));
+               AppendTempString(Send(who,@GetTrueName));
                AppendTempString(damn_dot);
 
-               send(i,@SetHonorString,#string=GetTempString());
+               Send(i,@AddHonorString,#string=GetTempString());
             }
 
             continue;
          }
 
-         if isClass(i,&LogoffGhost)
+         if IsClass(i,&LogoffGhost)
          {
             Send(SYS,@UtilGoNearSquare,#what=i,#where=oHell,#new_row=4,#new_col=3);
 
-            i = send(i,@GetGhostedPlayer);
-            send(who,@MsgSendUser,#message_rsc=damn_msg_DM,
+            i = Send(i,@GetGhostedPlayer);
+            Send(who,@MsgSendUser,#message_rsc=damn_msg_DM,
                  #parm1=Send(i,@GetDef),#parm2=Send(i,@GetTrueName));
-            send(i,@SetSaveLocation,#rid=RID_OUTOFGRACE,#row=4,#col=3);
+            Send(i,@SetSaveLocation,#rid=RID_OUTOFGRACE,#row=4,#col=3);
 
-            % (example)  She was sent to hell by GuidePixie.
+            // (example)  She was sent to hell by GuidePixie.
 
             ClearTempString();
-            AppendTempString(send(self,@GetHeShe,#cap=TRUE));
+            AppendTempString(Send(self,@GetHeShe,#cap=TRUE));
             AppendTempString(damn_last_annoyed);
-            AppendTempString(send(who,@GetTrueName));
-	    AppendTempString(damn_dot);
+            AppendTempString(Send(who,@GetTrueName));
+            AppendTempString(damn_dot);
 
-            send(i,@SetHonorString,#string=GetTempString());
+            Send(i,@AddHonorString,#string=GetTempString());
 
             continue;
          }
@@ -108,9 +108,13 @@ messages:
               #parm3=Send(i,@GetName));
       }
 
-      propagate;
+      return TRUE;
    }
 
+   GetDamnedRsc()
+   {
+      return damn_last_annoyed;
+   }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

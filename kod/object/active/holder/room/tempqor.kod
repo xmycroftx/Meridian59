@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 TempleQor is Room
 
 constants:
@@ -15,16 +15,18 @@ constants:
    include blakston.khd
 
    EXIT_DELAY = 600000
-   RESET_TIME = 5000   % five seconds
+   RESET_TIME = 5000   // five seconds
 
 	SECTOR_DOOR = 4
 resources:
 
+   include tempqor.lkod
+
    room_QorTemple = tempqor.roo
    room_name_QorTemple = "The Temple of Qor"
-   tempqor_music = temple.mid
+   tempqor_music = temple.ogg
 
-	templeqor_sound = down2.wav
+	templeqor_sound = down2.ogg
 
 classvars:
 
@@ -115,7 +117,7 @@ messages:
       
       piCurrentExit = oChosenExit;
       
-      for i in plExitPossibilities
+      foreach i in plExitPossibilities
       {
          if i = piCurrentExit
          {
@@ -135,13 +137,13 @@ messages:
 
    CreateStandardObjects()
    {
-      % teacher
+      // teacher
 
       Send(self,@NewHold,#what=Create(&QorPriestess),
            #new_row=16,#new_col=15,#fine_row=32,#fine_col=0,
                 #new_angle=ANGLE_SOUTH);
 
-      % and some braziers
+      // and some braziers
 
       Send(self,@NewHold,#what=Create(&Brazier),#new_row=15,#new_col=7);
       Send(self,@NewHold,#what=Create(&Brazier),#new_row=15,#new_col=9);
@@ -212,7 +214,7 @@ messages:
       if IsClass(oSpellSkill,&Spell)
          AND send(oSpellSkill,@GetSchool) = SS_QOR
       {
-         % Give a 10% bonus.
+         // Give a 10// bonus.
          return ((chance * 11)/10);
       }
 
@@ -221,4 +223,4 @@ messages:
 
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

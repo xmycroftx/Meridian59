@@ -11,7 +11,7 @@
 
  This module has all the functions dealing with writing to channels.
  Based on the configuration, the channels may or not be written to
- files, but they are always shown on the interface (chanbuf.c).
+ files, but they are always shown on the interface (chanbuf.c).  
 
  */
 
@@ -26,9 +26,11 @@ typedef struct
 
 channel_table_type channel_table[] =
 {
-{ CHANNEL_D, CHANNEL_DEBUG_DISK, DEBUG_FILE_BASE, },
-{ CHANNEL_E, CHANNEL_ERROR_DISK, ERROR_FILE_BASE, },
-{ CHANNEL_L, CHANNEL_LOG_DISK,   LOG_FILE_BASE,   },
+{ CHANNEL_D, CHANNEL_DEBUG_DISK, DEBUG_FILE, },
+{ CHANNEL_E, CHANNEL_ERROR_DISK, ERROR_FILE, },
+{ CHANNEL_L, CHANNEL_LOG_DISK,   LOG_FILE,   },
+{ CHANNEL_G, CHANNEL_GOD_DISK,   GOD_FILE,   },
+{ CHANNEL_A, CHANNEL_ADMIN_DISK, ADMIN_FILE, },
 };
 
 channel_node channel[NUM_CHANNELS];
@@ -79,7 +81,7 @@ void FlushDefaultChannels()
 
 void dprintf(const char *fmt,...)
 {
-   char s[2000];
+   char s[BUFFER_SIZE];
    va_list marker;
 
    sprintf(s,"%s|",TimeStr(GetTime()));
@@ -88,7 +90,6 @@ void dprintf(const char *fmt,...)
    vsprintf(s+strlen(s),fmt,marker);
    va_end(marker);
 
-   TermConvertBuffer(s,sizeof(s)); /* makes \n's into CR/LF pairs */
    if (s[strlen(s)-1] != '\n')
       strcat(s,"\r\n");
 
@@ -97,7 +98,7 @@ void dprintf(const char *fmt,...)
 
 void eprintf(const char *fmt,...)
 {
-   char s[2000];
+   char s[BUFFER_SIZE];
    va_list marker;
 
    sprintf(s,"%s | ",TimeStr(GetTime()));
@@ -106,14 +107,12 @@ void eprintf(const char *fmt,...)
    vsprintf(s+strlen(s),fmt,marker);
    va_end(marker);
 
-   TermConvertBuffer(s,sizeof(s)); /* makes \n's into CR/LF pairs */
-
    WriteStrChannel(CHANNEL_E,s);
 }
 
 void bprintf(const char *fmt,...)
 {
-   char s[1000];
+   char s[BUFFER_SIZE];
    va_list marker;
 
    sprintf(s,"%s | [%s] ",TimeStr(GetTime()),BlakodDebugInfo());
@@ -122,7 +121,6 @@ void bprintf(const char *fmt,...)
    vsprintf(s+strlen(s),fmt,marker);
    va_end(marker);
 
-   TermConvertBuffer(s,sizeof(s)); /* makes \n's into CR/LF pairs */
    if (s[strlen(s)-1] != '\n')
       strcat(s,"\r\n");
 
@@ -131,7 +129,7 @@ void bprintf(const char *fmt,...)
 
 void lprintf(const char *fmt,...)
 {
-   char s[1000];
+   char s[BUFFER_SIZE];
    va_list marker;
 
    sprintf(s,"%s | ",TimeStr(GetTime()));
@@ -140,11 +138,54 @@ void lprintf(const char *fmt,...)
    vsprintf(s+strlen(s),fmt,marker);
    va_end(marker);
 
-   TermConvertBuffer(s,sizeof(s)); /* makes \n's into CR/LF pairs */
    if (s[strlen(s)-1] != '\n')
       strcat(s,"\r\n");
 
    WriteStrChannel(CHANNEL_L,s);
+}
+
+void gprintf(const char *fmt,...)
+{
+   char s[BUFFER_SIZE];
+   va_list marker;
+
+   sprintf(s,"%s | ",TimeStr(GetTime()));
+
+   va_start(marker,fmt);
+   vsprintf(s+strlen(s),fmt,marker);
+   va_end(marker);
+
+   char *excludedword1 = "account";
+   char *excludedword2 = "ACCOUNT";
+   char *excludedword3 = "email";
+   char *excludedword4 = "automated";
+
+   if (strstr(s, excludedword1) != NULL
+      || strstr(s, excludedword2) != NULL
+      || strstr(s, excludedword3) != NULL
+      || strstr(s, excludedword4) != NULL)
+   {
+      sprintf(s, "%s | Line excluded due to personal information.",
+         TimeStr(GetTime()));
+   }
+
+   if (s[strlen(s)-1] != '\n')
+      strcat(s,"\r\n");
+
+   WriteStrChannel(CHANNEL_G,s);
+}
+
+void aprintf(const char *fmt, ...)
+{
+   char s[BUFFER_SIZE];
+   va_list marker;
+
+   va_start(marker, fmt);
+   vsnprintf(s, sizeof(s), fmt, marker);
+   va_end(marker);
+
+   WriteStrChannel(CHANNEL_A, s);
+   AdminBufferSend(s, strlen(s));
 }
 
 void WriteStrChannel(int channel_id,char *s)
@@ -164,19 +205,7 @@ FILE *CreateFileChannel(int channel_id)
    char channel_file[MAX_PATH+FILENAME_MAX];
    FILE *pFile;
 
-   char date_str[500];
-
-   time_t t;
-   struct tm *time_struct;
-
-   t = time(NULL);
-   time_struct = localtime(&t);
-   if (time_struct == NULL) {
-       strcpy(date_str, "unknown");
-   } else {
-       strftime(date_str, sizeof(date_str), "%Y-%m-%d", time_struct);
-   }
-   sprintf(channel_file,"%s%s-%s.txt",ConfigStr(PATH_CHANNEL),channel_table[channel_id].file_name, date_str);
+   sprintf(channel_file,"%s%s",ConfigStr(PATH_CHANNEL),channel_table[channel_id].file_name);
    pFile = fopen(channel_file, "ab");
 
    return pFile;

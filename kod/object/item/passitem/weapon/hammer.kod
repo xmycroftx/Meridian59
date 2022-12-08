@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Hammer is Weapon
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include hammer.lkod
 
    hammer_name_rsc = "hammer"
    hammer_icon_rsc = hammer.bgf
@@ -31,7 +33,7 @@ classvars:
    vrIcon = hammer_icon_rsc
    vrDesc = hammer_desc_rsc
 
-   % Hammers are average quality blunt weapons
+   // Hammers are average quality blunt weapons
    viWeaponType = WEAPON_TYPE_BLUDGEON
    viWeaponQuality = WEAPON_QUALITY_NORMAL
 
@@ -50,9 +52,9 @@ classvars:
 
 properties:
 
-   piAttack_type = ATCK_WEAP_NONMAGIC+ATCK_WEAP_BLUDGEON
+   piAttack_type = ATK_TYPE_NONMAGIC+ATK_TYPE_BLUDGEON
 
 messages:
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

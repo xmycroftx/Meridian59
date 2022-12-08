@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 MarionInn is ObjectRoom
 
 constants:
@@ -16,10 +16,12 @@ constants:
 
 resources:
 
+   include marinn.lkod
+
    room_name_marinn = "The Limping Toad Inn and Tavern"
    room_marinn = marinn.roo
 
-   marinn_music = bar.mid
+   marinn_music = bar.ogg
 
    news_marinn_name = "Events in Marion"
    news_marinn_desc = "Find out what people are saying about Marion."
@@ -52,13 +54,16 @@ properties:
 
    prMusic = marinn_music
 
+   // Every 5 min.
+   piGen_object_time = 300000
+
 messages:
 
    CreateObjectGeneration()
    {
       plObject_gen = $;
 
-      % some mugs
+      // some mugs
 
       plObject_gen = Cons([ &Mug, GEN_ONE, 1, 14, 7,  36, 20 ],plObject_gen);
       plObject_gen = Cons([ &Mug, GEN_ONE, 1,  14, 8, 12, 42 ],plObject_gen);
@@ -71,7 +76,7 @@ messages:
    {
       plExits = $;
 
-      %% TO TOWN
+      /// TO TOWN
       plExits = Cons([ 4, 1, RID_MARION, 56, 53, ROTATE_NONE ],plExits);
       plExits = Cons([ 12, 5, RID_MARION, 62, 57, ROTATE_NONE ],plExits);
       plExits = Cons([ 12, 4, RID_MARION, 62, 57, ROTATE_NONE ],plExits);
@@ -129,7 +134,7 @@ messages:
       propagate;
    }
 
-   % Force Morrigan's mood to follow Tova's
+   // Force Morrigan's mood to follow Tova's
    SetInnkeeperMood(iMood = $)
    {
       local i;
@@ -139,7 +144,7 @@ messages:
          return;
       }
 
-      for i in plActive 
+      foreach i in plActive 
       {
          if IsClass(first(i), &MarionInnkeeper)
          {
@@ -160,7 +165,7 @@ messages:
       iRow = send(who,@GetRow);
       iCol = send(who,@GetCol);
       
-      % coords: [5,9],[5,12],[5,15],[5,16],[7,11],[7,12],[7,15],[7,16]
+      // coords: [5,9],[5,12],[5,15],[5,16],[7,11],[7,12],[7,15],[7,16]
       if ( iRow = 5
            AND (iCol = 9
                 OR iCol = 12
@@ -180,4 +185,4 @@ messages:
 
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

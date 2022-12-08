@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Truce is RoomEnchantment
 
 constants:
@@ -16,27 +16,24 @@ constants:
 
 resources:
 
+   include truce.lkod
+
    truce_name_rsc = "truce"
    truce_icon_rsc = itruce.bgf
    truce_desc_rsc = \
-      "The spirit of Shal'ille calls upon her ally Faren, forming a truce with creatures of nature for "
-      "several minutes.  "
-      "Requires emerald and yrxl sap to cast."
-
+      "The spirit of Shal'ille descends upon the area and calms the minds of "
+      "all present, preventing combat for several minutes."
    truce_unnecessary = "Combat with monsters is already impossible here."
-
    truce_on = \
-      "A numbing calm settles upon your mind. You find yourself unable to lift a weapon against nature."
+      "A numbing calm settles upon your mind. You find yourself unable "
+      "to lift a weapon against nature."
    truce_off = \
-      "The calm that had gripped your mind departs.  You feel ready for "
-      "battle once more."
-
+      "The calm that had gripped your mind departs.  You feel ready "
+      "for battle once more."
    truce_guardian = \
-      "Your guardian angel tells you, \"You are not ready to cast this spell "
-      "so it hinders other players or logoff ghosts.\""
+      "Your guardian angel tells you, \"You are not ready to cast this spell.\""
    truce_no_towns = "Shal'ille does not permit you to interfere right now."
-
-   truce_sound = shalille.wav
+   truce_sound = shalille.ogg
 
 classvars:
 
@@ -44,18 +41,21 @@ classvars:
    vrDesc = truce_desc_rsc
    vrName = truce_name_rsc
    vrSucceed_wav = truce_sound
+   vrAlreadyEnchanted = truce_unnecessary
 
    viSpell_num = SID_TRUCE
    viSchool = SS_SHALILLE
    viMana = 20
-   viSpellExertion = 10
+   viSpellExertion = 3
    viSpell_level = 4
    viChance_To_Increase = 15
+   viMeditate_ratio = 30
+   viBaseRange = 10
 
-   % in seconds, since it works off GetTime()
-   viPostCast_time = 3
+   // In seconds, since it works off GetTime()
+   viPostCast_time = 1
 
-   % Default animation speed for icon in ms
+   // Default animation speed for icon in ms
    viAnimationSpeed = 200
    viAnimation_start = 1
    viAnimation_end = 3
@@ -64,6 +64,8 @@ classvars:
 
 properties:
 
+   pbAccessible = FALSE
+   pbEnabled = FALSE
 
 messages:
 
@@ -76,18 +78,13 @@ messages:
       return;
    }
 
-   GetNumSpellTargets()
-   {
-      return 0;
-   }
-
    CanPayCosts(who = $, lTargets = $)
    {
       local oRoom, i, oActive;
 
       oRoom = Send(who,@GetOwner);
 
-      % check if combat already banned in room
+      // Check if combat already banned in room.
       if Send(oRoom,@CheckRoomFlag,#flag=ROOM_NO_MOB_COMBAT)
          OR Send(oRoom,@CheckRoomFlag,#flag=ROOM_NO_COMBAT)
       {
@@ -96,49 +93,21 @@ messages:
          return FALSE;
       }
 
-      if NOT Send(who,@CheckPlayerFlag,#flag=PFLAG_PKILL_ENABLE)
+      if NOT Send(who,@CanPlayerPvP)
       {
-         for i in Send(oRoom,@GetHolderActive)
-         {
-            % Can't be cast by an unangeled character if there's another
-            %  character in the room that's attacked another player too
-            %  recently, or if there's a logoff ghost in the room.
-            oActive = Send(oRoom,@HolderExtractObject,#data=i);
-            if (IsClass(oActive,&Player)
-                AND oActive <> who
-                AND NOT Send(oActive,@CanHelpPlayer))
-               OR isClass(oActive,&LogoffGhost)
-            {
-               Send(who,@MsgSendUser,#message_rsc=truce_guardian);
+         Send(who,@MsgSendUser,#message_rsc=truce_guardian);
 
-               return FALSE;
-            }
-         }
+         return FALSE;
       }
 
-      % Check to see if the room restricts guild attacks.
-      % Check to see if the person is attackable in the area, is on a PvP
-      %  server, or is a DM.
+      // Check to see if the room restricts guild attacks.
+      // Check to see if the person is attackable in the area, is on a PvP
+      //  server, or is a DM.
       if (NOT Send(oRoom,@AllowGuildAttack,#what=who))
          AND Send(SYS,@IsPKAllowed)
          AND NOT IsClass(who,&DM)
       {
-         for i in Send(oRoom,@GetHolderActive)
-         {
-            % Only allow to be cast in towns unguilded if a monster is there.
-            % Unless monster is something a player can trigger/summon.
-            oActive = Send(oRoom,@HolderExtractObject,#data=i);
-            if IsClass(oActive,&Monster)
-               AND NOT ((Send(oActive,@GetBehavior) & AI_NPC)
-                        OR Send(oActive,@IsIllusion)
-                        OR Send(oActive,@IsSummoned)
-                        OR IsClass(oActive,&Revenant))
-            {
-               propagate;
-            }
-         }
-
-         % Tried to cast unguilded in town with no monsters.  Denied!
+         // Tried to cast unguilded in town with no monsters.  Denied!
          Send(who,@MsgSendUser,#message_rsc=truce_no_towns);
 
          return FALSE;
@@ -147,41 +116,35 @@ messages:
       propagate;
    }
 
-   CastSpell( who = $, iSpellPower = 0 )
+   DoSpellEffects(who = $, iSpellPower = 0)
    "Initiation point for the spell."
    {
       local oRoom;
 
       oRoom = Send(who,@GetOwner);
 
-      % keep tabs on guides/bards, but not admins.
-      if GetClass(who) = &DM
-      {
-         Debug(Send(who,@GetTrueName),"cast truce in",Send(oRoom,@GetName));
-      }
-
-      % global effects of the enchantment
+      // Global effects of the enchantment
       Send(oRoom,@SomeoneSaid,#type=SAY_MESSAGE,#string=truce_on,#what=self);
-      Send(oRoom,@RoomStartEnchantment,#what=self,#state=$,
+      Send(oRoom,@RoomStartEnchantment,#what=self,#state=[iSpellPower,who],
            #time=Send(self,@GetDuration,#iSpellPower=iSpellPower));
       Send(oRoom,@SetRoomFlag,#flag=ROOM_NO_MOB_COMBAT,#value=TRUE);
 
-      propagate;
+      return TRUE;
    }
 
    GetDuration(iSpellPower=0)
    {
       local iDur;
 
-      % 10-20 seconds at 1 spellpower
-      % 60-120 seconds at 99 spellpower.
+      // 10-20 seconds at 1 spellpower
+      // 60-120 seconds at 99 spellpower.
       iDur = (20 + iSpellPower) * 1000;
-      iDur = random(iDur/2, iDur);
+      iDur = Random(iDur/2, iDur);
 
       return iDur;
    }
 
-   StartEnchantmentNewOccupant( who = $ )
+   StartEnchantmentNewOccupant(who = $)
    "Called on new occupants of the enchanted room."
    {
       Send(who,@MsgSendUser,#message_rsc=truce_on);
@@ -189,7 +152,7 @@ messages:
       return;
    }
 
-   EndRoomEnchantment( who = $, state = $ )
+   EndRoomEnchantment(who = $, state = $)
    "Sent to each user as they leave the room.  Since we didn't enchant them, "
    "nothing to undo."
    {
@@ -209,14 +172,6 @@ messages:
          Send(where,@SetRoomFlagtoDefault,#flag=ROOM_NO_MOB_COMBAT);
       }
 
-      for i in Send(where,@GetEnchantmentList)
-      {
-         if Send(Nth(i,2),@GetSpellNum) = SID_JIG
-         {
-            Send(where,@SetRoomFlag,#flag=ROOM_NO_MOB_COMBAT,#value=TRUE);
-         }
-      }
-
       return;
    }
 
@@ -225,6 +180,10 @@ messages:
       return TRUE;
    }
 
+   GetScrollClass()
+   {
+      return &TruceScroll;
+   }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

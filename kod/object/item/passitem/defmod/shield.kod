@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Shield is DefenseModifier
 
 constants:
@@ -19,6 +19,8 @@ constants:
    DEFENDING = 3
 
 resources:
+
+   include shield.lkod
 
    shield_condition_exc = " shines with smooth perfection."
    shield_condition_exc_mended = " is in great condition, but has been patched before."
@@ -45,75 +47,78 @@ classvars:
    vrCondition_med = shield_condition_med 
    vrCondition_poor = shield_condition_poor 
    vrCondition_broken = shield_condition_broken
+   
+   // Shields are layer 1, so that layer 0 soldier shields will be slung on use
+   viLayer = 1
 
 properties:
-   
-   piUsed = UNUSED
 
-   % The bonus to block afforded by the shield.
-   piBlockBonus = 0
+   piUsed = UNUSED
 
 messages:
 
-   % General Combat messages:
+   // General Combat messages:
 
-   % Called here, different shields can give different bonuses.
+   // Called here, different shields can give different bonuses.
    GetBlockAbility(who = $)
    {
-      return bound(send(who,@GetSkillAbility,#skill_num=SKID_BLOCK) + piDefense_bonus,1,120);
+      local iBonus;
+
+      iBonus = piDefense_bonus;
+
+      if (who <> $)
+      {
+         if (IsClass(who,&User))
+         {
+            iBonus += Send(who,@GetSkillAbility,#skill_num=SKID_BLOCK);
+         }
+         else if (IsClass(who,&Monster))
+         {
+            iBonus += Send(who,@GetDifficulty) * 10;
+         }
+      }
+
+      return Bound(iBonus,1,120);
    }
 
-   % Shields use the defense bonus as a bonus to block instead.
+   // Shields use the defense bonus as a bonus to block instead.
    ModifyDefensePower(who = $,what = $,defense_power = 0)
    {
       return defense_power;
    }
 
-   % Shields only reduce damage if you make your block check.
-   ModifyDefenseDamage(who = $,what = $,damage = $,atype = 0,aspell = 0)
+   // Shields only reduce damage if you make your block check.
+   ModifyDefenseDamage(who = $,what = $,damage = $,atype = 0,stype= 0)
    {
       local oBlock;
 
       oBlock = Send(SYS,@FindSkillByNum,#num=SKID_BLOCK);
       
-      % If shield gives a damage reduction, and if the user has block, give them a skill check
-      %  with the defense bonus as a positive modifier.
+      // If shield gives a damage reduction, and if the user has block, give them a skill check
+      //  with the defense bonus as a positive modifier.
       if (send(who,@GetSkillAbility,#skill_num=SKID_BLOCK) > 0)
          AND Send(oBlock,@SuccessChance,#who=who,#modifier=piDefense_bonus)
       {
-         % We succeeded!  Propagate up and reduce damage.
+         // We succeeded!  Propagate up and reduce damage.
          propagate;
       }
       
       return damage;
    }
 
-   % General unsorted messages:
-
-   ReqUseSomething(what = $)
-   {
-      if isClass(what,&Shield)
-      {
-         if not send(poOwner,@TryUnuseItem,#what=self)
-         {
-            return FALSE;
-         }
-      }
-      
-      propagate;
-   }
+   // General unsorted messages:
 
    NewUsed()
    {
       piUsed = USED;
 
-      % do first person overlay if we have one
+      // do first person overlay if we have one
       if vrShield_window_overlay <> $
       {
          Send(poOwner,@SetWindowOverlay,#what=self);
       }
 
-      % do third person overlay if we have one
+      // do third person overlay if we have one
       if vrShield_overlay <> $
       {
          Send(poOwner,@SetOverlay,#what=self);
@@ -131,6 +136,28 @@ messages:
       }
 
       Send(poOwner,@RemoveOverlay,#what=self);
+
+      propagate;
+   }
+
+   ReqUseSomething(what = $)
+   {
+      // All defmods check for eachother in the defmod superclass. Here we are concerned with 2h non-armors.
+      if NOT IsClass(self,&SoldierShield)
+         AND (IsClass(what,&Bow)
+         OR IsClass(what,&Lute))
+         OR (IsClass(what,&JewelOfFroz) AND
+            Send(poOwner,@IsUsingA,#class=&JewelOfFroz))
+      {
+         if Send(poOwner,@TryUnuseItem,#what=self)
+         {
+            propagate;
+         }
+         else
+         {
+            return FALSE;
+         }
+      }
 
       propagate;
    }
@@ -156,9 +183,9 @@ messages:
       return TRUE;
    }
 
-   % These 5 called by player, for window overlays.
-   % Shield subclasses--do NOT set a window overlay unless you either
-   %  set vrShield_window_overlay correctly or override all these message handlers.
+   // These 5 called by player, for window overlays.
+   // Shield subclasses--do NOT set a window overlay unless you either
+   //  set vrShield_window_overlay correctly or override all these message handlers.
 
    GetWindowOverlay()
    {
@@ -172,7 +199,7 @@ messages:
 
    GetWindowOverlayHotspot()
    {
-      % turns off the window overlay
+      // turns off the window overlay
       if piUsed = UNUSED
       {
          return 0;
@@ -183,6 +210,14 @@ messages:
 
    SendWindowOverlayAnimation()
    {
+      local iFlags;
+
+      iFlags = piItem_flags & ITEM_PALETTE_MASK;
+      if iFlags <> 0
+      {
+         AddPacket(1,ANIMATE_TRANSLATION, 1,iFlags);
+      }
+
       if piUsed = DEFENDING
       { 
          AddPacket(1,ANIMATE_ONCE,4,1000,2,2,2,2,2,1);
@@ -196,20 +231,20 @@ messages:
 
    SendWindowOverlayOverlays()
    {
-      AddPacket(1,0); % no first person overlays on top of shield 
+      AddPacket(1,0); // no first person overlays on top of shield 
 
       return; 
    }
 
-   % These 3 called by player, for normal 3rd-person overlays on user.
-   % Shield subclasses--do NOT set an overlay unless you either
-   %  set vrShield_overlay correctly or override all these message handlers.
+   // These 3 called by player, for normal 3rd-person overlays on user.
+   // Shield subclasses--do NOT set an overlay unless you either
+   //  set vrShield_overlay correctly or override all these message handlers.
 
    GetOverlay()
    {
       return vrShield_overlay;
    }
-   
+
    GetOverlayHotspot()
    {
       return HS_LEFT_WEAPON;
@@ -221,12 +256,28 @@ messages:
       {
          AddPacket(1,ANIMATE_TRANSLATION,1,piItem_flags & ITEM_PALETTE_MASK);
       }
-      
-      AddPacket(1,ANIMATE_NONE,2,2); % group 2 is the player-overlay group
-      
+
+      AddPacket(1,ANIMATE_NONE,2,2); // group 2 is the player-overlay group
+
       return;
    }
 
+   CanBeUsedInQuests()
+   "Colored shields can't be given away in quests."
+   "Note that herald shields aren't given away, so aren't affected here."
+   {
+      if (piItem_flags <> 0)
+      {
+         return FALSE;
+      }
+
+      propagate;
+   }
+   
+   CanDyeItem()
+   {
+      return TRUE;
+   }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

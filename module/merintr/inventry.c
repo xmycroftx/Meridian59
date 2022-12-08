@@ -121,6 +121,7 @@ static Bool InventoryItemVisible(int row, int col);
 static void InventoryCursorMove(int action);
 static Bool InventoryReleaseCapture(void);
 static Bool InventoryDropCurrentItem(room_contents_node *container);
+static Bool InventoryMoveCurrentItem(int x, int y);
 static void InventoryVScroll(HWND hwnd, HWND hwndCtl, UINT code, int pos);
 static void InventoryComputeRowsCols(void);
 
@@ -173,9 +174,16 @@ void InventoryBoxCreate(HWND hParent)
    if (!GetBitmapResourceInfo(hInst, IDB_INVBKGND, &inventory_bkgnd))
      debug(("InventoryBoxCreate couldn't load inventory background bitmap\n"));
 
+	//	ajw begin...
+//	hbmpScrollBack = GetHBitmapFromResource( hInst, IDB_INVBKGND );
+//	if( !hbmpScrollBack )
+//		debug(("InventoryBoxCreate couldn't create hbmpScrollBack\n"));
 	if( !( ptr = GetBitmapResource( hInst, IDB_INVBKGND ) ) )
 		debug(("InventoryBoxCreate couldn't load inventory scroll bar texture bitmap\n"));
 
+//	logbrush.lbStyle = BS_DIBPATTERN;
+//	logbrush.lbColor = DIB_RGB_COLORS;
+//	logbrush.lbHatch = hbmpScrollBack;
 	logbrush.lbStyle = BS_DIBPATTERNPT;
 	logbrush.lbColor = DIB_RGB_COLORS;
 	logbrush.lbHatch = (long)ptr;
@@ -188,6 +196,7 @@ void InventoryBoxCreate(HWND hParent)
 
    InventoryResetFont();
    InventoryChangeColor();
+   InventoryDisplayScrollbar();
 }
 /************************************************************************/
 /*
@@ -228,7 +237,7 @@ void InventoryBoxResize(int xsize, int ysize, AREA *view)
    DrawBorder(&inventory_area, inventory_bg_index, NULL);
    
    inventory_area.x = view->x + view->cx + LEFT_BORDER + 3 * HIGHLIGHT_THICKNESS;
-   inventory_area.cx = xsize - inventory_area.x - 3 * HIGHLIGHT_THICKNESS - EDGETREAT_WIDTH;
+   inventory_area.cx = min(xsize - inventory_area.x - 3 * HIGHLIGHT_THICKNESS - EDGETREAT_WIDTH, INVENTORY_MAX_WIDTH);
 
 //   inventory_area.y = 2 * TOP_BORDER + USERAREA_HEIGHT + GROUPBUTTONS_HEIGHT + EDGETREAT_HEIGHT;
 //   inventory_area.cy = view->y + view->cy - inventory_area.y;
@@ -236,6 +245,7 @@ void InventoryBoxResize(int xsize, int ysize, AREA *view)
    	yMiniMap = 2 * TOP_BORDER + USERAREA_HEIGHT + EDGETREAT_HEIGHT + MAPTREAT_HEIGHT;
 	iHeightAvailableForMapAndStats = ysize - yMiniMap - 2 * HIGHLIGHT_THICKNESS - EDGETREAT_HEIGHT;
 	iHeightMiniMap = (int)( iHeightAvailableForMapAndStats * PROPORTION_MINIMAP ) - HIGHLIGHT_THICKNESS - MAPTREAT_HEIGHT;
+	iHeightMiniMap = min( iHeightMiniMap, MINIMAP_MAX_HEIGHT );
 
 	inventory_area.y = yMiniMap + iHeightMiniMap + 3 * HIGHLIGHT_THICKNESS + MAPTREAT_HEIGHT + GROUPBUTTONS_HEIGHT + MAP_STATS_GAP_HEIGHT + 1;
 	inventory_area.cy = ysize - EDGETREAT_HEIGHT - HIGHLIGHT_THICKNESS - inventory_area.y - STATS_BOTTOM_GAP_HEIGHT;
@@ -501,13 +511,13 @@ void InventoryRedraw(void)
    offset = top_row * cols;
    l = items;
    for (i=0; i < offset; i++)
-     if (l != NULL)
-       l = l->next;
+      if (l != NULL)
+         l = l->next;
 
    for (i = 0; i + offset < num_items; i++)
    {
       if (l == NULL)
-	 break;
+         break;
 
       item = (InvItem *) (l->data);
 
@@ -515,10 +525,10 @@ void InventoryRedraw(void)
       col = i % cols;
 
       if (row >= rows)
-	 return;
+         break;
 
       InventoryDrawSingleItem(item, i / cols, i % cols);
-      
+
       l = l->next;
    }
 
@@ -530,27 +540,36 @@ void InventoryRedraw(void)
       r.top    = (i / cols) * INVENTORY_BOX_HEIGHT;
       r.right  = r.left + INVENTORY_BOX_WIDTH;
       r.bottom = r.top + INVENTORY_BOX_WIDTH;
-      DrawWindowBackgroundColor(&inventory_bkgnd, hdc, &r, r.left + inventory_area.x, r.top + inventory_area.y,
-				-1);
+      DrawWindowBackgroundColor(&inventory_bkgnd, hdc, &r, r.left + inventory_area.x,
+         r.top + inventory_area.y, -1);
    }
 
-     r.left = cols * INVENTORY_BOX_WIDTH;
-     r.right = inventory_area.cx;
-     r.top = 0;
-     r.bottom = inventory_area.cy;
-     if (has_scrollbar)
-       r.right -= inventory_scrollbar_width;
-     DrawWindowBackgroundColor(&inventory_bkgnd, hdc, &r, r.left + inventory_area.x, r.top + inventory_area.y,
-			       -1);
-     
-     r.left = 0;
-     r.right = inventory_area.cx;
-     if (has_scrollbar)
-       r.right -= inventory_scrollbar_width;
-     r.top = rows * INVENTORY_BOX_HEIGHT;
-     r.bottom = inventory_area.cy;
-     DrawWindowBackgroundColor(&inventory_bkgnd, hdc, &r, r.left + inventory_area.x, r.top + inventory_area.y,
-			       -1);
+   r.left = cols * INVENTORY_BOX_WIDTH;
+   r.right = inventory_area.cx;
+   r.top = 0;
+   r.bottom = inventory_area.cy;
+   if (has_scrollbar)
+      r.right -= inventory_scrollbar_width;
+   DrawWindowBackgroundColor(&inventory_bkgnd, hdc, &r, r.left + inventory_area.x,
+      r.top + inventory_area.y, -1);
+
+   r.left = 0;
+   r.right = inventory_area.cx;
+   if (has_scrollbar)
+      r.right -= inventory_scrollbar_width;
+   r.top = rows * INVENTORY_BOX_HEIGHT;
+   r.bottom = inventory_area.cy;
+   DrawWindowBackgroundColor(&inventory_bkgnd, hdc, &r, r.left + inventory_area.x,
+      r.top + inventory_area.y, -1);
+
+   // Redraw the scrollbar in the correct position.
+   if (has_scrollbar)
+   {
+      InventoryScrollRange();
+      SetScrollPos(hwndInvScroll, SB_CTL, top_row, TRUE);
+      ShowWindow(hwndInvDialog, SW_SHOWNORMAL);
+      ShowWindow(hwndInvScroll, has_scrollbar ? SW_SHOWNORMAL : SW_HIDE);
+   }
 
    ReleaseDC(hwndInv, hdc);
 }
@@ -682,7 +701,14 @@ void InventoryLButtonUp(HWND hwnd, int x, int y, UINT keyFlags)
 
    // See if mouse pointer is in main graphics area
    if (!MouseToRoom(&temp_x, &temp_y))
+   {
+      // Drop in inventory. Check if we're still in inventory first.
+      if (x < 0 || y < 0)
+         return;
+
+      InventoryMoveCurrentItem(x,y);
       return;
+   }
 
    // See if a container is under mouse pointer
    r = GetObjectByPosition(temp_x, temp_y, CLOSE_DISTANCE, OF_CONTAINER, 0);
@@ -1059,6 +1085,38 @@ Bool InventoryDropCurrentItem(room_contents_node *container)
    if (container == NULL)
       RequestDrop(item->obj);
    else RequestPut(item->obj, container->obj.id);
+   return True;
+}
+/************************************************************************/
+/*
+ * InventoryMoveCurrentItem:  Move the item with the inventory cursor, if any.
+ *   Return True iff item moved.
+ */
+Bool InventoryMoveCurrentItem(int x, int y)
+{
+   int row, col;
+   InvItem *item, *drop_position;
+
+   item = InventoryGetCurrentItem();
+   if (item == NULL)
+      return False;
+
+   // Find row and col in absolute coordinates
+   col = x / INVENTORY_BOX_WIDTH;
+   row = top_row + y / INVENTORY_BOX_HEIGHT;
+   
+   drop_position = (InvItem *) list_nth_item(items, row * cols + col);
+   if (drop_position == NULL)
+      return False;
+
+   if (item->obj->id == drop_position->obj->id)
+      return False;
+
+   items = list_move_to_nth(items,(void *)item->obj->id,(void *)drop_position->obj->id,InventoryCompareIdItem);
+   InventoryRedraw();
+
+   RequestInventoryMove(item->obj->id, drop_position->obj->id);
+
    return True;
 }
 /************************************************************************/

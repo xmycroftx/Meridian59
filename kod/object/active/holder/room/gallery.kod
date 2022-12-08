@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+///////////////////////////////////////////////////////////////////////////////////
 Gallery is Room
 
 constants:
@@ -17,9 +17,11 @@ constants:
 
 resources:
 
+   include gallery.lkod
+
    room_gallery = univ.roo
    room_name_gallery = "object gallery"
-   gallery_music = main.mid
+   gallery_music = main.ogg
 
 classvars:
 
@@ -74,7 +76,7 @@ messages:
 
       Send(self,@NewHold,#what=Create(&Throne),#new_row=2,#new_col=2);
       Send(self,@NewHold,#what=Create(&Tombstone),#new_row=3,#new_col=2);
-      Send(self,@NewHold,#what=Create(&Portal),#new_row=4,#new_col=2);
+      Send(self,@NewHold,#what=Create(&Portal,#dest_row=23,#dest_col=19),#new_row=4,#new_col=2);
       Send(self,@NewHold,#what=Create(&HellPortal),#new_row=2,#new_col=13);
       Send(self,@NewHold,#what=Create(&Chest),#new_row=3,#new_col=13);
       Send(self,@NewHold,#what=Create(&Box),#new_row=4,#new_col=13);
@@ -97,7 +99,7 @@ messages:
       i=1;
       while i<82 {
          Send(self,@NewHold,#what=Create(&OrnamentalObject,#type=i),
-                  #new_row=(17-(i-1)/7),#new_col=(5+((i-1) mod 7)));
+                  #new_row=(17-(i-1)/7),#new_col=(5+((i-1) % 7)));
          i=i+1;
       }
 
@@ -108,6 +110,11 @@ messages:
    {
       return FALSE;
    }
+   
+   GetRegion()
+   {
+      return RID_HISTORIC;
+   }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

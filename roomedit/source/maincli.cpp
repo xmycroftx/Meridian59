@@ -110,7 +110,7 @@ END_RESPONSE_TABLE;
 // TMainClient
 // -----------
 //
-TMainClient::TMainClient (TWindow* parent, const char far* title,
+TMainClient::TMainClient (TWindow* parent, const char* title,
 						  TModule* module):
 	TWindow(parent, title, module)
 {
@@ -149,23 +149,23 @@ void TMainClient::SetupWindow ()
 //
 void TMainClient::CmFileOpenWad ()
 {
+	// save current working directory (of windeu32.exe)
+	// the TFileOpenDialog below is going to set
+	// it to the folder of the file being opened...
+	char workdir[256];
+	workdir[0] = 0;
+
+	GetCurrentDirectory(256, workdir);
+
 	SET_HELP_CONTEXT(Open_WAD_file);
 	//
 	// Display standard Open dialog box to select a file name.
 	//
-   
-   // save current working directory (of windeu32.exe)
-	// the TFileOpenDialog below is going to set
-	// it to the folder of the file being opened...
-	char workdir[MAX_PATH];
-	GetCurrentDirectory(MAX_PATH, workdir);
-   
 	*FileData.FileName = 0;
 	if (TFileOpenDialog(this, FileData).Execute() == IDOK)
 	{
 		// restore workingdirectory to folder of windeu32.exe
 		SetCurrentDirectory(workdir);
-      
 #if 0
 		OpenPatchWad(FileData.FileName);
 		CloseUnusedWadFiles();
@@ -174,7 +174,7 @@ void TMainClient::CmFileOpenWad ()
 		// the old one (the main client)
 		TMainFrame *MainFrame =
 			TYPESAFE_DOWNCAST (GetApplication()->GetMainWindow(), TMainFrame);
-		MainFrame->EditLevel (FileData.FileName, FALSE) ;
+		MainFrame->EditLevel(FileData.FileName, FileData.FileName, FALSE);
 		
 	}
 	RESTORE_HELP_CONTEXT();
@@ -395,11 +395,13 @@ void TMainClient::CmFileInsertRaw ()
 	file = fopen (input, "wb");
 	if (file == NULL)
 		Notify ("Error opening output file \"%s\"", input);
+	else
+	{
+		SaveEntryFromRawFile(file, raw, ObjectName);
 
-	SaveEntryFromRawFile (file, raw, ObjectName);
-
-	fclose(raw);
-	fclose(file);
+		fclose(raw);
+		fclose(file);
+	}
 End:
 	RESTORE_HELP_CONTEXT();
 }
@@ -456,13 +458,15 @@ void TMainClient::CmFileExtractRaw ()
 	WorkMessage ("Saving directory entry data to \"%s\".", FileData.FileName);
 
 	file = fopen(FileData.FileName, "wb");
-	if ( file == NULL)
+	if (file == NULL)
 	{
 		Notify ("Error opening output file \"%s\"", FileData.FileName);
 	}
-	SaveEntryToRawFile (file, ObjectName);
-	fclose (file);
-
+	else
+	{
+		SaveEntryToRawFile(file, ObjectName);
+		fclose(file);
+	}
 End:
 	RESTORE_HELP_CONTEXT();
 }
@@ -551,7 +555,7 @@ void TMainClient::CmEditorCreate ()
 		// the old one (the main client)
 		TMainFrame *MainFrame =
 			TYPESAFE_DOWNCAST(GetApplication()->GetMainWindow(), TMainFrame);
-		MainFrame->EditLevel (LevelName, TRUE) ;
+		MainFrame->EditLevel(LevelName, LevelName, TRUE);
 	}
 	RESTORE_HELP_CONTEXT();
 	return;		// 'this' is not valid anymore

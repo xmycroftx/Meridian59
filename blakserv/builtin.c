@@ -18,16 +18,16 @@
 
 typedef struct
 {
-	const char *name;
-	const char *password;
+	char *name;
+	char *password;
+	char *email;
 	int type;
-	const char *game_name;
+	char *game_name;
 } bi_account;
 
 bi_account bi_accounts[] =
 {
-	{ "Chris.Kirmse",  "11111111",  ACCOUNT_ADMIN, "Zandramas" },
-	{ "Andrew.Kirmse", "222222222",  ACCOUNT_ADMIN, "Zaphod" },
+	{ "Daenks",  "somethingnew", "None", ACCOUNT_ADMIN, "Daenks"},
 };
 
 enum
@@ -35,9 +35,9 @@ enum
 	NUM_BUILTIN = sizeof(bi_accounts)/sizeof(bi_account)
 };
 
-void CreateBuiltIn(void)
+void CreateBuiltInAccounts(void)
 {
-	int i,account_id,object_id;
+	int i, account_id, object_id = INVALID_OBJECT;
 	val_type name_val,system_id_val;
 	parm_node p[2];
 	
@@ -50,7 +50,7 @@ void CreateBuiltIn(void)
 			account_id = a->account_id;
 		else
 			account_id = CreateAccountSecurePassword(bi_accounts[i].name,bi_accounts[i].password,
-			bi_accounts[i].type);
+			bi_accounts[i].email,bi_accounts[i].type);
 		
 		if (bi_accounts[i].game_name != NULL)
 		{
@@ -72,9 +72,6 @@ void CreateBuiltIn(void)
 			
 			switch (bi_accounts[i].type)
 			{
-			case ACCOUNT_GUEST : 
-				object_id = CreateObject(GUEST_CLASS,2,p);
-				break;
 			case ACCOUNT_NORMAL :
 				object_id = CreateObject(USER_CLASS,2,p);
 				break;
@@ -89,11 +86,12 @@ void CreateBuiltIn(void)
 #endif
 					object_id = CreateObject(ADMIN_CLASS,2,p);
 				break;
-			} 
+			}
 			
-			if (AssociateUser(account_id,object_id) == False)
-				eprintf("CreateBuiltIn had AssociateUser fail, on account %i object %i\n",
-				account_id,object_id);
+			if (object_id == INVALID_OBJECT
+				|| AssociateUser(account_id,object_id) == false)
+				eprintf("CreateBuiltInAccounts had AssociateUser fail, on account %i object %i\n",
+					account_id, object_id);
 		}
 	}
 }

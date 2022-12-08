@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 NeruditeSword is Weapon
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include neruswd.lkod
 
    NeruditeSword_name_rsc = "nerudite sword"
    NeruditeSword_icon_rsc = nerswd.bgf
@@ -34,7 +36,7 @@ classvars:
 
    vrWeaponBroke = nerusword_shatters
 
-   % Nerudite swords are nerudite quality thrusting weapons
+   // Nerudite swords are nerudite quality thrusting weapons
    viWeaponType = WEAPON_TYPE_THRUST
    viWeaponQuality = WEAPON_NERUDITE
 
@@ -51,10 +53,12 @@ classvars:
    viInventory_group = 3
    viBroken_group = 2
 
+   viRange = 3 * FINENESS
+
 properties:
 
-   piAttack_type = ATCK_WEAP_THRUST + ATCK_WEAP_NERUDITE
-   piAttack_Spell = 0
+   piAttack_type = ATK_TYPE_THRUST + ATK_TYPE_NERUDITE
+   piSpell_type = 0
 
 messages:
 
@@ -70,7 +74,7 @@ messages:
       if poOwner <> $ AND isClass(poOwner,&User)
       {
          if send(poOwner,@AssessDamage,#what=self,#damage=random(10,25),
-                 #report=FALSE,#atype=ATCK_WEAP_NERUDITE) = $
+            #report=FALSE,#atype=ATK_TYPE_NERUDITE) = $
          {
             Send(Send(poOwner,@GetOwner),@SomethingKilled,#what=self,#victim=poOwner);
             Send(poOwner,@Killed,#what=self);
@@ -87,6 +91,5 @@ messages:
       propagate;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Canyon2 is ObjectRoom
 
 constants:
@@ -17,16 +17,18 @@ constants:
 
    SECTOR_DOOR = 1
 
-   % 10 seconds
+   // 10 seconds
    DOORWAY_DELAY = 10000
 
    include blakston.khd
 
 resources:
 
+   include canyon2.lkod
+
    room_name_canyons2 = "Martyr's Battleground"
    room_canyons2 = canyons2.roo
-   canyon2_music = walk1.mid
+   canyon2_music = walk1.ogg
 
    canyon2_portal_icon_rsc = teleport.bgf
 
@@ -53,6 +55,8 @@ properties:
 
    piDirectional_percent = 50
 
+   pbSnowGroundTexture = TRUE
+
    ptDoorway = $
    poNode = $
 
@@ -69,14 +73,10 @@ messages:
    Constructed()
    {
       local oPortal;
+
       plMonsters = [ [&StoneTroll, 85], [&GroundwormQueen, 15] ];
 
-      plGenerators = [ [9, 50], [11, 30], [6, 22], [24, 31], [25, 50],
-                       [30, 53], [52, 53], [36, 59], [50, 36], [42, 15],
-                       [52, 8], [60, 37], [62, 43], [32, 12], [10,10]
-                     ];
-
-      % Create the mana node.  We can find it and place it later.
+      // Create the mana node.  We can find it and place it later.
       Create(&ManaNode,#node_num=NODE_Q,#iRoomNum=piRoom_num);
 
       oPortal = Create(&Portal,#icon=canyon2_portal_icon_rsc,
@@ -86,9 +86,19 @@ messages:
       propagate;
    }
 
+   SetMonsterGenPoints()
+   {
+      plGenerators = [ [9, 50], [11, 30], [6, 22], [24, 31], [25, 50],
+                       [30, 53], [52, 53], [36, 59], [50, 36], [42, 15],
+                       [52, 8], [60, 37], [62, 43], [32, 12], [10,10]
+                     ];
+
+      return;
+   }
+
    ActivatePortal()
    {
-      % If the node exists, do nothing.
+      // If the node exists, do nothing.
       if poNode <> $
       {
          return;
@@ -103,7 +113,7 @@ messages:
 
    DeactivatePortal()
    {
-      % Remove the reference to the node, so we know it exists or not.
+      // Remove the reference to the node, so we know it exists or not.
       if poNode = $ 
       {
          Debug("Somehow, poNode is equal nil!  Something is wrong!");
@@ -154,7 +164,7 @@ messages:
       propagate;
    }
 
-   RecalcBackgroundSkyGraphic(iWeather=0)
+   RecalcBackgroundSkyGraphic(iSkyBox=0)
    {
       return;
    }
@@ -165,8 +175,8 @@ messages:
    }
 
    NewHold(what=$)
-   {      
-      if what <> $ and isClass(what,&token)
+   {
+      if what <> $ AND IsClass(what,&Token)
       {
          Post(what,@RandomTeleport);
       }
@@ -181,9 +191,9 @@ messages:
 
    CanHavePlayerPortal()
    {
-      % Don't allow portals into this room, bypassing puzzle
-      return false;
+      // Don't allow portals into this room, bypassing puzzle
+      return FALSE;
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

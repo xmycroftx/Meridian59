@@ -22,11 +22,8 @@
 
 /* local function prototypes */
 void MainUsage();
-void MainServer();
-void MainExitServer();
 
 DWORD main_thread_id;
-static Bool in_main_loop = False;
 
 #ifdef BLAK_PLATFORM_WINDOWS
 
@@ -45,140 +42,62 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrev_instance,char *command_li
 
 int main(int argc, char **argv)
 {
-	MainServer();
-	return 0;
+    main_thread_id = pthread_self();
+
+    return MainServer(argc,argv);
 }
 
 #endif
 
-Bool InMainLoop(void)
+// This function keeps the necessary calls to reset and reinit game data
+// in one place, to reduce the chance of errors if modifying it. Used by
+// the interface and admin reload commands.
+void MainReloadGameData()
 {
-   return in_main_loop;
+   // Reset data.
+   ResetAdminConstants();
+   ResetUser();
+   ResetString();
+   ResetRooms();
+   ResetLoadMotd();
+   ResetLoadBof();
+   ResetDLlist();
+   ResetNameID();
+   ResetResource();
+   ResetTimer();
+   ResetList();
+   ResetTables();
+   ResetObject();
+   ResetMessage();
+   ResetClass();
+
+   // Reload data.
+   InitNameID();
+   LoadMotd();
+   LoadBof();
+   LoadRsc();
+   LoadKodbase();
+
+   UpdateSecurityRedbook();
+   LoadAdminConstants();
 }
 
-void MainServer()
+char * GetLastErrorStr()
 {
-	InitInterfaceLocks(); 
-	
-	InitInterface(); /* starts a thread with the window */
+#ifdef BLAK_PLATFORM_WINDOWS
 
-	InitMemory(); /* memory needs channels in general, but need to start before config,
-	so just be careful. */
+	char *error_str;
 	
-	InitConfig();
-	LoadConfig();		/* must be nearly first since channels use it */
+	error_str = "No error string"; /* in case the call  fails */
 	
-	InitDebug();
-	
-	InitChannelBuffer();
-	
-	OpenDefaultChannels();
-	
-	lprintf("Starting %s\n",BlakServLongVersionString());
-	
-	InitClass();
-	InitMessage();
-	InitObject();
-	InitList();
-	InitTimer();
-	InitSession();
-	InitResource();
-	InitRoomData();
-	InitString();
-	InitUser();
-	InitAccount();
-	InitNameID();
-	InitDLlist();   
-	InitSysTimer();
-	InitMotd();
-	InitLoadBof();
-	InitTime();
-	InitGameLock();
-	InitBkodInterpret();
-	InitBufferPool();
-	InitTable();
-	AddBuiltInDLlist();
-	
-	LoadMotd();
-	LoadBof();
-	LoadRsc();
-	LoadKodbase();
-	
-	LoadAdminConstants();
-	
-	PauseTimers();
-	
-	if (LoadAll() == True)
-	{
-	/* this loaded_game_msg tells it to disconnect all blakod info about sessions,
-		* that were logged on when we saved */
-		
-		SendTopLevelBlakodMessage(GetSystemObjectID(),LOADED_GAME_MSG,0,NULL);
-		DoneLoadAccounts();
-	}
-	
-	/* these must be after LoadAll and ClearList */
-	InitCommCli(); 
-	InitParseClient(); 
-	InitProfiling();
-	InitAsyncConnections();
-	
-	UpdateSecurityRedbook();
-	
-	UnpauseTimers();
+	FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+		NULL,GetLastError(),MAKELANGID(LANG_ENGLISH,SUBLANG_ENGLISH_US),
+		(LPTSTR) &error_str,0,NULL);
+	return error_str;
+   
+#else
 
-	
-	//SetWindowText(hwndMain, ConfigStr(CONSOLE_CAPTION));
-
-    StartupComplete(); /* for the interface to report no errors on startup */
-    InterfaceUpdate();
-    lprintf("Status: %i accounts\n",GetNextAccountID());
-
-    lprintf("-------------------------------------------------------------------------------------\n");
-    dprintf("-------------------------------------------------------------------------------------\n");
-    eprintf("-------------------------------------------------------------------------------------\n");
-
-    AsyncSocketStart();
-
-    in_main_loop = True;
-
-    RunMainLoop();
-	/* returns if server terminated */
-	
-	MainExitServer();
+   return strerror(errno);
+   
+#endif
 }
-
-void MainExitServer()
-{
-	lprintf("ExitServer terminating server\n");
-	
-	ExitAsyncConnections();
-	
-	CloseAllSessions(); /* gotta do this before anything, cause it uses kod, accounts */
-	
-	CloseDefaultChannels();
-	
-	ResetLoadMotd();
-	ResetLoadBof();
-	
-	ResetTable();
-	ResetBufferPool();
-	ResetSysTimer();
-	ResetDLlist();
-	ResetNameID();
-	ResetAccount();
-	ResetUser();
-	ResetString();
-	ResetRoomData();
-	ResetResource();
-	ResetTimer();
-	ResetList();
-	ResetObject();
-	ResetMessage();
-	ResetClass();
-	
-	ResetConfig();
-	
-	DeleteAllBlocks();
-}
-

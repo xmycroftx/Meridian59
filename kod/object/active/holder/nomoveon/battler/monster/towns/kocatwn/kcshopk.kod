@@ -1,39 +1,46 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 KocatanShopkeeper is KocatanTown
 
 constants:
 
    include blakston.khd
 
-   % Max number of different items for sale.
+   // Max number of different items for sale.
    MAX_FORSALE = 25
 
-   % Max number of number items that will be held.
+   // Max number of number items that will be held.
    NUMBER_ITEM_MAX = 5500
 
 resources:
 
+   include kcshopk.lkod
+
    kocatanShopkeeper_name_rsc = "Pacal ix'Anoak"
    kocatanShopkeeper_icon_rsc = kcshopk.bgf
    kocatanShopkeeper_desc_rsc =  \
-      "This somewhat scattered man runs a very scattered store set in an abandoned "
-      "arsenal.  Regardless of his apparent lack of organization, Pacal has a remarkable "
-      "understanding of exactly what is here and where."
-   
-   kocatanShopkeeper_entry_welcome = "I probably got what you're looking for.... somewhere...."
+      "This somewhat scattered man runs a very scattered store set in an "
+      "abandoned arsenal.  Regardless of his apparent lack of organization, "
+      "Pacal has a remarkable understanding of exactly what is here and where."
 
-   JunkMan_AlreadyHaveOne_rsc = "I've already got one of them to unload, I don't need another right now."
-   JunkMan_NumberItem_rsc = "Sorry, my friend, trinkets like those are things I `Bwon't`n take."
-   JunkMan_Full_rsc = "I wish I could take that off of your hands for you, but mine are all full too!"  
+   kocatanShopkeeper_entry_welcome = \
+      "I probably got what you're looking for.... somewhere...."
+
+   JunkMan_AlreadyHaveOne_rsc = \
+      "I've already got one of them to unload, I don't need another right now."
+   JunkMan_NumberItem_rsc = \
+      "Sorry, my friend, trinkets like those are things I `Bwon't`n take."
+   JunkMan_Full_rsc = \
+      "I wish I could take that off of your hands for you, but mine "
+      "are all full too!"
    JunkMan_Not_Interested = "I thank ye, but I am not interested."
 
 classvars:
@@ -43,14 +50,16 @@ classvars:
    vrDesc = kocatanShopkeeper_desc_rsc
    viMerchant_markup = MERCHANT_EXPENSIVE
 
-   viAttributes = MOB_NOFIGHT | MOB_SELLER | MOB_RANDOM | MOB_LISTEN | MOB_NOMOVE | MOB_BUYER 
+   viAttributes = \
+      MOB_NOFIGHT | MOB_SELLER | MOB_RANDOM | \
+      MOB_LISTEN | MOB_NOMOVE | MOB_BUYER 
    viOccupation = MOB_ROLE_MERCHANT
 
-   % We sell what other people have given us
+   // We sell what other people have given us
    vbSellFromInventory = TRUE
 
 properties:
-   
+
    ptNew_Junk = $
 
 messages:
@@ -62,52 +71,49 @@ messages:
       propagate;
    }
 
-   UserEntered(who = $)
+   UserEntered(who=$)
    {
-      local iFlags;
-
-      iFlags = send(who,@GetObjectFlags);
-
-      if (iFlags & PLAYER_PK) OR (iFlags & PLAYER_OUTLAW)
+      if Send(who,@CheckPlayerFlag,#flag=PFLAG_MURDERER)
+         OR Send(who,@CheckPlayerFlag,#flag=PFLAG_OUTLAW)
       {
-         send(self,@SetMood,#new_mood=piMood+1);
+         Send(self,@SetMood,#new_mood=piMood+1);
       }
 
       if Send(who,@GetAction) = UA_HAPPY
       {
-         send(self,@SetMood,#new_mood=piMood-2);
+         Send(self,@SetMood,#new_mood=piMood-2);
       }
 
       if Send(who,@GetAction) = UA_SAD
       {
-         send(self,@SetMood,#new_mood=piMood-2);
+         Send(self,@SetMood,#new_mood=piMood-2);
       }
 
-      Post(poOwner,@SomeoneSaid,#what=self,#string=KocatanTailor_entry_welcome,
-           #type=SAY_RESOURCE);
+      Post(who,@SomeoneSaid,#what=self,#string=kocatanShopkeeper_entry_welcome,
+            #type=SAY_RESOURCE);
 
       return;
    }
 
    AffectMood(what=$,why=$)
    {
-      if why = MOODMOD_DAWN 
+      if why = MOODMOD_DAWN
       {
-         send(self,@SetMood,#new_mood=piMood+1);
+         Send(self,@SetMood,#new_mood=piMood+1);
 
          return;
       }
 
-      if why = MOODMOD_DUSK 
+      if why = MOODMOD_DUSK
       {
-         send(self,@SetMood,#new_mood=piMood-1);
+         Send(self,@SetMood,#new_mood=piMood-1);
 
          return;
       }
 
       if why = MOODMOD_ACCEPT_ITEM
       {
-         send(self,@SetMood,#new_mood=piMood+1);
+         Send(self,@SetMood,#new_mood=piMood+1);
 
          return;
       }
@@ -116,7 +122,7 @@ messages:
       {
          if IsClass(what,&Junk)
          {
-            send(self,@SetMood,#new_mood=piMood+10);
+            Send(self,@SetMood,#new_mood=piMood+10);
 
             return;
          }
@@ -137,7 +143,8 @@ messages:
    }
 
    AddNewJunkToSell()
-   "Adds more junk to sell, also reduces the amount of number items held if over max."
+   "Adds more junk to sell, also reduces the amount of number items "
+   "held if over max."
    {
       local oJunk, lForSale, i, bAdd;
 
@@ -148,26 +155,26 @@ messages:
       oJunk = Create(&Junk);
       bAdd = (length(lForSale) < MAX_FORSALE);
 
-      for i in lForSale
+      foreach i in lForSale
       {
-         if bAdd AND send(i,@GetName) = send(oJunk,@GetName)
+         if bAdd AND Send(i,@GetName) = Send(oJunk,@GetName)
          {
             bAdd = FALSE;
-            send(oJunk,@Delete);
+            Send(oJunk,@Delete);
          }
 
-         % Reduce our stock at this point.
+         // Reduce our stock at this point.
          if IsClass(i,&NumberItem)
          {
-            % Reduce number item stock by 1/3 to free up room to buy more.
-            send(i,@SubtractNumber,#Number=send(i,@GetNumber)/3);
+            // Reduce number item stock by 1/3 to free up room to buy more.
+            Send(i,@SubtractNumber,#Number=Send(i,@GetNumber)/3);
          }
          else
          {
-            % Likewise, delete about 1/3rd our non-number items.
+            // Likewise, delete about 1/3rd our non-number items.
             if random(1,3) = 1
             {
-               send(i,@Delete);
+               Send(i,@Delete);
             }
          }
       }
@@ -178,7 +185,8 @@ messages:
          SetNth(plFor_Sale,1,lForSale);
       }
 
-      ptNew_Junk = CreateTimer(self,@AddNewJunkToSell,(Random(12,24)*60*60*1000)); % 12-24 hours.
+      ptNew_Junk = CreateTimer(self,@AddNewJunkToSell,
+                           (Random(12,24)*60*60*1000)); // 12-24 hours.
 
       return;
    }
@@ -195,9 +203,9 @@ messages:
 
       plFor_sale = [ [oJunk1,oJunk2,oJunk3 ],$,$ ];
 
-      send(self,@NewHold,#what=oJunk1);
-      send(self,@NewHold,#what=oJunk2);
-      send(self,@NewHold,#what=oJunk3);
+      Send(self,@NewHold,#what=oJunk1);
+      Send(self,@NewHold,#what=oJunk2);
+      Send(self,@NewHold,#what=oJunk3);
 
       return;
    }
@@ -208,7 +216,7 @@ messages:
    {
       local i;
 
-      % Don't take money for resale.  That's just silly.
+      // Don't take money for resale.  That's just silly.
       if IsClass(what,&Money)
       {
          return FALSE;
@@ -219,12 +227,13 @@ messages:
          return FALSE;
       }
 
-      for i in first(plFor_Sale)
+      foreach i in first(plFor_Sale)
       {
          if GetClass(i) = GetClass(what)
          {
             if IsClass(i,&NumberItem)
-               AND (send(what,@GetNumber) + send(i,@GetNumber)) < NUMBER_ITEM_MAX
+               AND (Send(what,@GetNumber) + Send(i,@GetNumber))
+                        < NUMBER_ITEM_MAX
             {
                return TRUE;
             }
@@ -233,7 +242,8 @@ messages:
          }
       }
 
-      if send(what,@HasAttribute,#ItemAtt=IA_BONDED) OR send(what,@IsItemType,#type=ITEMTYPE_SPECIAL)
+      if Send(what,@HasAttribute,#ItemAtt=IA_BONDED)
+         OR Send(what,@IsItemType,#type=ITEMTYPE_SPECIAL)
       {
          return FALSE;
       }
@@ -253,52 +263,55 @@ messages:
 
       lForSale = First(plFor_Sale);
 
-      % set the stuff where the user can get to it
+      // Set the stuff where the user can get to it
       oHolder = Send(SYS,@GetSystemHolder2);
-      for i in plOffer_items
+      foreach i in plOffer_items
       {
          Send(oHolder,@NewHold,#what=i);
       }
 
-      % take stuff the user put there
+      // Take stuff the user put there.
       oHolder = Send(SYS,@GetSystemHolder1);
-      for lTake_items in [Send(oHolder,@GetHolderActive), Send(oHolder,@GetHolderPassive)]
+      foreach lTake_items in [ Send(oHolder,@GetHolderActive),
+                           Send(oHolder,@GetHolderPassive) ]
       {
-         for i in lTake_items
+         foreach i in lTake_items
          {
             Send(self,@NewHold,#what=i);
             if IsClass(i,&NumberItem)
             {
                bHadSomeNum = FALSE;
-               for j in lForSale
+               foreach j in lForSale
                {
-                  if getclass(j) = getclass(i)
+                  if GetClass(j) = GetClass(i)
                   {
                      bHadSomeNum = TRUE;
-                     send(j,@AddNumber,#number=send(i,@GetNumber));
+                     Send(j,@AddNumber,#number=Send(i,@GetNumber));
+                     // We don't need 'i' any more, delete it.
+                     Send(i,@Delete);
 
                      break;
                   }
                }
-               if not bHadSomeNum
+               if NOT bHadSomeNum
                {
-                  lForSale = cons(i,lForSale);
+                  lForSale = Cons(i,lForSale);
                }
             }
             else
             {
-               % If this is a spell item, then stop the go bad timer.
+               // If this is a spell item, then stop the go bad timer.
                if IsClass(i,&SpellItem)
                {
-                  send(i,@StopGoBadTimer);
+                  Send(i,@StopGoBadTimer);
                }
                
-               lForSale = cons(i,lForSale);
+               lForSale = Cons(i,lForSale);
             }
          }
       }
 
-      % kill the cancel offer timer
+      // kill the cancel offer timer
       SetNth(plFor_Sale,1,lForSale);
       Send(self,@OfferCanceled);
 
@@ -309,17 +322,16 @@ messages:
    {
       local oOwner;
 
-      oOwner = send(what,@GetOwner);
+      oOwner = Send(what,@GetOwner);
 
       if oOwner <> $
       {
          Send(poOwner,@LeaveHold,#what=what);
-         send(what,@NewOwner,#what=$);
+         Send(what,@NewOwner,#what=$);
       }
 
-      return;  
+      return;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

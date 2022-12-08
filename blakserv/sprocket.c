@@ -21,7 +21,7 @@ typedef struct
 
 client_def_table_type client_def_table[] = 
 { 
-	{ BP_REQ_MOVE,             { {2, TAG_INT}, {2, TAG_INT}, {1, TAG_INT}, {4, TAG_OBJECT},
+	{ BP_REQ_MOVE,             { {2, TAG_INT}, {2, TAG_INT}, {1, TAG_INT}, {4, TAG_OBJECT}, {2, TAG_INT},
 	{0, DONE_PARM} } },
 	{ BP_SEND_OBJECT_CONTENTS, { {4, TAG_OBJECT}, {0, DONE_PARM} } },
 	{ BP_SAY_TO,               { {1, TAG_INT}, {0,TAG_TEMP_STRING}, {0, DONE_PARM} } },
@@ -35,11 +35,13 @@ client_def_table_type client_def_table[] =
 	{ BP_REQ_TURN,             { {4, TAG_OBJECT}, {2, TAG_INT}, {0, DONE_PARM} } },
 	{ BP_REQ_GET,              { {4, TAG_OBJECT}, {0, DONE_PARM} } },
 	{ BP_REQ_DROP,             { {4, TAG_OBJECT}, {0, DONE_PARM} } },
+	{ BP_REQ_INVENTORY_MOVE,   { {4, TAG_OBJECT}, {4, TAG_OBJECT}, {0, DONE_PARM} } },
 	{ BP_REQ_PUT,              { {4, TAG_OBJECT}, {4, TAG_OBJECT}, {0, DONE_PARM} } },
 	{ BP_REQ_LOOK,             { {4, TAG_OBJECT}, {0, DONE_PARM} } },
 	{ BP_SEND_MAIL,            { {2, LIST_OBJ_PARM}, {0, TAG_STRING}, {0, DONE_PARM} } },
 	{ BP_REQ_GET_MAIL,         { {0, DONE_PARM} } },
 	{ BP_DELETE_MAIL,          { {4, TAG_INT}, {0, DONE_PARM} } },
+	{ BP_DELETE_NEWS,          { {2, TAG_INT}, {4, TAG_INT}, {0, DONE_PARM} } },
 	{ BP_SEND_STATS,           { {1, TAG_INT}, {0, DONE_PARM} } },
 	{ BP_SEND_STAT_GROUPS,     { {0, DONE_PARM} } },
 	{ BP_REQ_HIDE,             { {4, TAG_OBJECT}, {0, DONE_PARM} } },
@@ -51,6 +53,8 @@ client_def_table_type client_def_table[] =
 	{ BP_REQ_GO,               { {0, DONE_PARM} } },
 	{ BP_SEND_PLAYERS,         { {0, DONE_PARM} } },
 	{ BP_REQ_BUY,              { {4, TAG_OBJECT}, {0, DONE_PARM} } },
+	{ BP_REQ_TRIGGER_QUEST,    { {4, TAG_OBJECT}, {4, TAG_OBJECT}, {0, DONE_PARM} } },
+	{ BP_REQ_NPC_QUESTS,       { {4, TAG_OBJECT}, {0, DONE_PARM} } },
 	{ BP_REQ_BUY_ITEMS,        { {4, TAG_OBJECT}, {2, LIST_OBJ_PARM}, {0, DONE_PARM} } },
 	{ BP_REQ_WITHDRAWAL,       { {4, TAG_OBJECT}, {0, DONE_PARM} } },
 	{ BP_REQ_WITHDRAWAL_ITEMS, { {4, TAG_OBJECT}, {2, LIST_OBJ_PARM}, {0, DONE_PARM} } },
@@ -59,6 +63,7 @@ client_def_table_type client_def_table[] =
 	{ BP_SEND_SPELLS,          { {0, DONE_PARM} } },
 	{ BP_SEND_SKILLS,          { {0, DONE_PARM} } },
 	{ BP_REQ_CAST,             { {4, TAG_OBJECT}, {2, LIST_OBJ_PARM}, {0, DONE_PARM} } },
+	{ BP_REQ_PERFORM,          { {4, TAG_OBJECT}, {2, LIST_OBJ_PARM}, {0, DONE_PARM} } },
 	{ BP_REQ_ARTICLES,         { {2, TAG_INT}, {0, DONE_PARM} } },
 	{ BP_REQ_ARTICLE,          { {2, TAG_INT}, {4, TAG_INT}, {0, DONE_PARM} } },
 	{ BP_POST_ARTICLE,         { {2, TAG_INT}, {0, TAG_STRING}, {0, TAG_STRING}, {0, DONE_PARM} } },
@@ -74,6 +79,10 @@ client_def_table_type client_def_table[] =
 	
 	{ BP_REQ_ACTIVATE,         { {4, TAG_OBJECT}, {0, DONE_PARM} } },
 	{ BP_SEND_ENCHANTMENTS,    { {1, TAG_INT}, {0, DONE_PARM} } },
+	{ BP_CHANGED_STATS,               { {1, TAG_INT}, {1, TAG_INT}, {1, TAG_INT}, {1, TAG_INT},
+                                       {1, TAG_INT}, {1, TAG_INT},{1, TAG_INT}, {1, TAG_INT},
+                                       {1, TAG_INT}, {1, TAG_INT}, {1, TAG_INT}, {1, TAG_INT},
+                                       {1, TAG_INT}, {0, DONE_PARM} } },
 	
 };
 int num_client_msgs = sizeof(client_def_table)/sizeof(client_def_table_type);
@@ -95,8 +104,9 @@ client_def_table_type usercommand_def_table[] =
 	{ UC_REST,                  { {0, DONE_PARM} } },
 	{ UC_STAND,                 { {0, DONE_PARM} } },
 	{ UC_SUICIDE,               { {0, DONE_PARM} } },
-	{ UC_SAFETY,                { {1, TAG_INT}, {0, DONE_PARM} } },
+	{ UC_REQ_PREFERENCES,       { {0, DONE_PARM} } },
 	{ UC_REQ_GUILDINFO,         { {0, DONE_PARM} } },
+	{ UC_SEND_PREFERENCES,      { {4, TAG_INT}, {0, DONE_PARM} } },
 	{ UC_INVITE,                { {4, TAG_OBJECT}, {0, DONE_PARM} } },
 	{ UC_RENOUNCE,              { {0, DONE_PARM} } },
 	{ UC_EXILE,                 { {4, TAG_OBJECT}, {0, DONE_PARM} } },
@@ -110,6 +120,7 @@ client_def_table_type usercommand_def_table[] =
 	{1, TAG_INT}, {0, DONE_PARM} } },
 	{ UC_GUILD_SHIELDS,         { {0, DONE_PARM} } },
 	{ UC_GUILD_SHIELD,          { {0, DONE_PARM} } },
+	{ UC_GUILD_SHIELD_ERROR,    { {0, DONE_PARM} } },
 	{ UC_CLAIM_SHIELD,          { {1, TAG_INT}, {1, TAG_INT}, {1, TAG_INT}, {1, TAG_INT}, {0, DONE_PARM} } },
 	{ UC_DISBAND,               { {0, DONE_PARM} } },
 	{ UC_MAKE_ALLIANCE,         { {4, TAG_OBJECT}, {0, DONE_PARM} } },
@@ -128,6 +139,7 @@ client_def_table_type usercommand_def_table[] =
 	{ UC_REQ_RESCUE,            { {0, DONE_PARM} } },
 	{ UC_MINIGAME_STATE,        { {4, TAG_OBJECT}, {0, TAG_TEMP_STRING}, {0, DONE_PARM} } },
 	{ UC_MINIGAME_RESET_PLAYERS,{ {4, TAG_OBJECT}, {0, DONE_PARM} } },
+	{ UC_REQ_TIME,              { {0, DONE_PARM} } },
 };
 int num_usercommand_msgs = sizeof(usercommand_def_table)/sizeof(client_def_table_type);
 

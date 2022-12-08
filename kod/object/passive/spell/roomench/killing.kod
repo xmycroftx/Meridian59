@@ -1,35 +1,42 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%S%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+//////////////////////////S///////////////////////////////////////////////////////
 KillingFields is RoomEnchantment
 
 constants:
 
    include blakston.khd
 
-   %  2 realtime minutes
+   //  2 realtime minutes
    KILLINGFIELDS_TIME = 120000
 
 resources:
 
+   include killing.lkod
+
    killingfields_name_rsc = "killing fields"
    killingfields_icon_rsc = ikillfel.bgf
    killingfields_desc_rsc = \
-      "Induces magical blood-lust, increasing the damage of all attacks in the area.  "
-	   "Requires elderberries and orc teeth to cast."
-   
+      "Induces magical blood-lust, increasing the damage of all attacks in "
+      "the area."
    killingfields_already_enchanted = "This place is already a killing field."
-
-   killingfields_on = "Kraanan smiles and battle fury fills your heart.  The very earth thirsts for freshly shed blood."
+   killingfields_enchantment_rsc = \
+      "\n\nThe %s enchantment currently adds 2-5 damage to all attacks "
+      "in the area."
+   killingfields_on = \
+      "Kraanan smiles and battle fury fills your heart.  The very earth "
+      "thirsts for freshly shed blood."
    killingfields_off = "The spirit of Kraanan departs from this place."
-   killingfields_on_new_entrant = "Battle fury fills your heart.  The very earth thirsts for freshly shed blood."
+   killingfields_on_new_entrant = \
+      "Battle fury fills your heart.  The very earth thirsts for freshly "
+      "shed blood."
 
 classvars:
 
@@ -37,15 +44,18 @@ classvars:
    vrIcon = killingfields_icon_rsc
    vrDesc = killingfields_desc_rsc
 
+   vrAlreadyEnchanted = killingfields_already_enchanted
+
    viSpell_num = SID_KILLING_FIELDS
    viMana = 9
    viSchool = SS_KRAANAN
    viSpell_level = 5
 
    viChance_To_Increase = 35
+   viMeditate_ratio = 30
 
 properties:
-  
+
 messages:
 
    ResetReagents()
@@ -57,42 +67,27 @@ messages:
       return;
    }
 
-   GetNumSpellTargets()
-   {
-      return 0;
-   }
-
-   CanPayCosts(who = $, lTargets = $)
+   DoSpellEffects(who = $,iSpellPower = 0)
    {
       local oRoom;
 
-      oRoom = Send(who,@GetOwner);
-
-      % check for enchantment already applied
-      if Send(oRoom,@IsEnchanted,#what=self)
+      if (IsClass(who,&Room))
       {
-         Send(who,@MsgSendUser,#message_rsc=killingfields_already_enchanted);
-         
-         return FALSE;
+         oRoom = who;
+      }
+      else
+      {
+         oRoom = Send(who,@GetOwner);
       }
 
-      propagate;
-   }
-
-   CastSpell(who = $,iSpellPower = 0)
-   {
-      local oRoom;
-
-      oRoom = Send(who,@GetOwner);
-
-      % Global effects of the enchantment.
+      // Global effects of the enchantment.
       Send(oRoom,@SomeoneSaid,#type=SAY_MESSAGE,#string=killingfields_on,#what=self);
 
-      Send(oRoom,@RoomStartEnchantment,#what=self,#state=$,
+      Send(oRoom,@RoomStartEnchantment,#what=self,#state=[iSpellPower,who],
            #time=send(self,@GetDuration,#iSpellPower=iSpellPower));
       Send(oRoom,@EnchantAllOccupants,#what=self);
 
-      propagate;
+      return TRUE;
    }
 
    StartEnchantmentNewOccupant(who = $)
@@ -115,7 +110,8 @@ messages:
    EndSpell(where = $,state = $)
    "Called when spell expires."
    {
-      Send(where,@SomeoneSaid,#type=SAY_MESSAGE,#string=killingfields_off,#what=self);
+      Send(where,@SomeoneSaid,#type=SAY_MESSAGE,#string=killingfields_off,
+            #what=self);
       Send(where,@UnenchantAllOccupants,#what=self,#state=state);
 
       return;
@@ -133,15 +129,15 @@ messages:
    {
       local duration;
 
-      % Time in seconds.
+      // Time in seconds.
       duration = 50 + iSpellPower;
-      % Convert to ms.
+      // Convert to ms.
       duration = duration * 1000;
 
       return duration;
    }
 
-   % Stuff we handle to be an attack modifier.
+   // Stuff we handle to be an attack modifier.
 
    ModifyHitRoll(who = $,what = $,hit_roll = $)
    {
@@ -153,6 +149,17 @@ messages:
       return damage + Random(2,5);
    }
 
+   EffectDesc(who=$)
+   {
+      AddPacket(4,killingfields_enchantment_rsc, 4,Send(self,@GetName));
+
+      return;
+   }
+
+   GetScrollClass()
+   {
+      return &KillingFieldScroll;
+   }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

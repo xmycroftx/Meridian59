@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 OutdoorsJ3 is MonsterRoom
 
 constants:
@@ -16,11 +16,12 @@ constants:
 
 resources:
 
+   include j3.lkod
+
    room_OutdoorsJ3 = j3.roo
-   room_name_OutdoorsJ3 ="The Queen's Way"
+   room_name_OutdoorsJ3 ="Queen's Way"
 
-   OutdoorsJ3_music = forest.mid
-
+   OutdoorsJ3_music = forest.ogg
 
 classvars:
 
@@ -34,9 +35,11 @@ classvars:
    viFlag_row = 13
    viFlag_col = 17
 
+   viWeatherZone = WEATHER_ZONE_BARLOQUE
+
 properties:
 
-   prMusic = OutdoorsD5_music
+   prMusic = OutdoorsJ3_music
 
    prRoom = room_OutdoorsJ3
    piRoom_num = RID_J3
@@ -46,29 +49,37 @@ properties:
 
    piDirectional_percent = DIRECTIONAL_PERCENT_OUTDOORS
 
-   piGen_time = 180000
-   piGen_percent = 60
+   pbSnowGroundTexture = TRUE
+
+   piGen_time = 20000
+   piGen_percent = 90
 
    piInit_count_min = 1
    piInit_count_max = 3
 
-   piMonster_count_max = 5
+   piMonster_count_max = 8
 
 messages:
 
    Constructed()
    {
-      plMonsters = [ [&SpiderBaby, 40], [&GiantRat, 60] ];
+      plMonsters = [ [&Centipede, 100] ];
 
-      plGenerators = [ [21, 17], [30, 15], [10, 16], [17, 7] ];
       propagate;
+   }
+
+   SetMonsterGenPoints()
+   {
+      plGenerators = [ [21, 17], [30, 15], [10, 16], [17, 7] ];
+
+      return;
    }
 
    CreateStandardObjects()
    {
       Send(self,@NewHold,#what=Create(&PrincessGuard),
            #new_row=21,#new_col=12);
-   
+
       propagate;
    }
 
@@ -80,9 +91,9 @@ messages:
       plExits = Cons([ 22,10, ROOM_LOCKED_DOOR ],plExits);
       plExits = Cons([ 21,11, ROOM_LOCKED_DOOR ],plExits);
 
-      plExits = Cons([ 22,15, ROOM_LOCKED_DOOR ],plExits);
-      plExits = Cons([ 22,16, ROOM_LOCKED_DOOR ],plExits);
-      plExits = Cons([ 21,15, ROOM_LOCKED_DOOR ],plExits);
+      plExits = Cons([ 22,15, RID_RATCAVE3, 5, 73, ROTATE_NONE ],plExits);
+      plExits = Cons([ 22,16, RID_RATCAVE3, 5, 73, ROTATE_NONE ],plExits);
+      plExits = Cons([ 21,15, RID_RATCAVE3, 5, 73, ROTATE_NONE ],plExits);
          
       plEdge_Exits = $;
       plEdge_Exits = Cons([LEAVE_WEST, RID_I3, 25, 60, ROTATE_NONE,ROW_IS_LESS_THAN,19], plEdge_exits);
@@ -92,4 +103,4 @@ messages:
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

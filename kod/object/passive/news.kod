@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 News is PassiveObject
 
 constants:
@@ -16,40 +16,57 @@ constants:
 
 resources:
 
+   include news.lkod
+
    news_name_rsc = "Newscroll"
    news_icon_rsc = news.bgf
    news_desc_rsc = "You are looking at a public posting device."
 
+   news_users_cant_delete = \
+      "Only DMs, Admins and Moderators may delete posts from this newsglobe."
+   news_not_own_post = \
+      "You can only delete your own posts."
+   news_del_time_expired_header = \
+      "You may only delete your post within %r%r%r%r%r%r%r of posting."
+   news_new_post = \
+      "~B~U~k[###]~n ~B~vNew post on %s (index %i) by ~r%s~n, title: ~b%q~n.  "
+      "Post index %i."
+
 classvars:
 
    vrIcon = news_icon_rsc
+
+   // The number of minutes a user has to delete their post after posting it.
+   viPostDeleteMinutes = 60
 
 properties:
 
    vrName = news_name_rsc
    vrDesc = news_desc_rsc
 
-   piNews			% newsgroup id (nid) 
+   // newsgroup id (nid)
+   piNews
 
-   plMessages = $               % don't change structure of this without
-                                % changing user.kod!!!
+   // don't change structure of this without changing user.kod!!!
+   plMessages = $
 
-   % plMessages is a list of lists.
-   %
-   % Each element list is a posted message.
-   %
-   % The format of each posted message is:
-   %
-   %   [ INT message number,
-   %     OBJECT that posted the message,
-   %     INT post time,
-   %     STRING title of message,
-   %     STRING message text
-   %   ]
+   // plMessages is a list of lists.
+   //
+   // Each element list is a posted message.
+   //
+   // The format of each posted message is:
+   //
+   //   [ INT message number,
+   //     OBJECT that posted the message,
+   //     INT post time, (with offset, for checking deletion time)
+   //     STRING unix time, (without offset, for displaying date in clients)
+   //     STRING title of message,
+   //     STRING message text
+   //   ]
 
    piNext_num = 1
 
-   piMax_messages = 75          % the # of posts we keep
+   piMax_messages = 75          // the # of posts we keep
 
 messages:
 
@@ -57,16 +74,16 @@ messages:
    {
       if nid = $
       {
-         debug("Newsgroup created with no nid");
-         
+         Debug("Newsgroup created with no nid");
+
          propagate;
       }
-      
+
       if name <> $
       {
          vrName = name;
       }
-      
+
       if desc <> $
       {
          vrDesc = desc;
@@ -76,7 +93,24 @@ messages:
 
       Send(SYS,@SystemNewNews,#what = self);
 
-      propagate;      
+      propagate;
+   }
+
+   FixPostTimestamps()
+   "Adds the new timestamp field to each post in plMessages."
+   {
+      local i;
+
+      foreach i in plMessages
+      {
+         if (Length(i) < 6)
+         {
+            i = InsertListElem(i,NEWS_ARTICLE_LONG_TIME,
+                  OldTimestampFix(Nth(i,NEWS_ARTICLE_SHORT_TIME)));
+         }
+      }
+
+      return;
    }
 
    Delete()
@@ -87,10 +121,27 @@ messages:
       propagate;
    }
 
+   UpdateTimeValues()
+   {
+      local i, iTime;
+
+      iTime = GetTime();
+
+      foreach i in plMessages
+      {
+         if (Nth(i,3) > iTime)
+         {
+            SetNth(i,3,iTime);
+         }
+      }
+
+      return;
+   }
+
    TryLook(what = $)
    {
       Send(what,@SendLookNews,#what=self);
-      
+
       return;
    }
 
@@ -106,29 +157,154 @@ messages:
 
    GetNewsPermission(what = $)
    {
-      return NEWS_PERMISSION_READ_WRITE;			% read-write by everybody
+      return NEWS_PERMISSION_READ_WRITE; // read-write by everybody
    }
 
-   PostNews(what = $,title = $,body = $)
+   PostNews(what = $,title = $,body = $, timestring = $)
    {
       local iMessage_num;
 
-      if NOT (send(self,@GetNewsPermission,#what=what) & NEWS_PERMISSION_WRITE)
+      if NOT (Send(self,@GetNewsPermission,#what=what) & NEWS_PERMISSION_WRITE)
       {
-         debug("ALERT!  Player ",send(what,@GetTrueName),what," tried to write to a newsglobe without permission.");
-         
+         Debug("ALERT!  Player ",Send(what,@GetTrueName),what,
+            " tried to write to a newsglobe without permission.");
+
          return;
       }
 
       Send(self,@ClearSpaceToPost);
 
-      iMessage_num = piNext_num;
-      piNext_num = piNext_num + 1;
+      iMessage_num = piNext_num++;
 
-      title = send(SYS,@CleanseString,#string=title);
-      body = send(SYS,@CleanseString,#string=body);
+      title = Send(SYS,@CleanseString,#string=title);
+      body = Send(SYS,@CleanseString,#string=body);
 
-      plMessages = Cons([iMessage_num,what,GetTime(),title,body],plMessages);
+      // Passing a time in allows a post to display the original date,
+      // e.g. if deleted/moved to god globe.
+      if (timestring = $)
+      {
+         timestring = GetUnixTimeString();
+      }
+
+      SendList(Send(SYS,@GetGlobeWatchers),0,@MsgSendUser,
+            #message_rsc=news_new_post,#parm1=vrName,#parm2=piNews,
+            #parm3=Send(what,@GetName),#parm4=title,#parm5=iMessage_num);
+
+      plMessages = Cons([iMessage_num,what,GetTime(),timestring,title,body],plMessages);
+
+      return;
+   }
+
+   RemovePost(who=$, index=$)
+   "Removes a post from a newsglobe, triggered by 'who'. Addresses the post "
+   "by index."
+   {
+      local lArticle, oNews;
+
+      // Only admins can delete from godglobe.
+      if (piNews = NID_GODROOM
+         AND NOT IsClass(who,&Admin))
+      {
+         return FALSE;
+      }
+
+      if (index = $)
+      {
+         Debug("RemovePost passed $ index! Not moving post.");
+
+         return FALSE;
+      }
+
+      oNews = Send(SYS,@FindNewsByNum,#num=NID_GODROOM);
+      if (oNews = $)
+      {
+         Debug("RemovePost couldn't find GodGlobe! Not moving post.");
+
+         return FALSE;
+      }
+
+      // Get the article we want to move.
+      lArticle = Send(self,@GetArticle,#index=index);
+
+      if (lArticle = $)
+      {
+         Debug("RemovePost unable to find article with index ",index,
+               " not moving post.");
+
+         return FALSE;
+      }
+
+      if (who <> $
+         AND NOT IsClass(who,&DM))
+      {
+         if (NOT Send(SETTINGS_OBJECT,@CanUsersRemoveOwnPosts))
+         {
+            Send(who,@MsgSendUser,#message_rsc=news_users_cant_delete);
+
+            return FALSE;
+         }
+
+         if (Nth(lArticle,NEWS_ARTICLE_POSTER) <> who)
+         {
+            Send(who,@MsgSendUser,#message_rsc=news_not_own_post);
+
+            return FALSE;
+         }
+
+         if (GetTime() - Nth(lArticle,NEWS_ARTICLE_SHORT_TIME)
+            > viPostDeleteMinutes * 60)
+         {
+            // Resource to be sent to user is a time string which may change,
+            // so we use a callback to add a BP_MESSAGE protocol and build
+            // the packet from PostDeleteTimeExpired().
+            Send(who,@MsgSendUserCallback,#what=self,
+                  #sCallBack=SetString($,@PostDeleteTimeExpired));
+
+            return FALSE;
+         }
+      }
+
+      // Article is [index, player obj_id, time, timestring, title, body]
+      // index and (short) time are not preserved when copying. If deleting
+      // from god globe, don't try to move the post. Post will be displayed
+      // on god globe with its original time (once timestring is in use),
+      // meaning posts are displayed in deleted order instead of chronological.
+      if (oNews <> self)
+      {
+         // Add a note to the title of who deleted the post.
+         ClearTempString();
+         AppendTempString("d:");
+         AppendTempString(Send(who,@GetTrueName));
+         AppendTempString(" - ");
+         AppendTempString(Nth(lArticle,NEWS_ARTICLE_TITLE));
+
+         Send(oNews,@PostNews,#what=Nth(lArticle,NEWS_ARTICLE_POSTER),
+               #title=SetString($,GetTempString()),
+               #body=Nth(lArticle,NEWS_ARTICLE_BODY),
+               #timestring=Nth(lArticle,NEWS_ARTICLE_LONG_TIME));
+      }
+
+      Send(self,@DeleteMail,#number=index);
+
+      return TRUE;
+   }
+
+   PostDeleteTimeExpired()
+   "Called from user.kod's MsgSendUserCallback. Adds the required packets "
+   "for a time string depending on how long users have to delete their own "
+   "posts. Has to return TRUE so MsgSendUserCallback knows the packet was "
+   "built. Don't call this directly."
+   {
+      Send(self,@SendTimeRemaining,#iTime=viPostDeleteMinutes * 60);
+
+      return TRUE;
+   }
+
+   SendTimeRemainingHeader()
+   "Adds the header resource for sending a time-related collection of "
+   "resources to a client. Only SendTimeRemaining() should call this."
+   {
+      AddPacket(4, news_del_time_expired_header);
 
       return;
    }
@@ -143,18 +319,24 @@ messages:
       return plMessages;
    }
 
+   GetArticle(index=$)
+   "Returns an article by post index."
+   {
+      return GetListNode(plMessages, NEWS_ARTICLE_INDEX, index);
+   }
+
    GetNewsBody(num = $)
    {
       local i;
 
-      for i in plMessages
+      foreach i in plMessages
       {
          if First(i) = num
          {
-            return Nth(i,5);
+            return Nth(i,NEWS_ARTICLE_BODY);
          }
       }
-      
+
       return $;
    }
 
@@ -162,28 +344,28 @@ messages:
    {
       local lOld;
 
-      % if we have too many news messages, delete oldest ones
-      % to allow one message to be posted
+      // if we have too many news messages, delete oldest ones
+      // to allow one message to be posted
 
       if Length(plMessages) < piMax_messages
       {
          return;
       }
 
-      % unless piMax_messages has been modified, there is only
-      % one node to delete.  So, be safe.
+      // unless piMax_messages has been modified, there is only
+      // one node to delete.  So, be safe.
 
       lOld = Nth(plMessages,piMax_messages);
       while lOld <> $
       {
-         DelListElem(plMessages,lOld);
+         plMessages = DelListElem(plMessages,lOld);
          if Length(plMessages) < piMax_messages
          {
             break;
          }
 
          lOld = Nth(plMessages,piMax_messages);
-      }      
+      }
 
       return;
    }
@@ -195,35 +377,18 @@ messages:
       return piNext_num;
    }
 
-   GetString(number = $)
-   "Admin supported\n"
-   "Prints out string of a message number."
-   {
-      local i;
-      
-      for i in plMessages
-      {
-         if First(i) = number
-         {
-            return Nth(i,5);
-         }
-      }
-
-      return $;
-   }
-
    DeleteMail(number = $)
    "Admin supported.\n"
    "Deletes a mail message by mail number."
    {
       local i;
 
-      for i in plMessages
+      foreach i in plMessages
       {
          if First(i) = number
          {
             plMessages = DelListElem(plMessages,i);
-            
+
             return TRUE;
          }
       }
@@ -235,7 +400,7 @@ messages:
    "Admin supported.\n"
    "Deletes a mail message by mail number."
    {
-      return send(self,@DeleteMail,#number=number);
+      return Send(self,@DeleteMail,#number=number);
    }
 
    SearchForPosts(name = $, poster = $, contains = $)
@@ -246,7 +411,7 @@ messages:
 
       if (poster = $) AND (name <> $)
       {
-         poster = send(SYS,@FindUserByString,#string=name);
+         poster = Send(SYS,@FindUserByString,#string=name);
       }
 
       if (poster = $) AND (contains = $)
@@ -254,34 +419,33 @@ messages:
          return $;
       }
 
-      list = $;
-      for i in plMessages
+      foreach i in plMessages
       {
-         if (poster <> $) AND (Nth(i, 2) = poster)
+         if (poster <> $) AND (Nth(i, NEWS_ARTICLE_POSTER) = poster)
          {
-            list = cons(Nth(i, 1), list);
-            
+            list = Cons(First(i), list);
+
             continue;
          }
 
-         if (contains <> $) AND stringContain(Nth(i, 4), contains)
+         if (contains <> $) AND StringContain(Nth(i, NEWS_ARTICLE_TITLE), contains)
          {
-            list = cons(Nth(i, 1), list);
-            
+            list = Cons(First(i), list);
+
             continue;
          }
 
-         if (contains <> $) AND stringContain(Nth(i, 5), contains)
+         if (contains <> $) AND StringContain(Nth(i, NEWS_ARTICLE_BODY), contains)
          {
-            list = cons(Nth(i, 1), list);
-            
+            list = Cons(First(i), list);
+
             continue;
          }
       }
 
-      if length(list) = 1
+      if Length(list) = 1
       {
-         return Nth(list, 1);
+         return First(list);
       }
 
       return list;
@@ -291,22 +455,17 @@ messages:
    {
       plMessages = $;
       piNext_num = 1;
-      
+
       return;
    }
 
-   % Give globes a soft glow.
+   // Give globes a soft glow.
    SendLightingInformation()
    {
-      AddPacket(2,LIGHT_FLAG_ON);
-      % Intensity (out of 255)
-      AddPacket(1,5);
-      % Color
-      AddPacket(2,LIGHT_NEWSGLOBE);
+      AddPacket(2,LIGHT_FLAG_ON, 1,5, 2,LIGHT_NEWSGLOBE);
 
       return;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

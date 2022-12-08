@@ -1,35 +1,34 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 FairyTreasure is TreasureType
 
-%% This is special because Fairies create an inordinate number of Faerie wings.
-%% they also are the only ones that make Brown potions.
+/// This is special because Fairies create an inordinate number of Faerie wings.
+/// they also are the only ones that make Brown potions.
 
 constants:
-   
+
    include blakston.khd
-   
+
 classvars:
 
+   viTreasure_num = TID_FAIRY
 
 properties:
-   
-   piTreasure_num = TID_FAIRY
 
 messages:
-   
-   constructed()
+
+   Constructed()
    {
       plTreasure = [ [ &FairyWing, 30],
-		               [ &Mushroom, 20 ],
+                     [ &Mushroom, 20 ],
                      [ &Elderberry, 15 ],
                      [ &Herbs, 10 ],
                      [ &Snack, 5 ],
@@ -37,10 +36,10 @@ messages:
                      [ &BlueMushroom, 5 ],
                      [ &EntrootBerry, 5 ],
                      [ &IllusionaryFormPotion,5 ]
-			 	  ];
+                  ];
 
       propagate;
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

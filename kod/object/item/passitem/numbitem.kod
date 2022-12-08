@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 NumberItem is PassiveItem
 
 constants:
@@ -16,7 +16,9 @@ constants:
 
 resources:
 
-   NumberItem_desc_rsc = "\n\nYou are looking at "
+   include numbitem.lkod
+
+   NumberItem_desc_rsc = "\n\nYou are looking at %i %s."
    NumberItem_got_one = "Hungrily, you yank %s%s from %s%s."
 
    NumberItem_dispenser_name = "magic item creator"
@@ -30,42 +32,52 @@ classvars:
    vrDisp_desc = NumberItem_dispenser_desc
    vrDisp_icon = NumberItem_dispenser_icon
 
-   % Negative numbers are 1/100th of bulk and weight
+   // Negative numbers are 1/100th of bulk and weight
    viBulk = 0
    viWeight = 0
 
    vrName_plural = $
 
+   viUse_type = ITEM_SINGLE_USE
    viIndefinite_plural = ARTICLE_SOME
    viItem_type = ITEMTYPE_REAGENT
 
 properties:
 
    piNumber = 1
+   viObject_flags = OF_GETTABLE
 
 messages:
 
-   % remember, split number items don't have owners.
+   // remember, split number items don't have owners.
 
-   Constructor(number = $)
+   Constructor(number = $, tl =$)
    {
       if number <> $
       {
          piNumber = number;
       }
-
+      if tl <> $
+      {
+         Send(SYS,@AddTempList,#oItem=self);
+      }
       Send(self,@NewNumber);
-      
+
       propagate;
    }
 
    Delete()
    {
-      % It would be nice to set the number to 0 to prevent funny business.
-      % It needs to be posted, since NumberItems are deleted if a player
-      %  drops them, which screws up the weight/bulk calculations.
+      // It would be nice to set the number to 0 to prevent funny business.
+      // It needs to be posted, since NumberItems are deleted if a player
+      //  drops them, which screws up the weight/bulk calculations.
 
       propagate;
+   }
+
+   ReqNewApply(what = $,apply_on = $)
+   {
+      return FALSE;
    }
 
    GetNumber()
@@ -79,7 +91,7 @@ messages:
       {
          return (-viWeight) * piNumber / 100;
       }
-      
+
       return viWeight * piNumber;
    }
 
@@ -89,7 +101,7 @@ messages:
       {
          return (-viBulk) * piNumber / 100;
       }
-      
+
       return viBulk * piNumber;
    }
 
@@ -97,80 +109,104 @@ messages:
    {
       local iBulk_can_hold, iWeight_can_hold;
 
+      // Sanity checks, if these can be less than 0 there's a chance
+      // they can be -1 (INFINITE_COUNT). This could allow players to
+      // carry more than their max bulk/weight limit.
+      if bulk < 0
+      {
+         bulk = 0;
+      }
+
+      if weight < 0
+      {
+         weight = 0;
+      }
+
       if viBulk = 0
       {
          iBulk_can_hold = INFINITE_COUNT;
       }
+      else if viBulk > 0
+      {
+         iBulk_can_hold = bulk / viBulk;
+      }
       else
       {
-         if viBulk > 0
-         {
-            iBulk_can_hold = bulk / viBulk;
-         }
-         else
-         {
-            iBulk_can_hold = bulk * 100 / (-viBulk);
-         }
+         iBulk_can_hold = bulk * 100 / (-viBulk);
       }
 
       if viWeight = 0
       {
          iWeight_can_hold = INFINITE_COUNT;
       }
+      else if viWeight > 0
+      {
+         iWeight_can_hold = weight / viWeight;
+      }
       else
       {
-         if viWeight > 0
-         {
-            iWeight_can_hold = weight / viWeight;
-         }
-         else
-         {
-            iWeight_can_hold = weight * 100 / (-viWeight);
-         }
+         iWeight_can_hold = weight * 100 / (-viWeight);
       }
 
       if iBulk_can_hold = INFINITE_COUNT
       {
          return iWeight_can_hold;
       }
-      
+
       if iWeight_can_hold = INFINITE_COUNT
       {
          return iBulk_can_hold;
       }
-      
+
       if iBulk_can_hold < iWeight_can_hold
       {
          return iBulk_can_hold;
       }
-      
+
       return iWeight_can_hold;
    }
 
-   GetName()
+   GetName(number = 0)
    {
+      if (number > 0)
+      {
+         if (number = 1)
+         {
+            propagate;
+         }
+         else
+         {
+            return vrName_plural;
+         }
+      }
+
       if piNumber = 1
       {
          propagate;
       }
-      
+
       if vrName_plural <> $
       {
          return vrName_plural;
       }
-      
+
       propagate;
+   }
+
+   GetPluralName()
+   {
+      if vrName_plural <> $
+      {
+         return vrName_plural;
+      }
+
+      return Send(self,@GetName);
    }
 
    AppendDesc()
    {
-      % You are looking at 8 elderberries.
-      AppendTempString(NumberItem_desc_rsc);
-      
-      send(SYS,@AppendCardinalToTempString,#number=piNumber);
-      AppendTempString(" ");
-      AppendTempString(Send(self,@GetName));
-      AppendTempString(".");
+      // You are looking at 8 elderberries.
+      AddPacket(4,NumberItem_desc_rsc, 4,piNumber, 4,Send(self,@GetName));
 
       return;
    }
@@ -215,7 +251,7 @@ messages:
    {
       local iOld_weight,iOld_bulk;
 
-      % this can delete self, so can only do return after calling this
+      // this can delete self, so can only do return after calling this
 
       if (piNumber - number) <= 0
       {
@@ -278,13 +314,13 @@ messages:
 
    GetCapDef()
    {
-      % Return resource of capitalized definite article, for number items
+      // Return resource of capitalized definite article, for number items
       return Send(self,@LookupCapitalArticle,#article_num=viDefinite);
    }
 
    GetCapIndef()
    {
-      % return resource of capitalized indefinite article, for number items
+      // return resource of capitalized indefinite article, for number items
       if piNumber <> 1
       {
          return Send(self,@LookupCapitalArticle,
@@ -296,7 +332,7 @@ messages:
 
    GetIndef()
    {
-      % return resource of capitalized indefinite article, for number items
+      // return resource of capitalized indefinite article, for number items
       if piNumber <> 1
       {
          return Send(self,@LookupArticle,#article_num=viIndefinite_plural);
@@ -335,7 +371,10 @@ messages:
       return (piNumber > 1);
    }
 
+   IsStackable()
+   {
+      return TRUE;
+   }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+////////////////////////////////////////////////////////////////////////////////

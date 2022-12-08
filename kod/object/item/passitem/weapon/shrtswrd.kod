@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 ShortSword is Weapon
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include shrtswrd.lkod
 
    shortsword_name_rsc = "short sword"
    shortsword_icon_rsc = shswd.bgf
@@ -31,7 +33,7 @@ classvars:
    vrIcon = shortsword_icon_rsc
    vrDesc = shortsword_desc_rsc
 
-   % Short Swords are low quality thrusting weapons
+   // Short Swords are low quality thrusting weapons
    viWeaponType = WEAPON_TYPE_THRUST
    viWeaponQuality = WEAPON_QUALITY_LOW
 
@@ -48,12 +50,14 @@ classvars:
    vrWeapon_window_overlay = shortsword_window_overlay_rsc
    vrWeapon_overlay = shortsword_player_overlay
 
+   viRange = 3 * FINENESS
+
 properties:
 
-   piAttack_type = ATCK_WEAP_NONMAGIC+ATCK_WEAP_THRUST
+   piAttack_type = ATK_TYPE_NONMAGIC+ATK_TYPE_THRUST
 
 messages:
 
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

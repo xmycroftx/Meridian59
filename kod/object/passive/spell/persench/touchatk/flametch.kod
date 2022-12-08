@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 TouchOfFlame is TouchAttackSpell
 
 constants:
@@ -16,17 +16,16 @@ constants:
 
 resources:
 
+   include flametch.lkod
+
    TouchOfFlame_name_rsc = "touch of flame"
    TouchOfFlame_icon_rsc = itoucfla.bgf
    TouchOfFlame_desc_rsc = \
-      "Boils the innards of the target with a white hot flame.  "
-      "Requires red mushrooms to cast."
-
+      "Boils the innards of the target with a white hot flame."
    TouchOfFlame_already_enchanted_rsc = \
       "Your hands are already shrouded in flame."
    TouchOfFlame_On_rsc = "Jets of flame erupt from your fingers."
    TouchOfFlame_Off_rsc = "Your hands are no longer shrouded in flame."
-
    TouchOfFlame_player_was_hit = \
       "Flames erupt from %s%s's fingers, burning you!"
    TouchOfFlame_player_hit_something = \
@@ -35,12 +34,10 @@ resources:
       "%s%s, engulfed in flames, lets out a final scream."
    TouchOfFlame_player_was_killed = \
       "A burst of flames from %s%s's hand is the last thing you see."
-
    TouchOfFlame_spell_intro = \
       "Faren Lv. 2: Turns your touch into a blaze of searing flame, damaging "
       "your foes."
-
-   TouchOfFlame_sound = fflame.wav
+   TouchOfFlame_sound = fflame.ogg
 
 classvars:
 
@@ -66,22 +63,23 @@ classvars:
    viSchool = SS_FAREN
    viSpell_num = SID_TOUCH_OF_FLAME
    viSpell_level = 2
-   viSpellExertion = 2
-   viMana = 9
-
-   viHit_Factor = 25
+   viSpellExertion = 1
+   viMana = 4
 
    viMin_Damage = 4
    viMax_Damage = 9
 
-   viRange = 2
+   // Max amount of damage that punch or 2*myst can add
+   viMaxProficiencyDamage = 4
 
-   viSpellType = ATCK_SPELL_FIRE + ATCK_SPELL_ALL
+   viSpell_type = SPL_TYPE_FIRE + SPL_TYPE_ALL
    viStroke = STROKE_TOUCH_OF_FLAME
 
    vbAutomatic = FALSE
 
    vrSucceed_wav = TouchOfFlame_sound
+
+   viEnchantmentLight = 20
 
 properties:
 
@@ -93,11 +91,10 @@ messages:
    ResetReagents()
    {
       plReagents = $;
-      plReagents = cons([&RedMushroom,1],plReagents);
-     
+      plReagents = Cons([&RedMushroom,1],plReagents);
+
       return;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

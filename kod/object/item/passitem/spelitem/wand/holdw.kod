@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 HoldWand is Wand
 
 constants:
@@ -16,9 +16,10 @@ constants:
 
 resources:
 
+   include holdw.lkod
+
    HoldWand_label_name_rsc = "wand of immobilization"
    HoldWand_icon_rsc = wand6.bgf
-   HoldWand_desc_rsc = "Magical energy crackles about this slender wand."
 
 classvars:
 
@@ -29,9 +30,7 @@ classvars:
 
 properties:
 
-   vrDesc = HoldWand_desc_rsc
-
 messages:
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

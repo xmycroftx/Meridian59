@@ -24,6 +24,7 @@ void InitUser(void);
 void ResetUser(void);
 void ClearUser(void);
 user_node * CreateNewUser(int account_id,int class_id);
+void CreateUseronAccount(account_node *a);
 Bool AssociateUser(int account_id,int object_id);
 void LoadUser(int account_id,int object_id);
 void ChangeUserObjectID(int new_id,int prev_id);
@@ -35,5 +36,6 @@ void ForEachUser(void (*callback_func)(user_node *u));
 void ForEachUserByAccountID(void (*callback_func)(user_node *u),int account_id);
 user_node * GetFirstUserByAccountID(int account_id);
 user_node * GetUserByName(char *username);
+void ChangeUserAccountID(int account_id, int new_account_id);
 
 #endif

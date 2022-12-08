@@ -8,47 +8,36 @@ TOPDIR=.
 .SILENT:
 
 # make ignores targets if they match directory names
-all: Bserver Bclient Bmodules Bkod Bdeco Bupdater Bbbgun Bresource Broomedit
+all: APrep Bzlib Blibpng Bjansson Bserver Bclient Bmodules Bkod Bdeco Bbbgun Bkeybind Bresource
+APrep: 
+    setlocal enableextensions
+    IF exist $(CLIENTRUNDIR)\resource ( echo resources dir exists ) ELSE ( mkdir $(CLIENTRUNDIR)\resource && echo resources dir created)
+	IF exist $(BLAKSERVRUNDIR)\rsc ( echo server\rsc dir exists ) ELSE ( mkdir $(BLAKSERVRUNDIR)\rsc && echo server\rsc dir created)
+	IF exist $(BLAKSERVRUNDIR)\memmap ( echo server\memmap dir exists ) ELSE ( mkdir $(BLAKSERVRUNDIR)\memmap && echo server\memmap dir created > $(BLAKSERVRUNDIR)\memmap\.placeholder )
+	IF exist $(BLAKSERVRUNDIR)\loadkod ( echo server\loadkod dir exists ) ELSE ( mkdir $(BLAKSERVRUNDIR)\loadkod && echo server\loadkod dir created )
+	IF exist $(BLAKSERVRUNDIR)\savegame ( echo server\savegame dir exists ) ELSE ( mkdir $(BLAKSERVRUNDIR)\savegame && echo server\savegame dir created > $(BLAKSERVRUNDIR)\savegame\.placeholder )
+	IF exist $(BLAKSERVRUNDIR)\channel ( echo server\channel dir exists ) ELSE ( mkdir $(BLAKSERVRUNDIR)\channel && echo server\channel dir created > $(BLAKSERVRUNDIR)\channel\.placeholder )
 
-Bserver:
-	echo Making in $(BLAKSERVDIR)
+Bserver: Bresource Bjansson
+	echo Making $(COMMAND) in $(BLAKSERVDIR)
 	cd $(BLAKSERVDIR)
 	$(MAKE) /$(MAKEFLAGS) $(COMMAND)
 	cd ..
 
-Bclient: Butil Blibpng Blibarchive Bwavemix
-	echo Making in $(CLIENTDIR)
+Bclient: Butil Bresource
+	echo Making $(COMMAND) in $(CLIENTDIR)
 	cd $(CLIENTDIR)
 	$(MAKE) /$(MAKEFLAGS) $(COMMAND)
 	cd ..
+	$(CP) $(BLAKBINDIR)\club.exe $(CLIENTRUNDIR)
+!if !DEFINED(NOCOPYFILES)
+# Postbuild handles its own echoes
+	$(POSTBUILD)
+!endif NOCOPYFILES
 
 Bmodules: Bclient
-	echo Making in $(MODULEDIR)
+	echo Making $(COMMAND) in $(MODULEDIR)
 	cd $(MODULEDIR)
-	$(MAKE) /$(MAKEFLAGS) $(COMMAND)
-	cd ..
-
-Blibpng: Bzlib
-	echo Making in $(LIBPNGDIR)
-	cd $(LIBPNGDIR)
-	$(MAKE) /$(MAKEFLAGS) $(COMMAND)
-	cd ..
-
-Bzlib:
-	echo Making in $(ZLIBDIR)
-	cd $(ZLIBDIR)
-	$(MAKE) /$(MAKEFLAGS) $(COMMAND)
-	cd ..
-
-Blibarchive: Bzlib
-	echo Making in $(LIBARCHIVEDIR)
-	cd $(LIBARCHIVEDIR)
-	$(MAKE) /$(MAKEFLAGS) $(COMMAND)
-	cd ..
-
-Bwavemix:
-	echo Making in $(WAVEMIXDIR)
-	cd $(WAVEMIXDIR)
 	$(MAKE) /$(MAKEFLAGS) $(COMMAND)
 	cd ..
 
@@ -76,7 +65,7 @@ Bdeco:
 	$(MAKE) /$(MAKEFLAGS) $(COMMAND)
 	cd ..
 
-Bresource: Bmakebgf
+Bresource: Bmakebgf Bbbgun
 	echo Making $(COMMAND) in $(RESOURCEDIR)
 	cd $(RESOURCEDIR)
 	$(MAKE) /$(MAKEFLAGS) $(COMMAND)
@@ -88,15 +77,9 @@ Bmakebgf:
 	$(MAKE) /$(MAKEFLAGS) $(COMMAND)
 	cd ..
 
-Butil:
+Butil: Bjansson
 	echo Making $(COMMAND) in $(UTILDIR)
 	cd $(UTILDIR)
-	$(MAKE) /$(MAKEFLAGS) $(COMMAND)
-	cd ..
-
-Bupdater:
-	echo Making $(COMMAND) in $(CLUBDIR)
-	cd $(CLUBDIR)
 	$(MAKE) /$(MAKEFLAGS) $(COMMAND)
 	cd ..
 
@@ -111,13 +94,28 @@ Bkeybind:
 	cd $(KEYBINDDIR)
 	$(MAKE) /$(MAKEFLAGS) $(COMMAND)
 	cd ..
+	
+Blibpng:
+	echo Making $(COMMAND) in $(LIBPNGDIR)
+	cd $(LIBPNGDIR)
+	$(MAKE) /$(MAKEFLAGS) $(COMMAND)
+	cd ..
+	
+Bzlib:
+	echo Making $(COMMAND) in $(ZLIBDIR)
+	cd $(ZLIBDIR)
+	$(MAKE) /$(MAKEFLAGS) $(COMMAND)
+	cd ..
 
-Broomedit:
-	echo Making $(COMMAND) in $(ROOMEDITDIR)
-	cd $(ROOMEDITDIR)
+Bjansson:
+	echo Making $(COMMAND) in $(JANSSONDIR)
+	cd $(JANSSONDIR)
 	$(MAKE) /$(MAKEFLAGS) $(COMMAND)
 	cd ..
 
 clean:
+        set NOCOPYFILES=1
         set COMMAND=clean
         $(MAKE) /$(MAKEFLAGS)
+		$(RM) $(TOPDIR)\postbuild.log >nul 2>&1
+		$(RM) $(BLAKSERVDIR)\channel\*.txt 2>nul

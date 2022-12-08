@@ -23,7 +23,7 @@
 #define WF_BELOW_TOPDOWN  0x00000080      // Draw lower texture top-down
 #define WF_NORMAL_TOPDOWN 0x00000100      // Draw normal texture top-down
 #define WF_NO_VTILE       0x00000200      // Don't tile texture vertically (must be transparent)
-#define	WF_HAS_ANIMATED	  0x00000400      // has animated once and hence is dynamic geometry, required for new client
+#define   WF_HAS_ANIMATED     0x00000400      // has animated once and hence is dynamic geometry, required for new client
 
 // Texture scrolling constants
 #define SCROLL_NONE    0x00000000      // No texture scrolling   
@@ -47,6 +47,7 @@
 #define SF_DEPTH1         0x00000001      // Sector has shallow depth
 #define SF_DEPTH2         0x00000002      // Sector has deep depth
 #define SF_DEPTH3         0x00000003      // Sector has very deep depth
+#define SF_MASK_DEPTH     0x00000003      // Mask to get sector depth
 
 #define SF_SCROLL_FLOOR   0x00000080      // Scroll floor texture
 #define SF_SCROLL_CEILING 0x00000100      // Scroll ceiling textire
@@ -58,7 +59,8 @@
 #define SF_FLICKER        0x00000200      // Flicker light in sector
 #define SF_SLOPED_FLOOR   0x00000400      // Sector has sloped floor
 #define SF_SLOPED_CEILING 0x00000800      // Sector has sloped ceiling
-#define	SF_HAS_ANIMATED	  0x00001000      // has animated once and hence is dynamic geometry, required for new client
+#define SF_HAS_ANIMATED   0x00001000      // has animated once and hence is dynamic geometry, required for new client
+#define SF_NOMOVE         0x00002000      // Sector can't be moved on by mobs or players
 
 /* Bit flags for sloped surface characteristics */
 #define SLF_DIRECTIONAL   0x0001
@@ -79,35 +81,52 @@
 
 #define ABS(x) ((x) > 0 ? (x) : (-(x)))
 #define SGN(x) ((x) == 0 ? 0 : ((x) > 0 ? 1 : -1))
+#define SGNDOUBLE(x) (((x) <= 0.001 && (x) >= -0.001) ? 0 : ((x) > 0.001 ? 1 : -1))
 
-#pragma warning( disable : 4201 )		// nonstandard extension used : nameless struct/union (a union in this case )
+#pragma warning( disable : 4201 )      // nonstandard extension used : nameless struct/union (a union in this case )
+
+// D3D types
+typedef struct custom_xyz
+{
+   float   x, y, z;
+} custom_xyz;
+
+typedef struct custom_st
+{
+   float   s, t;
+} custom_st;
+
+typedef struct custom_bgra
+{
+   unsigned char   b, g, r, a;
+} custom_bgra;
 
 /* plane defined by ax + by + c = 0. (x and y are in fineness units.) */
 typedef struct
 {
-   long a, b, c;
+   float a, b, c;
 } Plane,Plane2D;
 
 /* 3D plane defined by ax + by + cz + d */
 typedef struct
 {
-    FixedPoint a, b, c, d;
+    float a, b, c, d;
 } Plane3D;
 
 /* box defined by its top left and bottom right coordinates (in fineness) */
 typedef struct
 {
-   long x0,y0,x1,y1;
+   float x0,y0,x1,y1;
 } Box;
 
 typedef struct
 {
-   long x,y;
+   float x,y;
 } Pnt,Pnt2D,Vector2D;
 
 typedef struct
 {
-   FixedPoint x,y,z;
+   float x,y,z;
 } Pnt3D,Vector3D;
 
 typedef struct ObjectData
@@ -122,18 +141,18 @@ typedef struct ObjectData
 } ObjectData, *ObjectList;
 
 typedef struct {
-    Plane3D	plane;         /* plane equation of slope */
-    Pnt3D	p0;	       /* texture origin */
-    Pnt3D	p1;	       /* u axis end point */
-    Pnt3D	p2;            /* v axis end point */
-    Pnt3D	h;	       /* h, v, o : values for texturing surface from current viewpoint */
-    Pnt3D	v;
-    Pnt3D	o;
-    FixedPoint  z0;	       /* distances for viewer light calculation */
+    Plane3D   plane;         /* plane equation of slope */
+    Pnt3D   p0;          /* texture origin */
+    Pnt3D   p1;          /* u axis end point */
+    Pnt3D   p2;            /* v axis end point */
+    Pnt3D   h;          /* h, v, o : values for texturing surface from current viewpoint */
+    Pnt3D   v;
+    Pnt3D   o;
+    FixedPoint  z0;          /* distances for viewer light calculation */
     FixedPoint  z_du;
     FixedPoint  z_dv;
-	long	texRot;			// new client needs the raw rotation angle
-    short	flags;	       /* flags about properties of this surface */
+   long   texRot;         // new client needs the raw rotation angle
+    short   flags;          /* flags about properties of this surface */
     short       lightscale;    /* scaling factor for directional lighting */
 } SlopeData;
 
@@ -168,6 +187,31 @@ typedef struct {
    RoomAnimate *animate;       /* Animation structure for wall */
 } Sidedef;
 
+#define MAX_NPTS 100
+
+// Wall drawing bitfield.
+#define SR_SEEN             0x001 // Some part drawn in Software Renderer (used for map lines)
+
+#define SR_DRAWBELOW        0x002 // Below wall drawn in SR
+#define SR_DRAWNORMAL       0x004 // Normal wall drawn in SR
+#define SR_DRAWABOVE        0x008 // Above wall drawn in SR
+#define SR_DRAWMASK         0x00E // Mask for SR draw flags (but not the 'seen' flag)
+
+#define HR_SEENPOSBELOW     0x010 // Pos side below wall visited in Hardware Renderer
+#define HR_SEENPOSNORMAL    0x020 // Pos side normal wall visited in HR
+#define HR_SEENPOSABOVE     0x040 // Pos side above wall visited in HR
+#define HR_SEENNEGBELOW     0x080 // Neg side below wall visited in HR
+#define HR_SEENNEGNORMAL    0x100 // Neg side normal wall visited in HR
+#define HR_SEENNEGABOVE     0x200 // Neg side above wall visited in HR
+#define HR_DRAWMASK         0x3F0 // Mask for HR draw flags
+
+#define WF_CANDRAWNORMAL    0x1000
+#define WF_CANDRAWABOVE     0x2000
+#define WF_CANDRAWBELOW     0x4000
+#define WF_CANDRAWMASK      0x7000
+
+typedef int WallSeenFlags;
+
 typedef struct WallData
 {
    union {
@@ -175,14 +219,14 @@ typedef struct WallData
       int next_num;            /* number of next wall (used during loading) */
    };
 
-   WORD pos_xoffset;           /* X offset of + side bitmap */
-   WORD neg_xoffset;           /* X offset of - side bitmap */
-   WORD pos_yoffset;           /* Y offset of + side bitmap */
-   WORD neg_yoffset;           /* Y offset of - side bitmap */
+   short pos_xoffset;          /* X offset of + side bitmap */
+   short neg_xoffset;          /* X offset of - side bitmap */
+   short pos_yoffset;          /* Y offset of + side bitmap */
+   short neg_yoffset;          /* Y offset of - side bitmap */
 
    Plane separator;
    
-   int length;                 /* length of wall; 1 grid square = 64 */
+   float length;                 /* length of wall; 1 grid square = 64 */
    
    // Since I doubled the number of heights stored here, I'm changing
    // these heights to shorts to take up half the space. No room (except godroom)
@@ -218,9 +262,11 @@ typedef struct WallData
    long  zz0Neg;        /* height of bottom of lower wall */
    long  zz1Neg;        /* height of top of lower wall / bottom of normal wall */
 
-   int x0, y0, x1, y1;         /* coordinates of wall start and end */
+   float x0, y0, x1, y1;         /* coordinates of wall start and end */
+   /* (x0,y0) and (x1,y1) must satisfy separator plane equation */
+   /* positive side of wall must be on right when going from 0 to 1 */
 
-   Bool seen;                  /* True iff part of this wall has been drawn */
+   WallSeenFlags seen;
 
    // for bowtie handling
    BYTE bowtie_bits;           /* flags set indicating a bowtie & it's orientation */
@@ -246,9 +292,52 @@ typedef struct WallData
       Sidedef *neg_sidedef;     /* Sidedef on - side (NULL if none) */
       WORD     neg_sidedef_num; /* Sidedef number (used during loading) */
    };
-   
-   /* (x0,y0) and (x1,y1) must satisfy separator plane equation */
-   /* positive side of wall must be on right when going from 0 to 1 */
+
+   // The following data structres are used by D3D to calculate and store
+   // information about the walls, to prevent having to recalculate multiple
+   // times a frame.
+   custom_xyz pos_normal_xyz[4];
+   custom_xyz pos_below_xyz[4];
+   custom_xyz pos_above_xyz[4];
+
+   custom_xyz pos_normal_normal;
+   custom_xyz pos_below_normal;
+   custom_xyz pos_above_normal;
+
+   custom_st pos_normal_stBase[4];
+   custom_st pos_below_stBase[4];
+   custom_st pos_above_stBase[4];
+
+   custom_bgra pos_normal_bgra[4];
+   custom_bgra pos_below_bgra[4];
+   custom_bgra pos_above_bgra[4];
+
+   unsigned int pos_normal_d3dFlags;
+   unsigned int pos_below_d3dFlags;
+   unsigned int pos_above_d3dFlags;
+
+   custom_xyz neg_normal_xyz[4];
+   custom_xyz neg_below_xyz[4];
+   custom_xyz neg_above_xyz[4];
+
+   custom_xyz neg_normal_normal;
+   custom_xyz neg_below_normal;
+   custom_xyz neg_above_normal;
+
+   custom_st neg_normal_stBase[4];
+   custom_st neg_below_stBase[4];
+   custom_st neg_above_stBase[4];
+
+   custom_bgra neg_normal_bgra[4];
+   custom_bgra neg_below_bgra[4];
+   custom_bgra neg_above_bgra[4];
+
+   unsigned int neg_normal_d3dFlags;
+   unsigned int neg_below_d3dFlags;
+   unsigned int neg_above_d3dFlags;
+
+   float scrollS; /* Amount to scroll wall in S direction */
+   float scrollT; /* Amount to scroll wall in T direction */
 } WallData, *WallList, *WallDataList;
 
 typedef struct
@@ -268,19 +357,24 @@ typedef struct
    };
 } BSPinternal;
 
-#define MAX_NPTS 20
-
 typedef struct {
    int npts;                   /* # of points in polygon */
-   Pnt p[MAX_NPTS+1];          /* points of polygon (clockwise ordered, looking down on floor) */
+   Pnt p[MAX_NPTS + 1];          /* points of polygon (clockwise ordered, looking down on floor) */
    /*    invariant: p[npts] == p[0] */
 } Poly;
+
+typedef struct BSPleafdata
+{
+   custom_xyz xyz[MAX_NPTS];
+   custom_st st[MAX_NPTS];
+} BSPleafdata;
 
 typedef struct BSPleaf
 {
    Poly poly;                  /* Polygon of floor area */
    ObjectList objects;         /* objects within this leaf */
-
+   BSPleafdata floor;          /* pre-calculated floor data */
+   BSPleafdata ceil;           /* pre-calculated ceiling data */
    union {
       Sector *sector;      /* Sector to which leaf belongs (cannot be NULL) */
       WORD    sector_num;  /* Sector number (used during loading) */
@@ -303,8 +397,27 @@ typedef struct BSPnode
       BSPinternal internal;
       BSPleaf leaf;
    } u;
+
+   // The following data structres are used by D3D to calculate and store
+   // information about the ceiling and floor, to prevent having to
+   // recalculate multiple times a frame.
+   custom_xyz ceiling_xyz[MAX_NPTS];
+   custom_st ceiling_stBase[MAX_NPTS];
+   custom_bgra ceiling_bgra[MAX_NPTS];
+   PDIB ceiling_pDib;
+   custom_xyz floor_xyz[MAX_NPTS];
+   custom_st floor_stBase[MAX_NPTS];
+   custom_bgra floor_bgra[MAX_NPTS];
+   PDIB floor_pDib;
+
+   Bool drawfloor;   // True if D3D renderer should draw this floor.
+   Bool drawceiling; // True if D3D renderer should draw this ceiling.
+
+   // True if the renderer has already visited this node in this frame.
+   Bool seenFloorThisFrame;
+   Bool seenCeilThisFrame;
 } BSPnode, *BSPTree;
 
-#pragma warning( default : 4201 )		// nonstandard extension used : nameless struct/union (a union in this case )
+#pragma warning( default : 4201 )      // nonstandard extension used : nameless struct/union (a union in this case )
 
 #endif  /* #ifndef _BSP_H */

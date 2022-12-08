@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 Ant is Monster
 
 constants:
@@ -15,6 +15,8 @@ constants:
    include blakston.khd
 
 resources:
+
+   include ant.lkod
 
    ant_koc_name_rsc = "yokinich"
    ant_name_rsc = "ant"
@@ -27,10 +29,10 @@ resources:
    ant_dead_icon_rsc = antX.bgf
    ant_dead_name_rsc = "dead ant"
 
-   ant_sound_hit = ant_atkh.wav
-   ant_sound_miss = ant_atkm.wav
-   ant_sound_death = ant_dth.wav
-   ant_sound_aware = ant_awr.wav
+   ant_sound_hit = ant_atkh.ogg
+   ant_sound_miss = ant_atkm.ogg
+   ant_sound_death = ant_dth.ogg
+   ant_sound_aware = ant_awr.ogg
 
 classvars:
 
@@ -45,12 +47,14 @@ classvars:
    vrDead_name = ant_dead_name_rsc
 
    viSpeed = SPEED_SLOW
-   viAttack_type = ATCK_WEAP_BITE
+   viAttack_type = ATK_TYPE_BITE
    viLevel = 40
    viDifficulty = 4
+   viVisionDistance = 14
    viKarma = -10
-
-   viDefault_behavior = AI_FIGHT_AGGRESSIVE | AI_FIGHT_WIZARD_KILLER
+   viCashmin = 100
+   viCashmax = 300
+   viDefault_behavior = AI_FIGHT_AGGRESSIVE
    viAttributes = MOB_SPASM
 
    viTreasure_type = TID_WIMPY_MEDIUM
@@ -60,6 +64,13 @@ classvars:
    vrSound_aware = ant_sound_aware
    vrSound_death = ant_sound_death
 
+   vbCanBleed = FALSE
+   vbCanSiphon = FALSE
+
+   viBleedChance = 15
+   viBleedStrength = 500
+   viBleedDuration = 8000
+
 properties:
 
    piAnimation = ANIM_NONE
@@ -68,7 +79,7 @@ messages:
 
    Constructed()
    {
-      plResistances = [ [ -20, -ATCK_WEAP_ALL] ];
+      plResistances = [ [-ATK_TYPE_ALL, -20] ];
 
       propagate;
    }
@@ -82,24 +93,17 @@ messages:
       if roll = 1
       {
          Send(self,@DoLegSpasm);
+
          propagate;
       }
 
       if roll <= 5
       {
-         Send(poOwner,@SomethingTurned,#what=self,#new_angle=Random(0,MAX_ANGLE-1));
+         Send(poOwner,@SomethingTurned,#what=self,
+               #new_angle=Random(0,MAX_ANGLE-1));
       }
 
       propagate;
-   }
-         
-   MonsterAttack(what = $)
-   {
-      piAnimation = ANIM_ATTACK;
-      Send(poOwner,@SomethingChanged,#what=self);
-      piAnimation = ANIM_NONE;
-      
-      return;
    }
 
    DoLegSpasm()
@@ -107,7 +111,7 @@ messages:
       piAnimation = ANIM_ATTACK;
       Send(poOwner,@SomethingChanged,#what=self);
       piAnimation = ANIM_NONE;
-      
+
       return;
    }
 
@@ -120,8 +124,7 @@ messages:
 
    SendLookAnimation()
    {
-      AddPacket(1,ANIMATE_CYCLE);
-      AddPacket(4,150, 2,1, 2,3);
+      AddPacket(1,ANIMATE_CYCLE, 4,150, 2,1, 2,3);
 
       return;
    }
@@ -135,13 +138,11 @@ messages:
          return;
       }
 
-      % if no body animation
+      // if no body animation
       AddPacket(1,ANIMATE_NONE,2,1);
 
       return;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+////////////////////////////////////////////////////////////////////////////////

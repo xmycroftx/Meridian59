@@ -41,7 +41,7 @@
 	class _OWLCLASS TStatic;
 #endif
 
-#ifndef __OWL_GAUGE_H
+#ifndef OWL_GAUGE_H
 	#include <owl\gauge.h>
 #endif
 

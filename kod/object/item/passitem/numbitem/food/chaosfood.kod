@@ -1,14 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+////////////////////////////////////////////////////////////////////////////////
 ChaosFood is Food
 
 constants:
@@ -17,14 +16,17 @@ constants:
 
 resources:
 
+   include chaosfood.lkod
+
    chaosfd_name_rsc = "Frenzy Food"
    chaosfd_name_plural_rsc = "Frenzy Food"
    chaosfd_icon_rsc = mushroom.bgf
    chaosfd_desc_rsc = \
-        "At first glance, these mushrooms appear common, but look at the psychedelic colors!  "
-        "This is actually Frenzy Food! No Stomach No Problem!"
-	  
-   chaosfd_no_eat = "You can't eat this potion when it is not a frenzy."
+        "At first glance, these mushrooms appear common, but look at "
+        "the psychedelic colors!  This is actually Frenzy Food!  No "
+        "Stomach No Problem!"
+
+   chaosfd_no_eat = "You don't quite feel insane enough to eat this right now."
 
 classvars:
 
@@ -33,44 +35,41 @@ classvars:
    vrIcon = chaosfd_icon_rsc
    vrDesc = chaosfd_desc_rsc
 
-   viBulk = 10
-   viWeight = 5000         % Increased weight to ensure no mortal is able to pick these up outside of a frenzy.
+   viBulk = 2
+   viWeight = 4
    viValue_average = 1
 
 properties:
-		
+
    piItem_flags = PT_FRST_WHT3
-   viFilling = 0          % Ignores the characters stomach to allow for constant frenzy killing without being full...
+
+   // Zero filling so can always be eaten, does not fill up character's stomach.
+   viFilling = 0
    viNutrition = 200
    piNumber = 1
 
 messages:
 
-   Constructor()
-   {
-     propagate;
-   }
-   
    NewApplied(what = $,apply_on = $)
    {
-     if Send(SYS, @GetChaosNight)					
-     {
-       Send(self,@SendTaste,#what=what,#apply_on=apply_on);
-       Send(what,@WaveSendUser,#wave_rsc=vrEat_wav);
-       Send(apply_on,@EatSomething,#nutrition=viNutrition,#filling=viFilling);
-       Send(self,@SubtractNumber,#number=1);
-     }
-     else
-     {
-       % We only want these used during a frenzy, so if eaten outside of a frenzy
-       % the food will delete itself.
-       Send(apply_on,@MsgSendUser,#message_rsc=chaosfd_no_eat);
-       Send(self,@Delete);
-     }
-		
+      if Send(SYS,@GetChaosNight)
+         OR IsClass(apply_on,&DM)
+      {
+         Send(self,@SendTaste,#what=what,#apply_on=apply_on);
+         Send(what,@WaveSendUser,#wave_rsc=vrEat_wav);
+         Send(apply_on,@EatSomething,#nutrition=viNutrition,#filling=viFilling);
+         Send(self,@SubtractNumber,#number=1);
+      }
+      else
+      {
+         // We only want these used during a frenzy, so if eaten outside
+         // of a frenzy the food will delete itself.
+         Send(apply_on,@MsgSendUser,#message_rsc=chaosfd_no_eat);
+         Send(self,@Delete);
+      }
+
      return;
    }
 
-
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////

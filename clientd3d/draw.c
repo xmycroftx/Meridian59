@@ -71,6 +71,7 @@ void DrawRoom(HDC hdc, int x, int y, room_type *room, Bool map)
    params.y = y;
    params.width = view.cx;
    params.height = view.cy;
+   params.stretchfactor = config.large_area ? 2 : 1;
 
    // Draw the current view.
    //
@@ -273,6 +274,32 @@ void DrawChangeColor(void)
 }
 /************************************************************************/
 /*
+ * CreateMemBitmap: Creates a new memory DC containing HBITMAP and palette.
+ *   Does not require setting bitmap bits later, contains bitmap from
+ *   gNewBitmap. Puts old bitmap into gOldBitmap.
+ *   Returns NULL on failure.
+ */
+HDC CreateMemBitmapFromBmp(HBITMAP gNewBitmap, HBITMAP *gOldBitmap, HPALETTE palette)
+{
+   HDC gDC;
+
+   gDC = CreateCompatibleDC(NULL);
+   if (gDC == 0)
+   {
+      debug(("CreateMemBitmapFromBmp Couldn't create DC!\n"));
+      return NULL;
+   }
+   
+   // Select bitmap into DC.
+   *gOldBitmap = (HBITMAP)SelectObject(gDC, gNewBitmap);
+   // Set palette into DC.
+   SelectPalette(gDC, palette, FALSE);
+   //RealizePalette(gDC);
+
+   return gDC;
+}
+/************************************************************************/
+/*
  * CreateMemBitmap:  Create a bitmap, select it into a new memory DC,
  *   and return the DC.  Also set the palette of the bitmap.
  *   gOldBitmap is set to the bitmap originally in the DC.
@@ -314,6 +341,30 @@ HDC CreateMemBitmap(int width, int height, HBITMAP *gOldBitmap, BYTE **gBits)
    *gOldBitmap = (HBITMAP) SelectObject(gDC, gBitmap);
    SetDIBPalette(gDC);
    return gDC;
+}
+// Prints a small amount of character above the graphics window.
+void DrawDebugDataInBorder(char *data)
+{
+   static char err_msg[40] = "Invalid data sent to debug draw!";
+   char *use_data;
+   if (!data || strlen(data) > BORDER_DEBUG_LENGTH)
+      use_data = err_msg;
+   else
+      use_data = data;
+
+   RECT rc, fpsbox;
+   HDC hdc = GetDC(hMain);
+   ZeroMemory(&rc, sizeof(rc));
+   rc.bottom = DrawText(hdc, use_data, -1, &rc, DT_SINGLELINE | DT_CALCRECT | DT_NOCLIP);
+   Fpsbox_GetRect(&fpsbox);
+   OffsetRect(&rc, fpsbox.right + 15, fpsbox.top);
+   DrawWindowBackground(hdc, &rc, rc.left, rc.top);
+   int oldMode = SetBkMode(hdc, TRANSPARENT);
+   DrawText(hdc, use_data, -1, &rc, DT_SINGLELINE | DT_NOCLIP);
+   SetBkMode(hdc, oldMode);
+
+   GdiFlush();
+   ReleaseDC(hMain, hdc);
 }
 /************************************************************************/
 Bool DrawInitialize(void)

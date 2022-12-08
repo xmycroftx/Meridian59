@@ -51,16 +51,16 @@ struct TConfirmSectorDialogXfer
 {
 //{{TConfirmSectorDialogXFER_DATA}}
 	uint16    pSpecialCheck;
-	uint16    pTagCheck;
-	uint16    pLightCheck;
-	uint16    pTextureOffsetCheck;
-	uint16    pFloorTextureCheck;
-	uint16    pFloorHeightCheck;
-	uint16    pCeilingTextureCheck;
-	uint16    pCeilingHeightCheck;
-	uint16    pIDNumCheck;
-	uint16    pSpeedCheck;
-	uint16    pDepthCheck;
+   uint16    pTagCheck;
+   uint16    pLightCheck;
+   uint16    pTextureOffsetCheck;
+   uint16    pFloorTextureCheck;
+   uint16    pFloorHeightCheck;
+   uint16    pCeilingTextureCheck;
+   uint16    pCeilingHeightCheck;
+   uint16    pIDNumCheck;
+   uint16    pSpeedCheck;
+   uint16    pDepthCheck;
    uint16    pScrollCheck;
    uint16    pSlopeCheck;
 //{{TConfirmSectorDialogXFER_DATA_END}}

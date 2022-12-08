@@ -1,13 +1,13 @@
-% Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
-% All rights reserved.
-%
-% This software is distributed under a license that is described in
-% the LICENSE file that accompanies it.
-%
-% Meridian is a registered trademark.
+// Meridian 59, Copyright 1994-2012 Andrew Kirmse and Chris Kirmse.
+// All rights reserved.
+//
+// This software is distributed under a license that is described in
+// the LICENSE file that accompanies it.
+//
+// Meridian is a registered trademark.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 ModelNode is PassiveObject
 
 constants:
@@ -21,6 +21,8 @@ constants:
    NODE_DEAD = 3
 
 resources:
+
+   include modlnode.lkod
 
    ModelNode_name_rsc = "miniature mana node"
    ModelNode_icon_rsc = modnode.bgf
@@ -39,9 +41,9 @@ classvars:
    vrIcon = ModelNode_icon_rsc
    vrDesc = ModelNode_desc_rsc
 
-   viObject_flags = DRAWFX_TRANSLUCENT_50
-
 properties:
+
+   piDrawFx = DRAWFX_TRANSLUCENT_50
 
    vrName = ModelNode_name_rsc
    piState = NODE_NORMAL
@@ -71,5 +73,5 @@ messages:
    }
 
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+////////////////////////////////////////////////////////////////////////////////
 

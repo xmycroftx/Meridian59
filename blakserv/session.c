@@ -14,7 +14,7 @@
   reads bytes, and handles changing states.  It also has functions to
   write to the session, either straight up (like admin mode or login
   mode) or with our protocol (for synched and game modes).
-
+  
 */
 
 #include "blakserv.h"
@@ -37,6 +37,7 @@ void CloseConnection(connection_node conn);
 
 void ProcessSessionTimer(session_node *s);
 void ProcessSessionBuffer(session_node *s);
+void ProcessSessionBufferUDP(session_node *s);
 
 void SendGameClient(session_node *s,char *data,unsigned short len_data,int seqno);
 
@@ -49,35 +50,35 @@ void SessionAddBufferList(session_node *s,buffer_node *blist);
 /* InitSession
 *
 * This allocates an array of session nodes for max people that can be connected,
-* even if they're overflow and we're gonna hang them up.  This array is never
+* even if they're overflow and we're gonna hang them up.  This array is never 
 * freed.
 */
 void InitSession()
 {
 	epoch = 1;
 	transmitted_bytes = 0;
-
+	
 	sessions = (session_node *)
 		AllocateMemory(MALLOC_ID_SESSION_MODES,ConfigInt(SESSION_MAX_CONNECT)*sizeof(session_node));
-
+	
 	num_sessions = 0;
-
+	
 	if (sizeof(admin_data) > SESSION_STATE_BYTES)
 		FatalError("sizeof(admin_data) must be <= SESSION_STATE_BYTES");
-
+	
 	if (sizeof(game_data) > SESSION_STATE_BYTES)
 		FatalError("sizeof(game_data) must be <= SESSION_STATE_BYTES");
-
+	
 	if (sizeof(trysync_data) > SESSION_STATE_BYTES)
 		FatalError("sizeof(trysync_data) must be <= SESSION_STATE_BYTES");
-
+	
 	if (sizeof(synched_data) > SESSION_STATE_BYTES)
 		FatalError("sizeof(synched_data) must be <= SESSION_STATE_BYTES");
-
+	
 	if (sizeof(resync_data) > SESSION_STATE_BYTES)
 		FatalError("sizeof(resync_data) must be <= SESSION_STATE_BYTES");
-
-
+	
+	
 	InitializeCriticalSection(&csSessions);
 }
 
@@ -117,26 +118,26 @@ void LeaveSessionLock(void)
 session_node *AllocateSession(void)
 {
 	int i;
-
+	
 	for (i=0;i<num_sessions;i++)
 	{
 		if (sessions[i].connected == False)
 			break;
 	}
-
+	
 	if (i == num_sessions)
 	{
 	/* if no emptied low number sessions and using every session, can't
 		use them */
 		if (num_sessions == ConfigInt(SESSION_MAX_CONNECT))
 			return NULL;
-
+		
 		num_sessions++;
 	}
-
+	
 	/* we're gonna hang 'em up once synched if too many people on*/
 	sessions[i].active = i < ConfigInt(SESSION_MAX_ACTIVE);
-
+	
 	sessions[i].session_id = i;
 	sessions[i].blak_client = False;
 	sessions[i].login_verified = False;
@@ -145,13 +146,15 @@ session_node *AllocateSession(void)
 	sessions[i].exiting_state = False;
 	sessions[i].receive_list = NULL;
 	sessions[i].receive_index = 0;
+	sessions[i].receive_list_udp = NULL;
+	sessions[i].receive_seqno_udp = 0;
 	sessions[i].send_list = NULL;
 	sessions[i].version_major = 0;
 	sessions[i].version_minor = 0;
 	sessions[i].seeds_hacked = False;
 	sessions[i].secure_token = 0;
 	sessions[i].sliding_token = NULL;
-
+	
 	return &sessions[i];
 }
 
@@ -159,7 +162,7 @@ session_node * GetSessionByID(int session_id)
 {
 	if (session_id < 0 || session_id >= num_sessions)
 		return NULL;
-
+	
 	if (sessions[session_id].session_id == session_id)
 		return &sessions[session_id];
 	else
@@ -169,7 +172,7 @@ session_node * GetSessionByID(int session_id)
 session_node * GetSessionByAccount(account_node *a)
 {
 	int i;
-
+	
 	for (i=0;i<num_sessions;i++)
 		if (sessions[i].connected && sessions[i].account == a)
 			return &sessions[i];
@@ -180,39 +183,48 @@ session_node * GetSessionByAccount(account_node *a)
 session_node * GetSessionBySocket(SOCKET sock)
 {
 	int i;
-
+	
 	for (i=0;i<num_sessions;i++)
 		if (sessions[i].connected && sessions[i].conn.type == CONN_SOCKET &&
 			sessions[i].conn.socket == sock && sessions[i].hangup == False)
 		{
 			return &sessions[i];
 		}
-
+		
 		return NULL;
 }
 
-void ForEachSession(void (*callback_func)(session_node *s))
+void ForEachSession(void(*callback_func)(session_node *s))
 {
-	int i;
+   /* the callback function shouldn't delete the session,
+   in case it becomes a linked list */
 
-	/* the callback function shouldn't delete the session,
-	in case it becomes a linked list */
-
-	for (i=0;i<num_sessions;i++)
-		if (sessions[i].connected)
-			callback_func(&sessions[i]);
+   for (int i = 0; i < num_sessions; i++)
+      if (sessions[i].connected)
+         callback_func(&sessions[i]);
 }
+
+void ForEachSessionWithString(void(*callback_func)(session_node *a, char *str), char *str)
+{
+   /* the callback function shouldn't delete the session,
+   in case it becomes a linked list */
+
+   for (int i = 0; i < num_sessions; i++)
+      if (sessions[i].connected)
+         callback_func(&sessions[i], str);
+}
+
 /*
 int GetUsedSessions()
 {
 int i,used;
 
   used = 0;
-
+  
 	for (i=1;i<num_sessions;i++)
 	if (sessions[i].connected)
 	used++;
-
+	
 	  return used;
 	  }
 */
@@ -221,11 +233,11 @@ const char * GetStateName(session_node *s)
 {
 	const char *str=NULL;
 	static char buf[50];
-
+	
 	/* static buffer for upload means that it shouldn't be used by
 	other threads without protection, but interface thread does.
 	That's bad */
-
+	
 	switch (s->state)
 	{
 		case STATE_ADMIN :
@@ -234,7 +246,7 @@ const char * GetStateName(session_node *s)
 		case STATE_MAINTENANCE :
 			str = "Maintenance";
 			break;
-		case STATE_GAME :
+		case STATE_GAME : 
 			if (s->game->game_state == GAME_BEACON)
 				str = "Game - beacon";
 			if (s->game->game_state == GAME_FINAL_SYNC)
@@ -247,7 +259,7 @@ const char * GetStateName(session_node *s)
 					str = "Game";
 			}
 			break;
-
+		
 		case STATE_TRYSYNC :
 			str = "TrySync";
 			break;
@@ -260,19 +272,19 @@ const char * GetStateName(session_node *s)
 					str = "Synchronized - validating";
 				break;
 			}
-
+			
 			if(1+sprintf(buf,"Transferring %i",s->syn->download_count)>50)
 				eprintf("Overflowed buf in GetStateName session.c");
 
 			str = buf;
 			break;
-		case STATE_RESYNC :
-			str = "Resync";
+		case STATE_RESYNC : 
+			str = "Resync"; 
 			break;
-		default :
+		default : 
 			str = "?";
 	}
-
+	
 	return str;
 }
 
@@ -280,7 +292,7 @@ void InitSessionState(session_node *s,int state)
 {
 	s->state = state;
 	s->timer = 0;		/* no timer */
-
+	
 	switch (s->state)
 	{
 	case STATE_ADMIN :
@@ -302,6 +314,7 @@ void InitSessionState(session_node *s,int state)
 		ResyncInit(s);
 		break;
 	}
+
 	if (s->connected)
 		InterfaceUpdateSession(s);
 		/*
@@ -316,7 +329,7 @@ void ExitSessionState(session_node *s)
 {
 /* these functions must NOT write to their session, because it may have
 	hung up and you will get infinite loops */
-
+	
 	switch (s->state)
 	{
 	case STATE_ADMIN :
@@ -344,8 +357,9 @@ void SetSessionState(session_node *s,int state)
 {
 /* a recent write could have failed, if so don't do anything since
 	they were closed */
-
-	if (s->connected)
+	
+	
+    if (s->connected)
     {
 		/* dprintf("state %i to %i\n",s->state,state); */
 		ExitSessionState(s);
@@ -359,7 +373,7 @@ void SetSessionTimer(session_node *s,int seconds)
 }
 
 void ClearSessionTimer(session_node *s)
-{
+{ 
 	s->timer = 0;
 }
 
@@ -367,7 +381,7 @@ void ClearSessionTimer(session_node *s)
 session_node * CreateSession(connection_node conn)
 {
 	session_node *session;
-
+	
 	session = AllocateSession();
 	if (session == NULL)
 	{
@@ -375,22 +389,22 @@ session_node * CreateSession(connection_node conn)
 		CloseConnection(conn);
 		return NULL;
 	}
-
+	
 	session->conn = conn; // struct copy
-
+	
 	if (conn.type == CONN_SOCKET)
 	{
 		session->muxReceive = MutexCreate();
 		session->muxSend = MutexCreate();
 	}
-
+	
 	session->connected = True;
 	session->connected_time = GetTime();
-
+	
 	/* dprintf("CreateSession making session %i\n",session->session_id); */
-
+	
 	InterfaceLogon(session);
-
+	
 	return session;
 }
 
@@ -403,28 +417,28 @@ void CloseConnection(connection_node conn)
 void CloseSession(int session_id)
 {
 	session_node *s;
-
+	
 	s = GetSessionByID(session_id);
 	if (s == NULL)
 	{
 		eprintf("CloseSession can't find session %i\n",session_id);
 		return;
 	}
-
+	
 	if (!s->connected)
 	{
 		eprintf("CloseSession can't close unconnected session %i\n",
 			s->session_id);
 		return;
 	}
-
+	
 	EnterSessionLock();
-
+	
 	s->connected = False;
-
+	
 	if (!s->exiting_state)	/* if a write error occurred during an exit, don't */
 		ExitSessionState(s);	/* go into infinite loop */
-
+	
 	if ((s->state != STATE_MAINTENANCE) && (s->account == NULL))
 		lprintf("CloseSession closing session with no account from %s\n",
 		s->conn.name);
@@ -434,11 +448,11 @@ void CloseSession(int session_id)
 		if (s->account != NULL)
 			lprintf("CloseSession/4 logging off %i\n",s->account->account_id);
 	}
-
+	
 	s->account = NULL;
-
+	
 	InterfaceLogoff(s);
-
+	
 	if (s->conn.type == CONN_SOCKET)
 	{
 		if (!MutexAcquireWithTimeout(s->muxSend,10000))
@@ -447,9 +461,13 @@ void CloseSession(int session_id)
 		{
 			DeleteBufferList(s->send_list);
 			s->send_list = NULL;
-
-			if (!MutexRelease(s->muxSend))
-				eprintf("File %s line %i release of non-owned mutex\n",__FILE__,__LINE__);
+			
+			/* no need to release mutex... we're closing it */
+			/*
+			if (!ReleaseMutex(s->muxSend))
+			eprintf("File %s line %i release of non-owned mutex\n",__FILE__,__LINE__);
+			*/
+			
 		}
 
 		if (!MutexAcquireWithTimeout(s->muxReceive,10000))
@@ -458,32 +476,49 @@ void CloseSession(int session_id)
 		{
 			DeleteBufferList(s->receive_list);
 			s->receive_list = NULL;
-
+			
+			/* no need to release mutex... we're closing it */
+			/*
 			if (!MutexRelease(s->muxReceive))
-				eprintf("File %s line %i release of non-owned mutex\n",__FILE__,__LINE__);
+			eprintf("File %s line %i release of non-owned mutex\n",__FILE__,__LINE__);
+			*/
+			
 		}
-
+		
 		if (!MutexClose(s->muxSend))
 			eprintf("CloseSession error (%s) closing send mutex %i in session %i\n",
 			GetLastErrorStr(),s->muxSend,s->session_id);
-
+		
 		if (!MutexClose(s->muxReceive))
 			eprintf("CloseSession error (%s) closing receive mutex %i in session %i\n",
 			GetLastErrorStr(),s->muxReceive,s->session_id);
-
+		
 		CloseConnection(s->conn);
 	}
-
+	
 	s->session_id = -1;
 	s->state = -1;
-
+	
 	LeaveSessionLock();
+}
+
+// Hangs up a session straight away, instead of posting to main loop.
+void HangupSessionNow(session_node *s)
+{
+   if (!s->connected)
+      return;
+
+   if (s->conn.type != CONN_SOCKET)
+      return;
+
+   CloseSession(s->session_id);
+   HangupSession(s);
 }
 
 void HangupSession(session_node *s)
 {
 	s->hangup = True;
-
+	
 	/* set event so that main loop will check it out */
 	SignalSession(s->session_id);
 }
@@ -491,7 +526,7 @@ void HangupSession(session_node *s)
 void CloseAllSessions()
 {
 	int i;
-
+	
 	for (i=0;i<num_sessions;i++)
 		if (sessions[i].connected)
 			CloseSession(i);
@@ -500,59 +535,58 @@ void CloseAllSessions()
 void PollSessions()
 {
 	session_node *s;
-	int i;
-  INT64 poll_time;
-
+	int i,poll_time;
+	
 	poll_time = GetTime();
-
+	
 	ProcessSysTimer(poll_time);
-
+	
 	for (i=0;i<num_sessions;i++)
 	{
 		s = GetSessionByID(i);
 		if (s == NULL)
 			continue;
-
+		
 		PollSession(s->session_id);
-
+		
 		if (s->connected)
 		{
 			if (s->timer != 0 && poll_time >= s->timer)
 				ProcessSessionTimer(s);
 		}
-
+		
 	}
 }
 
 void PollSession(int session_id)
 {
 	session_node *s;
-
+	
 	s = GetSessionByID(session_id);
 	if (s == NULL)
 		return;
-
+	
 	if (!s->connected)
 		return;
-
+	
 	if (s->conn.type != CONN_SOCKET)
 		return;
-
-		/* someone hung up session or if the read/write thread for this session is dead,
+	
+		/* someone hung up session or if the read/write thread for this session is dead, 
 	hang it up. */
 	if (s->hangup == True)
 	{
 		CloseSession(s->session_id);
 		return;
 	}
-
+	
 	if (!MutexAcquireWithTimeout(s->muxReceive,10000))
 	{
 		eprintf("PollSession bailed waiting for mutex on session %i\n",s->session_id);
 		HangupSession(s);
 		return;
 	}
-
+	
 	/*
 	if (s->num_receiving > 0)
 	{
@@ -563,45 +597,49 @@ void PollSession(int session_id)
 	dprintf("\n");
 	}
 	*/
+	
+   // handle pending TCP stream data of this session
+   if (s->receive_list != NULL)
+      ProcessSessionBuffer(s);
+   
+   // handle pending UDP datagrams of this session
+   if (s->receive_list_udp != NULL)
+      ProcessSessionBufferUDP(s);
 
-	if (s->receive_list != NULL)
-		ProcessSessionBuffer(s);
-
-
-	if (!MutexRelease(s->muxReceive))
-	{
-		eprintf("PollSession released mutex it didn't own in session %i\n",s->session_id);
-		HangupSession(s);
-	}
+   if (!MutexRelease(s->muxReceive))
+   {
+      eprintf("PollSession released mutex it didn't own in session %i\n",s->session_id);
+      HangupSession(s);
+   }
 }
 
 void VerifiedLoginSession(int session_id)
 {
 	session_node *s;
-
+	
 	s = GetSessionByID(session_id);
 	if (s == NULL)
 		return;
-
+	
 	if (!s->connected)
 		return;
-
+	
 	if (s->conn.type != CONN_SOCKET)
 		return;
-
+	
 	if (s->state != STATE_SYNCHED || s->login_verified)
 		return;
-
+	
 	VerifyLogin(s);
 }
 
 void ProcessSessionBuffer(session_node *s)
 {
 	int prev_session_state;
-
+	
 	/* need a loop, in case the state changes, so the new
 	state can handle the rest of the waiting bytes */
-
+	
 	/*
 	int i;
 	if (s->session_id == 0)
@@ -613,7 +651,7 @@ void ProcessSessionBuffer(session_node *s)
 	do
 	{
 		prev_session_state = s->state;
-
+		
 		switch (s->state)
 		{
 		case STATE_ADMIN :
@@ -638,39 +676,53 @@ void ProcessSessionBuffer(session_node *s)
 	} while (s->connected && s->state != prev_session_state);
 }
 
+void ProcessSessionBufferUDP(session_node *s)
+{
+   // parse udp only in game mode
+   if (s->state == STATE_GAME)
+      GameProcessSessionBufferUDP(s);
+   
+   // otherwise discard udp datagrams
+   else
+   {
+      DeleteBufferList(s->receive_list_udp);
+      s->receive_list_udp = NULL;
+   }
+}
+
 void ProcessSessionTimer(session_node *s)
 {
-   ClearSessionTimer(s);
-
-   switch (s->state)
-   {
-   case STATE_ADMIN :
-      /*      AdminProcessSessionTimer(s); */
-      break;
-   case STATE_MAINTENANCE :
-      MaintenanceProcessSessionTimer(s);
-      break;
-   case STATE_GAME :
-      GameProcessSessionTimer(s);
-      break;
-   case STATE_TRYSYNC :
-      TrySyncProcessSessionTimer(s);
-      break;
-   case STATE_SYNCHED :
-      SynchedProcessSessionTimer(s);
-      break;
-   case STATE_RESYNC :
-      ResyncProcessSessionTimer(s);
-      break;
-   }
-
+	ClearSessionTimer(s);
+	
+	switch (s->state)
+	{
+	case STATE_ADMIN :
+		/*      AdminProcessSessionTimer(s); */
+		break;
+	case STATE_MAINTENANCE :
+		/*      MaintenanceProcessSessionTimer(s); */
+		break;
+	case STATE_GAME :
+		GameProcessSessionTimer(s); 
+		break;
+	case STATE_TRYSYNC :
+		TrySyncProcessSessionTimer(s);
+		break;
+	case STATE_SYNCHED :
+		SynchedProcessSessionTimer(s); 
+		break;
+	case STATE_RESYNC :
+		ResyncProcessSessionTimer(s);
+		break;
+	}
+	
 }
 
 int GetSessionReadBytes(session_node *s)
 {
 	buffer_node *bn;
 	int bytes;
-
+	
 	bytes = 0;
 	if (s->receive_list != NULL)
 	{
@@ -691,36 +743,36 @@ Bool ReadSessionBytes(session_node *s,int num_bytes,void *buf)
 {
 	buffer_node *bn,*blist;
 	int copied,copy_bytes;
-
+	
 	if (GetSessionReadBytes(s) < num_bytes)
 		return False;
-
+	
 	blist = s->receive_list;
-
+	
 	if (blist->len_buf - s->receive_index > num_bytes)
 	{
 		memcpy(buf,blist->buf + s->receive_index,num_bytes);
 		s->receive_index += num_bytes;
 		return True;
 	}
-
+	
 	/* reading at least as many bytes as there are in first buffer */
-
+	
 	copy_bytes = blist->len_buf - s->receive_index;
 	memcpy(buf,blist->buf + s->receive_index,copy_bytes);
 	copied = copy_bytes;
-
+	
 	bn = blist->next;
 	DeleteBuffer(blist);
 	s->receive_list = bn;
 	s->receive_index = 0;
-
+	
 	copy_bytes = 0; /* in case exactly read message, set receive_index right */
 	while (s->receive_list != NULL && copied < num_bytes)
 	{
 	  copy_bytes = std::min(num_bytes-copied,s->receive_list->len_buf);
 	  memcpy((char *)buf+copied,s->receive_list->buf,copy_bytes);
-
+	  
 	  copied += copy_bytes;
 	  if (copy_bytes == s->receive_list->len_buf)
 	    {
@@ -741,36 +793,36 @@ Bool PeekSessionBytes(session_node *s,int num_bytes,void *buf)
 {
 	buffer_node *bn,*blist;
 	int copied,copy_bytes;
-
+	
 	if (GetSessionReadBytes(s) < num_bytes)
 		return False;
-
+	
 	blist = s->receive_list;
-
+	
 	if (blist->len_buf - s->receive_index > num_bytes)
 	{
 		memcpy(buf,blist->buf + s->receive_index,num_bytes);
 		return True;
 	}
-
+	
 	/* reading at least as many bytes as there are in first buffer */
-
+	
 	copy_bytes = blist->len_buf - s->receive_index;
 	memcpy(buf,blist->buf + s->receive_index,copy_bytes);
-
+	
 	bn = blist->next;
-
+	
 	copied = copy_bytes;
 	while (bn != NULL && copied < num_bytes)
 	{
 	  copy_bytes = std::min(num_bytes-copied,bn->len_buf);
 	  memcpy((char *)buf+copied,bn->buf,copy_bytes);
-
+	  
 	  copied += copy_bytes;
 	  if (copy_bytes == bn->len_buf)
 	    bn = bn->next;
 	}
-
+	
 	return True;
 }
 
@@ -782,7 +834,7 @@ void SendClientStr(int session_id,char *str)
 void SendClient(int session_id,char *data,unsigned short len_data)
 {
 	session_node *s;
-
+	
 	s = GetSessionByID(session_id);
 	if (s == NULL)
 	{
@@ -790,7 +842,7 @@ void SendClient(int session_id,char *data,unsigned short len_data)
 		/* eprintf("SendClient can't output to non-session %i\n",session_id); */
 		return;
 	}
-
+	
 	switch (s->state)
 	{
 	case STATE_GAME :
@@ -811,19 +863,19 @@ void SendGameClient(session_node *s,char *data,unsigned short len_data,int seqno
 {
 	unsigned short crc16;
 	char buf[HEADERBYTES];
-
+	
 	/*
-	dprintf("Sending %i bytes\n",len_data);
+	dprintf("Sending %i bytes\n",len_data); 
 	dprintf("Sending msg command = %i\n",(unsigned char)data);
 	*/
 	crc16 = GetCRC16(data,len_data);
-
+	
 	memcpy(buf,&len_data,LENBYTES);
 	memcpy(buf + LENBYTES,&crc16,CRCBYTES);
 	memcpy(buf + LENBYTES + CRCBYTES,&len_data,LENBYTES);
 	assert(seqno>255);
 	buf[LENBYTES*2 + CRCBYTES] = seqno; /* epoch or 0 for AP stuff */
-
+	
 	SendBytes(s,buf,sizeof(buf));
 	if (!s->connected)
 		return;
@@ -837,20 +889,20 @@ void SendBytes(session_node *s,char *buf,int len_buf)
 		InterfaceSendBytes(buf,len_buf);
 		return;
 	}
-
+	
 	if (s->hangup)
-		return;
-
+		return;   
+	
 	if (!MutexAcquireWithTimeout(s->muxSend,10000))
 	{
 		eprintf("SendBytes couldn't get session %i muxSend\n",s->session_id);
 		return;
 	}
-
+	
 	if (s->send_list == NULL)
 	{
 		/* if nothing in queue, try to send right now */
-
+		
 		if (send(s->conn.socket,buf,len_buf,0) == SOCKET_ERROR)
 		{
 			if (GetLastError() != WSAEWOULDBLOCK)
@@ -861,7 +913,7 @@ void SendBytes(session_node *s,char *buf,int len_buf)
 				HangupSession(s);
 				return;
 			}
-
+			
 			s->send_list = AddToBufferList(s->send_list,buf,len_buf);
 		}
 		else
@@ -873,7 +925,7 @@ void SendBytes(session_node *s,char *buf,int len_buf)
 	{
 		s->send_list = AddToBufferList(s->send_list,buf,len_buf);
 	}
-
+	
 	if (!MutexRelease(s->muxSend))
 		eprintf("File %s line %i release of non-owned mutex\n",__FILE__,__LINE__);
 }
@@ -884,14 +936,14 @@ void SendBytes(session_node *s,char *buf,int len_buf)
 void SendClientBufferList(int session_id,buffer_node *blist)
 {
 	session_node *s;
-
+	
 	s = GetSessionByID(session_id);
 	if (s == NULL)
 	{
 		DeleteBufferList(blist);
 		return;
 	}
-
+	
 	switch (s->state)
 	{
 	case STATE_GAME :
@@ -911,17 +963,17 @@ void SendClientBufferList(int session_id,buffer_node *blist)
 unsigned short __inline GetCRC16BufferList(buffer_node *blist)
 {
 	unsigned int crc32;
-
+	
 	crc32 = (unsigned int)-1;
-
+	
 	while (blist != NULL)
 	{
 		crc32 = CRC32Incremental(crc32,blist->buf,blist->len_buf);
 		blist = blist->next;
 	}
-
+	
 	crc32 ^= -1;
-
+	
 	return (unsigned short)(0xffff & crc32);
 }
 
@@ -930,10 +982,10 @@ void SendGameClientBufferList(session_node *s,buffer_node *blist,char seqno)
 	buffer_node *bn;
 	unsigned short crc16;
 	unsigned int len;
-
+	
 	if (blist == NULL)
 		return;
-
+	
 	len = 0;
 	bn = blist;
 	while (bn != NULL)
@@ -941,17 +993,17 @@ void SendGameClientBufferList(session_node *s,buffer_node *blist,char seqno)
 		len += bn->len_buf;
 		bn = bn->next;
 	}
-
+	
 	/* dprintf("SendClientBufferList %i bytes\n",len); */
-
+	
 	crc16 = GetCRC16BufferList(blist);
-
-
+	
+	
 	memcpy(blist->prebuf,&len,LENBYTES);
 	memcpy(blist->prebuf + LENBYTES,&crc16,CRCBYTES);
 	memcpy(blist->prebuf + LENBYTES + CRCBYTES,&len,LENBYTES);
 	blist->prebuf[LENBYTES*2 + CRCBYTES] = seqno;
-
+	
 	blist->buf = blist->prebuf;
 	blist->len_buf += HEADERBYTES;
 	/*
@@ -960,40 +1012,39 @@ void SendGameClientBufferList(session_node *s,buffer_node *blist,char seqno)
 	bn = AddToBufferList(bn,&crc16,CRCBYTES);
 	bn = AddToBufferList(bn,&len,LENBYTES);
 	bn = AddToBufferList(bn,&seqno,1);
-
+	
 	  bn->next = blist;
-	*/
+	*/ 
 	SendBufferList(s,blist);
-
+	
 }
 
 void SendBufferList(session_node *s,buffer_node *blist)
 {
 	buffer_node *bn;
-
+	
 	if (s->conn.type == CONN_CONSOLE)
 	{
 		InterfaceSendBufferList(blist);
 		return;
 	}
-
+	
 	if (!s->connected || s->hangup)
 	{
 		DeleteBufferList(blist);
 		return;
 	}
-
-
+	
 	if (!MutexAcquireWithTimeout(s->muxSend,10000))
 	{
 		eprintf("SendBufferList couldn't get session %i muxSend\n",s->session_id);
 		return;
 	}
-
+	
 	if (s->send_list == NULL)
 	{
 		/* if nothing in queue, try to send right now */
-
+		
 		while (blist != NULL)
 		{
 			if (send(s->conn.socket,blist->buf,blist->len_buf,0) == SOCKET_ERROR)
@@ -1007,6 +1058,7 @@ void SendBufferList(session_node *s,buffer_node *blist)
 					HangupSession(s);
 					return;
 				}
+
 				/* dprintf("%i adding to buffer list\n",s->session_id); */
 				SessionAddBufferList(s,blist);
 				break;
@@ -1014,11 +1066,11 @@ void SendBufferList(session_node *s,buffer_node *blist)
 			else
 			{
 				transmitted_bytes += blist->len_buf;
-
+				
 				bn = blist->next;
 				DeleteBuffer(blist);
 				blist = bn;
-			}
+			}	 
 		}
 	}
 	else
@@ -1026,7 +1078,7 @@ void SendBufferList(session_node *s,buffer_node *blist)
 		SessionAddBufferList(s,blist);
 	}
 
-	if (!MutexRelease(s->muxSend))
+    if (!MutexRelease(s->muxSend))
 		eprintf("File %s line %i release of non-owned mutex\n",__FILE__,__LINE__);
 }
 
@@ -1034,9 +1086,9 @@ void SessionAddBufferList(session_node *s,buffer_node *blist)
 {
 	buffer_node *bn,*temp;
 	int length;
-
+	
 	/* prereq: we must already hold the muxSend for s */
-
+	
 	if (s->send_list == NULL)
 	{
 		/* put first node on, then try the compress junk */
@@ -1054,9 +1106,9 @@ void SessionAddBufferList(session_node *s,buffer_node *blist)
 			length++;
 			bn = bn->next;
 		}
-
-		/* dprintf("non-blank send list len %i\n",length); */
-
+		
+		/* dprintf("non-blank send list len %i\n",length); */      
+		
 		/* if currently backed up more than MAX_SESSION_BUFFER_LIST_LEN,
 		then don't waste any more memory on them */
 		if (length > MAX_SESSION_BUFFER_LIST_LEN)
@@ -1066,11 +1118,11 @@ void SessionAddBufferList(session_node *s,buffer_node *blist)
 			return;
 		}
 	}
-
+	
 	/* simple approach: set bn->next to blist.  However, this can use up
 	a ton of buffers, when the amount of data to be sent is small.  So
 	do a couple discreet checks, and perhaps memcpy's. */
-	while (blist != NULL && blist->len_buf < (bn->size_prebuf - bn->len_buf - HEADERBYTES))
+	while (blist != NULL && blist->len_buf < ((int)sizeof(bn->prebuf) - bn->len_buf - HEADERBYTES))
 	{
 		/* dprintf("squeezing %i in %i\n",blist->len_buf,bn->size_buf-bn->len_buf); */
 		memcpy(bn->buf+bn->len_buf,blist->buf,blist->len_buf);
@@ -1079,6 +1131,7 @@ void SessionAddBufferList(session_node *s,buffer_node *blist)
 		DeleteBuffer(blist);
 		blist = temp;
 	}
-
+	
 	bn->next = blist;
 }
+
